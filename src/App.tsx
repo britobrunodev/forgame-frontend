@@ -12,6 +12,8 @@ import Reservations from "./pages/Reservations";
 import SportPage from "./pages/SportPage";
 import Schedule from "./pages/Schedule";
 import ManagementDashboard from "./pages/ManagementDashboard";
+import TournamentSettings from "./pages/TournamentSettings";
+import SportComplexSettings from "./pages/SportComplexSettings";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -33,6 +35,8 @@ const App = () => (
             <Route path="/sports/:sportId" element={<SportPage />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/management" element={<ManagementDashboard />} />
+            <Route path="/settings" element={<TournamentSettings />} />
+            <Route path="/settings/complex" element={<SportComplexSettings />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

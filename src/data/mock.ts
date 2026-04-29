@@ -9,17 +9,17 @@ import champFloripa from '@/assets/champ-floripa.jpg';
 export const SPORTS: Sport[] = [
   { id: 'footvolley', name: 'Footvolley', icon: '🏐' },
   { id: 'beach-tennis', name: 'Beach Tennis', icon: '🎾' },
-  { id: 'beach-soccer', name: 'Beach Soccer', icon: '⚽' },
+  { id: 'beach-soccer', name: 'Futebol', icon: '⚽' },
   { id: 'volleyball', name: 'Volleyball', icon: '🏐' },
-  { id: 'padel', name: 'Padel', icon: '🎾' },
 ];
 
 export const CURRENT_USER: User = {
   id: 'u1',
   name: 'Rafael Souza',
   email: 'rafa@jogajunto360.com',
-  type: 'player',
+  type: 'distributor',
   preferences: ['footvolley', 'beach-tennis'],
+  applications: ['FTM Sports Center', 'Contorno da Bola'],
 };
 
 const roundNameByTeamCount: Record<number, string> = {
@@ -149,7 +149,7 @@ export const CHAMPIONSHIPS: Championship[] = [
   },
   {
     id: 'c4',
-    name: 'Beach Soccer Cup',
+    name: 'Copa Futebol',
     sport: 'beach-soccer',
     location: 'Recife, PE',
     startDate: '2026-05-05',
@@ -163,7 +163,7 @@ export const CHAMPIONSHIPS: Championship[] = [
 
 export const RESERVATION_PLACES: ReservationPlace[] = [
   { id: 'p1', name: 'Arena Beach Copacabana', city: 'Rio de Janeiro', sports: ['footvolley', 'beach-tennis'], courts: 8, rating: 4.8, image: placeCopacabana },
-  { id: 'p2', name: 'FTM Sports Center', city: 'São Paulo', sports: ['footvolley', 'padel'], courts: 12, rating: 4.9, image: placeFtm },
+  { id: 'p2', name: 'FTM Sports Center', city: 'São Paulo', sports: ['footvolley', 'volleyball'], courts: 12, rating: 4.9, image: placeFtm },
   { id: 'p3', name: 'Contorno da Bola', city: 'Belo Horizonte', sports: ['footvolley', 'beach-soccer'], courts: 6, rating: 4.7, image: placeContorno },
   { id: 'p4', name: 'Jurerê Beach Club', city: 'Florianópolis', sports: ['beach-tennis', 'volleyball'], courts: 10, rating: 4.9, image: placeJurere },
 ];
@@ -172,5 +172,5 @@ export const COURTS: Court[] = [
   { id: 'ct1', name: 'Court 1', sport: 'footvolley', application: 'FTM', reservations: [{ date: today, start: '08:00', end: '10:00', user: 'João S.' }, { date: today, start: '14:00', end: '16:00', user: 'Maria L.' }] },
   { id: 'ct2', name: 'Court 2', sport: 'footvolley', application: 'FTM', reservations: [{ date: today, start: '10:00', end: '12:00', user: 'Pedro M.' }] },
   { id: 'ct3', name: 'Court 3', sport: 'beach-tennis', application: 'Contorno da Bola', reservations: [] },
-  { id: 'ct4', name: 'Court 4', sport: 'padel', application: 'FTM', reservations: [{ date: today, start: '18:00', end: '20:00', user: 'Carla R.' }] },
+  { id: 'ct4', name: 'Court 4', sport: 'volleyball', application: 'FTM', reservations: [{ date: today, start: '18:00', end: '20:00', user: 'Carla R.' }] },
 ];

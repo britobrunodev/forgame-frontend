@@ -2,15 +2,26 @@ import { useLanguage } from '@/i18n';
 
 interface Props {
   className?: string;
+  status?: 'scheduled' | 'upcoming' | 'live' | 'finished';
 }
 
-export const LiveBadge = ({ className = '' }: Props) => {
+export const LiveBadge = ({ className = '', status = 'live' }: Props) => {
   const { t } = useLanguage();
+  const labelKey = status === 'finished' ? 'final' : status === 'live' ? 'inProgress' : 'notStarted';
+  const toneClass =
+    status === 'finished'
+      ? 'text-neon-cyan'
+      : status === 'live'
+        ? 'text-lime-400 animate-status-pulse'
+        : 'text-muted-foreground';
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-live/15 border border-live/40 text-live text-xs font-bold uppercase tracking-wider ${className}`}>
-      <span className="live-dot" />
-      {t('live')}
+    <span
+      aria-label={t(labelKey)}
+      title={t(labelKey)}
+      className={`font-display text-[10px] font-bold uppercase tracking-wider ${toneClass} ${className}`}
+    >
+      {t(labelKey)}
     </span>
   );
 };

@@ -1,4 +1,4 @@
-export type SportId = 'footvolley' | 'beach-tennis' | 'beach-soccer' | 'volleyball' | 'padel';
+export type SportId = 'footvolley' | 'beach-tennis' | 'beach-soccer' | 'volleyball';
 
 export interface Sport {
   id: SportId;

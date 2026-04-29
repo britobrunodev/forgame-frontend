@@ -4,16 +4,16 @@ import { BracketMobile } from './BracketMobile';
 import { useLanguage } from '@/i18n';
 
 type BracketRounds = Championship['rounds'];
-export const CARD_HEIGHT = 76;
+export const CARD_HEIGHT = 108;
 const SLOT_GAP = 18;
 const SLOT_STEP = CARD_HEIGHT + SLOT_GAP;
 
 export const Bracket = ({ rounds }: { rounds: BracketRounds }) => {
   const { roundName } = useLanguage();
   const baseHeight = Math.max(((rounds[0]?.matches.length ?? 1) - 1) * SLOT_STEP + CARD_HEIGHT, CARD_HEIGHT);
-  const minHeight = rounds.length === 1 ? baseHeight : Math.max(baseHeight, 340);
+  const minHeight = rounds.length === 1 ? baseHeight : Math.max(baseHeight, CARD_HEIGHT);
   const isStandardProgression = rounds.every((round, index) => index === 0 || rounds[index - 1].matches.length === round.matches.length * 2);
-  const totalHeight = Math.max(((rounds[0]?.matches.length ?? 1) - 1) * SLOT_STEP + CARD_HEIGHT, 340);
+  const totalHeight = Math.max(((rounds[0]?.matches.length ?? 1) - 1) * SLOT_STEP + CARD_HEIGHT, CARD_HEIGHT);
 
   return (
     <>

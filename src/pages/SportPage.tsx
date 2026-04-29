@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import { CHAMPIONSHIPS, SPORTS, RESERVATION_PLACES } from '@/data/mock';
 import { ChampionshipCard } from '@/components/ChampionshipCard';
 import { PlaceCard } from '@/components/PlaceCard';
+import { SportIcon } from '@/components/SportIcon';
 import { useLanguage } from '@/i18n';
 
 const SportPage = () => {
@@ -17,7 +18,7 @@ const SportPage = () => {
       <header>
         <p className="text-xs uppercase tracking-[0.3em] text-neon-cyan font-bold mb-1">{t('sport')}</p>
         <h1 className="font-display font-black text-4xl flex items-center gap-3">
-          <span className="text-3xl">{sport.icon}</span>
+          <SportIcon sportId={sport.id} className="h-8 w-8 translate-y-[1px]" />
           <span className="neon-text">{sportName(sport.id)}</span>
         </h1>
       </header>

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { MapPin, Users, Calendar, Trophy } from 'lucide-react';
 import { LiveBadge } from './LiveBadge';
+import { SportIcon } from './SportIcon';
 import { SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import type { Championship } from '@/types';
@@ -20,11 +21,12 @@ export const ChampionshipCard = ({ c }: { c: Championship }) => {
           <div className="absolute inset-0 hex-grid opacity-30" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/30 to-background/10" />
-        <div className="absolute top-3 left-3 flex gap-2">
-          {c.status === 'live' && <LiveBadge />}
-          <span className="px-2 py-0.5 rounded-md bg-background/60 backdrop-blur-md text-xs font-bold uppercase tracking-wider text-foreground border border-white/10">
-            {sport?.icon} {sport ? sportName(sport.id) : c.sport}
+        <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-background/60 backdrop-blur-md text-xs font-bold uppercase tracking-wider text-foreground border border-white/10 leading-none">
+            {sport && <SportIcon sportId={sport.id} className="h-3.5 w-3.5 translate-y-[0.5px]" />}
+            <span className="translate-y-[0.5px] leading-none">{sport ? sportName(sport.id) : c.sport}</span>
           </span>
+          <LiveBadge status={c.status} />
         </div>
         {c.prize && (
           <div className="absolute bottom-3 right-3 text-right">

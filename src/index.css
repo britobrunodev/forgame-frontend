@@ -119,17 +119,14 @@
     pointer-events: none;
   }
 
-  .live-dot {
-    @apply inline-block w-2 h-2 rounded-full;
-    background: hsl(var(--live));
-    box-shadow: 0 0 8px hsl(var(--live)), 0 0 16px hsl(var(--live) / 0.6);
-    animation: pulse-live 1.4s ease-in-out infinite;
+  .animate-status-pulse {
+    animation: pulse-live 2s ease-in-out infinite;
   }
 }
 
 @keyframes pulse-live {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.25); }
+  50% { opacity: 0.35; transform: scale(1); }
 }
 
 @keyframes glow-sweep {

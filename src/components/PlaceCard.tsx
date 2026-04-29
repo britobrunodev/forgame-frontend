@@ -1,4 +1,5 @@
 import { MapPin, Star } from 'lucide-react';
+import { SportIcon } from '@/components/SportIcon';
 import { SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import type { ReservationPlace } from '@/types';
@@ -28,8 +29,9 @@ export const PlaceCard = ({ p }: { p: ReservationPlace }) => {
           {p.sports.map(sid => {
             const s = SPORTS.find(x => x.id === sid)!;
             return (
-              <span key={sid} className="px-2 py-0.5 rounded-md bg-secondary border border-border text-[10px] font-bold uppercase tracking-wider">
-                {s.icon} {sportName(s.id)}
+              <span key={sid} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-secondary border border-border text-[10px] font-bold uppercase tracking-wider leading-none">
+                <SportIcon sportId={s.id} className="h-3.5 w-3.5 translate-y-[0.5px]" />
+                <span className="translate-y-[0.5px] leading-none">{sportName(s.id)}</span>
               </span>
             );
           })}

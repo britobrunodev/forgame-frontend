@@ -2,8 +2,10 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { CHAMPIONSHIPS, SPORTS } from '@/data/mock';
 import { Bracket, CARD_HEIGHT, PreciseBracketConnector } from '@/components/Bracket';
+import { BracketMobile } from '@/components/BracketMobile';
 import { LiveBadge } from '@/components/LiveBadge';
 import { MatchNode } from '@/components/MatchNode';
+import { SportIcon } from '@/components/SportIcon';
 import { ArrowLeft, MapPin, Calendar, Users, Trophy } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 import {
@@ -84,9 +86,9 @@ const ChampionshipDetail = () => {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/30" />
         <div className="relative p-8">
           <div className="flex items-center gap-2 mb-3">
-            {c.status === 'live' && <LiveBadge />}
-            <span className="px-3 py-1 rounded-md bg-background/60 backdrop-blur-md text-xs font-bold uppercase tracking-wider border border-white/10">
-              {sport?.icon} {sport ? sportName(sport.id) : c.sport}
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-background/60 backdrop-blur-md text-xs font-bold uppercase tracking-wider border border-white/10 leading-none">
+              {sport && <SportIcon sportId={sport.id} className="h-3.5 w-3.5 translate-y-[0.5px]" />}
+              <span className="translate-y-[0.5px] leading-none">{sport ? sportName(sport.id) : c.sport}</span>
             </span>
           </div>
           <h1 className="font-display font-black text-3xl lg:text-4xl mb-3 drop-shadow-lg">{c.name}</h1>
@@ -95,6 +97,9 @@ const ChampionshipDetail = () => {
             <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {c.startDate} → {c.endDate}</span>
             <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> {selectedTeamCount} {t('teams')}</span>
             {c.prize && <span className="flex items-center gap-1.5"><Trophy className="w-4 h-4" /> {c.prize}</span>}
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+            <LiveBadge status={c.status} />
           </div>
         </div>
       </div>
@@ -209,60 +214,74 @@ const BracketPanel = ({
 const FinalsBracket = ({ rounds }: { rounds: FinalsRounds }) => {
   const { roundName } = useLanguage();
   const semifinals = rounds[0];
-  const finalRound = rounds[1];
-  const thirdPlaceRound = rounds[2];
+  const thirdPlaceRound = rounds[1];
+  const finalRound = rounds[2];
   const gap = 18;
-  const topSemiTop = 0;
   const bottomSemiTop = CARD_HEIGHT + gap;
   const totalHeight = bottomSemiTop + CARD_HEIGHT;
   const centerTop = (totalHeight - CARD_HEIGHT) / 2;
 
   return (
-    <div className="overflow-x-auto pb-4">
-      <div className="flex min-w-max gap-4">
-        <section className="space-y-4">
-          <h4 className="w-56 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
-            {roundName(semifinals.name)}
-          </h4>
-          <div className="relative" style={{ height: totalHeight, width: 288 }}>
-            <div className="absolute left-0 top-0 overflow-visible" style={{ width: 288, height: CARD_HEIGHT }}>
-              <div className="relative h-full w-full">
-                <MatchNode match={semifinals.matches[0]} />
-                <PreciseBracketConnector deltaToNext={centerTop - topSemiTop} />
-              </div>
-            </div>
-            <div className="absolute left-0 overflow-visible" style={{ top: bottomSemiTop, width: 288, height: CARD_HEIGHT }}>
-              <div className="relative h-full w-full">
-                <MatchNode match={semifinals.matches[1]} />
-                <PreciseBracketConnector deltaToNext={centerTop - bottomSemiTop} />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="space-y-4">
-          <h4 className="w-56 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
-            {roundName(finalRound.name)}
-          </h4>
-          <div className="relative" style={{ height: totalHeight, width: 224 }}>
-            <div className="absolute left-0" style={{ top: centerTop }}>
-              <MatchNode match={finalRound.matches[0]} />
-            </div>
-          </div>
-        </section>
-
-        <section className="space-y-4">
-          <h4 className="w-56 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
-            {roundName(thirdPlaceRound.name)}
-          </h4>
-          <div className="relative" style={{ height: totalHeight, width: 224 }}>
-            <div className="absolute left-0" style={{ top: centerTop }}>
-              <MatchNode match={thirdPlaceRound.matches[0]} />
-            </div>
-          </div>
-        </section>
+    <>
+      <div className="md:hidden">
+        <BracketMobile rounds={rounds} highlightRound="Final" />
       </div>
-    </div>
+
+      <div className="hidden md:block overflow-x-auto pb-4">
+        <div className="flex min-w-max gap-4">
+          <section className="space-y-4">
+            <h4 className="w-56 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
+              {roundName(semifinals.name)}
+            </h4>
+            <div className="relative" style={{ height: totalHeight, width: 288 }}>
+              <div className="absolute left-0 top-0 overflow-visible" style={{ width: 288, height: CARD_HEIGHT }}>
+                <div className="relative h-full w-full">
+                  <MatchNode match={semifinals.matches[0]} />
+                  <PreciseBracketConnector deltaToNext={centerTop} />
+                </div>
+              </div>
+              <div className="absolute left-0 overflow-visible" style={{ top: bottomSemiTop, width: 288, height: CARD_HEIGHT }}>
+                <div className="relative h-full w-full">
+                  <MatchNode match={semifinals.matches[1]} />
+                  <PreciseBracketConnector deltaToNext={centerTop - bottomSemiTop} />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <h4 className="w-56 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
+              {roundName(thirdPlaceRound.name)}
+            </h4>
+            <div className="relative" style={{ height: totalHeight, width: 224 }}>
+              <div className="absolute left-0" style={{ top: centerTop }}>
+                <MatchNode match={thirdPlaceRound.matches[0]} />
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <h4 className="ml-16 w-56 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
+              {roundName(finalRound.name)}
+            </h4>
+            <div className="relative" style={{ height: totalHeight, width: 288 }}>
+              <div
+                className="absolute rounded-xl bg-neon-cyan/5 ring-1 ring-inset ring-neon-cyan/15"
+                style={{ top: centerTop - 15, left: 49, width: 254, height: CARD_HEIGHT + 30 }}
+              />
+              <div className="absolute overflow-visible" style={{ top: centerTop, left: 64, width: 224, height: CARD_HEIGHT }}>
+                <div className="relative h-full w-full">
+                  <MatchNode match={finalRound.matches[0]} />
+                  <div className="absolute overflow-visible" style={{ left: -64, top: CARD_HEIGHT / 2, width: 64, height: 1 }}>
+                    <div className="h-px w-full bg-primary/60" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </>
   );
 };
 
@@ -351,10 +370,14 @@ const getNextStageSize = (currentSize: number) => {
 const getRoundLabel = (currentSize: number) => {
   if (currentSize === 4) return 'Semi';
   if (currentSize === 8) return 'Quartas';
-  return String(currentSize);
+  if (currentSize === 16) return 'Oitavas';
+  if (currentSize === 32) return 'Round of 32';
+  return `R${currentSize}`;
 };
 
 const resolveMatch = (round: string, id: string, teamA: Team | null, teamB: Team | null, index: number) => {
+  const time = getRoundTime(round, index);
+
   if (!teamA || !teamB) {
     return {
       match: {
@@ -362,6 +385,7 @@ const resolveMatch = (round: string, id: string, teamA: Team | null, teamB: Team
         round,
         teamA,
         teamB,
+        time,
         status: 'scheduled' as const,
       },
       winner: teamA ?? teamB,
@@ -381,11 +405,32 @@ const resolveMatch = (round: string, id: string, teamA: Team | null, teamB: Team
       teamB,
       scoreA,
       scoreB,
+      time,
       status: 'finished' as const,
     },
     winner: (teamAWins ? teamA : teamB) as Team,
     loser: (teamAWins ? teamB : teamA) as Team,
   };
+};
+
+const getRoundTime = (round: string, index: number) => {
+  const baseByRound: Record<string, string> = {
+    'Round of 32': '09:00',
+    Oitavas: '10:00',
+    Quartas: '12:00',
+    Semi: '15:30',
+    Final: '18:00',
+    'Disputa de 3º Lugar': '17:00',
+  };
+
+  const base = baseByRound[round] ?? '15:30';
+  const [hourString, minuteString] = base.split(':');
+  const hour = Number(hourString);
+  const minute = Number(minuteString);
+  const totalMinutes = hour * 60 + minute + index * 20;
+  const nextHour = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+  const nextMinute = String(totalMinutes % 60).padStart(2, '0');
+  return `${nextHour}:${nextMinute}`;
 };
 
 const getQualifiedTeams = (rounds: BracketRounds): Team[] => {
@@ -405,11 +450,16 @@ const buildFinalsBracket = (winnerQualified: Team[], loserQualified: Team[]): Fi
     round: 'Final',
     teamA: semifinalOne.winner,
     teamB: semifinalTwo.winner,
+    time: '18:00',
+    status: 'scheduled' as const,
+  };
+  const thirdPlaceResolved = resolveMatch('3º Lugar', 'finals-third', semifinalOne.loser, semifinalTwo.loser, 0);
+  const thirdPlaceMatch = {
+    ...thirdPlaceResolved.match,
     scoreA: 1,
     scoreB: 1,
     status: 'live' as const,
   };
-  const thirdPlace = resolveMatch('Disputa de 3º Lugar', 'finals-third', semifinalOne.loser, semifinalTwo.loser, 0);
 
   return [
     {
@@ -417,12 +467,12 @@ const buildFinalsBracket = (winnerQualified: Team[], loserQualified: Team[]): Fi
       matches: [semifinalOne.match, semifinalTwo.match],
     },
     {
-      name: 'Final',
-      matches: [finalMatch],
+      name: 'Disputa de 3º Lugar',
+      matches: [thirdPlaceMatch],
     },
     {
-      name: 'Disputa de 3º Lugar',
-      matches: [thirdPlace.match],
+      name: 'Final',
+      matches: [finalMatch],
     },
   ];
 };

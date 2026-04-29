@@ -1,5 +1,6 @@
 import { CHAMPIONSHIPS, CURRENT_USER, SPORTS } from '@/data/mock';
 import { ChampionshipCard } from '@/components/ChampionshipCard';
+import { SportIcon } from '@/components/SportIcon';
 import { Trophy, Flame, Calendar } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 
@@ -24,8 +25,9 @@ const Dashboard = () => {
             {CURRENT_USER.preferences.map(p => {
               const s = SPORTS.find(x => x.id === p)!;
               return (
-                <span key={p} className="px-3 py-1 rounded-full bg-secondary border border-border text-xs font-bold flex items-center gap-1.5">
-                  <span>{s.icon}</span> {sportName(s.id)}
+                <span key={p} className="px-2.5 py-1 rounded-full bg-secondary border border-border text-xs font-bold flex items-center gap-1 leading-none">
+                  <SportIcon sportId={s.id} className="h-3.5 w-3.5 translate-y-[0.5px]" />
+                  <span className="translate-y-[0.5px] leading-none">{sportName(s.id)}</span>
                 </span>
               );
             })}
