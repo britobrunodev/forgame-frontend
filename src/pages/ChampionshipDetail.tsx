@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { CHAMPIONSHIPS, SPORTS } from '@/data/mock';
 import { Bracket, CARD_HEIGHT, PreciseBracketConnector } from '@/components/Bracket';
 import { BracketMobile } from '@/components/BracketMobile';
@@ -8,7 +8,7 @@ import { MapsButton } from '@/components/MapsButton';
 import { MatchNode } from '@/components/MatchNode';
 import { SportIcon } from '@/components/SportIcon';
 import { YouTubeButton } from '@/components/YouTubeButton';
-import { ArrowLeft, MapPin, Calendar, Users, Trophy } from 'lucide-react';
+import { MapPin, Calendar, Users, Trophy } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 import {
   Select,
@@ -74,38 +74,36 @@ const ChampionshipDetail = () => {
   const architecture = useMemo(() => buildDoubleEliminationArchitecture(selectedTeamCount), [selectedTeamCount]);
 
   return (
-    <div className="space-y-8">
-      <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-smooth">
-        <ArrowLeft className="w-4 h-4" /> {t('back')}
-      </Link>
-
-      <div className="rounded-2xl border border-border overflow-hidden relative bg-secondary min-h-[220px]">
+    <div className="mx-auto w-full max-w-[min(110rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(118rem,calc(100vw-3rem))]">
+      <div className="relative min-h-[220px] overflow-hidden rounded-2xl border border-border bg-secondary">
         {c.image ? (
           <img src={c.image} alt={c.name} className="absolute inset-0 w-full h-full object-cover" />
         ) : (
           <div className="absolute inset-0 hex-grid opacity-30" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/30" />
-        <div className="relative p-8">
+        <div className="relative p-5 sm:p-8">
           <div className="flex items-center gap-2 mb-3">
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-background/60 backdrop-blur-md text-xs font-bold uppercase tracking-wider border border-white/10 leading-none">
               {sport && <SportIcon sportId={sport.id} className="h-3.5 w-3.5 translate-y-[0.5px]" />}
               <span className="translate-y-[0.5px] leading-none">{sport ? sportName(sport.id) : c.sport}</span>
             </span>
           </div>
-          <h1 className="font-display font-black text-3xl lg:text-4xl mb-3 drop-shadow-lg">{c.name}</h1>
+          <h1 className="mb-3 font-display text-2xl font-black drop-shadow-lg sm:text-3xl lg:text-4xl">{c.name}</h1>
           <div className="flex flex-wrap gap-5 text-sm font-semibold">
             <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {c.location}</span>
             <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {c.startDate} → {c.endDate}</span>
             <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> {selectedTeamCount} {t('teams')}</span>
             {c.prize && <span className="flex items-center gap-1.5"><Trophy className="w-4 h-4" /> {c.prize}</span>}
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-            <LiveBadge status={c.status} />
-          </div>
-          <div className="absolute bottom-8 right-8 flex items-center gap-2">
-            <MapsButton />
-            <YouTubeButton url={c.youtubeUrl} />
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <LiveBadge status={c.status} />
+            </div>
+            <div className="flex items-center gap-2 sm:justify-end">
+              <MapsButton />
+              <YouTubeButton url={c.youtubeUrl} />
+            </div>
           </div>
         </div>
       </div>
@@ -272,8 +270,8 @@ const FinalsBracket = ({ rounds }: { rounds: FinalsRounds }) => {
             </h4>
             <div className="relative" style={{ height: totalHeight, width: 288 }}>
               <div
-                className="absolute rounded-xl bg-neon-cyan/5 ring-1 ring-inset ring-neon-cyan/15"
-                style={{ top: centerTop - 15, left: 49, width: 254, height: CARD_HEIGHT + 30 }}
+                className="absolute rounded-xl bg-neon-cyan/4 shadow-[0_12px_24px_-20px_hsl(var(--neon-cyan)/0.7)] ring-1 ring-inset ring-neon-cyan/12"
+                style={{ top: centerTop - 7, left: 58, width: 236, height: CARD_HEIGHT + 14 }}
               />
               <div className="absolute overflow-visible" style={{ top: centerTop, left: 64, width: 224, height: CARD_HEIGHT }}>
                 <div className="relative h-full w-full">

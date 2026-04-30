@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { CURRENT_USER } from '@/data/mock';
-import type { User, UserProfile } from '@/types';
+import type { GestorRole, User, UserProfile } from '@/types';
 
 type SessionContextValue = {
   currentUser: User;
@@ -10,19 +10,33 @@ type SessionContextValue = {
   setActiveProfile: (profile: UserProfile) => void;
   availableProfiles: UserProfile[];
   setAvailableProfiles: (profiles: UserProfile[]) => void;
-  isOwnerMode: boolean;
+  activeGestorRole: GestorRole;
+  setActiveGestorRole: (role: GestorRole) => void;
+  availableGestorRoles: GestorRole[];
+  setAvailableGestorRoles: (roles: GestorRole[]) => void;
+  isGestorMode: boolean;
 };
 
 const storageKey = 'joga-junto-active-profile';
 const profilesStorageKey = 'joga-junto-available-profiles';
 const userStorageKey = 'joga-junto-current-user';
+const gestorRoleStorageKey = 'joga-junto-active-gestor-role';
+const gestorRolesStorageKey = 'joga-junto-available-gestor-roles';
 
 const getAvailableProfiles = (user: User): UserProfile[] => {
   if (user.profiles && user.profiles.length > 0) {
     return user.profiles;
   }
 
-  return user.type === 'distributor' ? ['owner'] : ['player'];
+  return user.type === 'gestor' ? ['gestor'] : ['player'];
+};
+
+const getAvailableGestorRoles = (user: User): GestorRole[] => {
+  if (user.gestorRoles && user.gestorRoles.length > 0) {
+    return user.gestorRoles;
+  }
+
+  return user.type === 'gestor' ? ['owner'] : [];
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -46,7 +60,9 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
     if (stored) {
       try {
         const parsed = JSON.parse(stored) as UserProfile[];
-        const valid = parsed.filter((profile) => profile === 'player' || profile === 'owner');
+        const valid = parsed.map((profile) => profile === 'owner' ? 'gestor' : profile).filter(
+          (profile): profile is UserProfile => profile === 'player' || profile === 'gestor',
+        );
         if (valid.length > 0) {
           return Array.from(new Set(valid));
         }
@@ -58,12 +74,44 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
     return getAvailableProfiles(currentUser);
   });
 
+  const [availableGestorRoles, setAvailableGestorRolesState] = useState<GestorRole[]>(() => {
+    const stored = window.localStorage.getItem(gestorRolesStorageKey);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as GestorRole[];
+        const valid = parsed.filter(
+          (role): role is GestorRole => role === 'owner' || role === 'manager' || role === 'professor',
+        );
+        if (valid.length > 0) {
+          return Array.from(new Set(valid));
+        }
+      } catch {
+        // Ignore corrupted local storage and fall back to mock roles.
+      }
+    }
+
+    return getAvailableGestorRoles(currentUser);
+  });
+
   const [activeProfile, setActiveProfileState] = useState<UserProfile>(() => {
     const stored = window.localStorage.getItem(storageKey);
-    if ((stored === 'player' || stored === 'owner') && availableProfiles.includes(stored)) {
-      return stored;
+    const normalized = stored === 'owner' ? 'gestor' : stored;
+    if ((normalized === 'player' || normalized === 'gestor') && availableProfiles.includes(normalized)) {
+      return normalized;
     }
     return availableProfiles[0] ?? 'player';
+  });
+
+  const [activeGestorRole, setActiveGestorRoleState] = useState<GestorRole>(() => {
+    const stored = window.localStorage.getItem(gestorRoleStorageKey);
+    if (
+      (stored === 'owner' || stored === 'manager' || stored === 'professor')
+      && availableGestorRoles.includes(stored)
+    ) {
+      return stored;
+    }
+
+    return availableGestorRoles[0] ?? 'owner';
   });
 
   const value = useMemo<SessionContextValue>(
@@ -84,7 +132,9 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
       },
       availableProfiles,
       setAvailableProfiles: (profiles) => {
-        const nextProfiles = Array.from(new Set(profiles.filter((profile) => profile === 'player' || profile === 'owner')));
+        const nextProfiles = Array.from(new Set(profiles.filter(
+          (profile): profile is UserProfile => profile === 'player' || profile === 'gestor',
+        )));
         const safeProfiles = nextProfiles.length > 0 ? nextProfiles : ['player'];
         window.localStorage.setItem(profilesStorageKey, JSON.stringify(safeProfiles));
         setAvailableProfilesState(safeProfiles);
@@ -100,9 +150,35 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
           setActiveProfileState(nextActiveProfile);
         }
       },
-      isOwnerMode: activeProfile === 'owner' && availableProfiles.includes('owner'),
+      activeGestorRole,
+      setActiveGestorRole: (role) => {
+        if (!availableGestorRoles.includes(role)) return;
+        window.localStorage.setItem(gestorRoleStorageKey, role);
+        setActiveGestorRoleState(role);
+      },
+      availableGestorRoles,
+      setAvailableGestorRoles: (roles) => {
+        const nextRoles = Array.from(new Set(roles.filter(
+          (role): role is GestorRole => role === 'owner' || role === 'manager' || role === 'professor',
+        )));
+        const safeRoles = nextRoles.length > 0 ? nextRoles : ['owner'];
+        window.localStorage.setItem(gestorRolesStorageKey, JSON.stringify(safeRoles));
+        setAvailableGestorRolesState(safeRoles);
+        setCurrentUser((previousUser) => {
+          const nextUser = { ...previousUser, gestorRoles: safeRoles };
+          window.localStorage.setItem(userStorageKey, JSON.stringify(nextUser));
+          return nextUser;
+        });
+
+        if (!safeRoles.includes(activeGestorRole)) {
+          const nextActiveRole = safeRoles[0];
+          window.localStorage.setItem(gestorRoleStorageKey, nextActiveRole);
+          setActiveGestorRoleState(nextActiveRole);
+        }
+      },
+      isGestorMode: activeProfile === 'gestor' && availableProfiles.includes('gestor'),
     }),
-    [activeProfile, availableProfiles, currentUser],
+    [activeGestorRole, activeProfile, availableGestorRoles, availableProfiles, currentUser],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

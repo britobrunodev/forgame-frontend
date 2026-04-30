@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Search, Menu, LayoutDashboard, Trophy, MapPin, Calendar, Building2, ChevronDown, PlusCircle, LogOut, Settings } from 'lucide-react';
+import { Bell, Search, Menu, LayoutDashboard, Trophy, MapPin, Calendar, Building2, ChevronDown, PlusCircle, LogOut, Settings, SlidersHorizontal, GraduationCap } from 'lucide-react';
 import { SPORTS } from '@/data/mock';
 import { LanguageSelector } from './LanguageSelector';
 import { Logo } from './Logo';
@@ -9,12 +9,13 @@ import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export const TopBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { t, userTypeLabel, sportName } = useLanguage();
-  const { activeProfile, currentUser, isOwnerMode } = useSession();
+  const { t, userTypeLabel, sportName, gestorRoleLabel } = useLanguage();
+  const { activeProfile, activeGestorRole, currentUser, isGestorMode, availableGestorRoles, setActiveGestorRole } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [managementOpen, setManagementOpen] = useState(
     location.pathname.startsWith('/management') || location.pathname.startsWith('/settings'),
@@ -28,7 +29,7 @@ export const TopBar = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-30 flex items-center gap-4 px-6 py-4 border-b border-border bg-background/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 shrink-0 flex flex-wrap items-center gap-3 border-b border-border bg-background/70 px-4 py-3 backdrop-blur-xl sm:px-6 sm:py-4">
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetTrigger asChild>
           <button className="lg:hidden inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground">
@@ -63,7 +64,7 @@ export const TopBar = () => {
                     <span className="truncate">{label}</span>
                   </NavLink>
                 ))}
-                {isOwnerMode && (
+                {isGestorMode && (
                   <>
                     <button
                       type="button"
@@ -95,6 +96,42 @@ export const TopBar = () => {
                           <span className="truncate">{t('courtManagement')}</span>
                         </NavLink>
                         <NavLink
+                          to="/management/courts/new"
+                          onClick={closeMobileMenu}
+                          className={({ isActive }) =>
+                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
+                              isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                            }`
+                          }
+                        >
+                          <PlusCircle className="h-4 w-4 shrink-0 text-neon-cyan" />
+                          <span className="truncate">{t('addCourt')}</span>
+                        </NavLink>
+                        <NavLink
+                          to="/management/preferences"
+                          onClick={closeMobileMenu}
+                          className={({ isActive }) =>
+                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
+                              isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                            }`
+                          }
+                        >
+                          <SlidersHorizontal className="h-4 w-4 shrink-0 text-neon-cyan" />
+                          <span className="truncate">{t('preferences')}</span>
+                        </NavLink>
+                        <NavLink
+                          to="/management/students"
+                          onClick={closeMobileMenu}
+                          className={({ isActive }) =>
+                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
+                              isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                            }`
+                          }
+                        >
+                          <GraduationCap className="h-4 w-4 shrink-0 text-neon-cyan" />
+                          <span className="truncate">{t('students')}</span>
+                        </NavLink>
+                        <NavLink
                           to="/settings/complex"
                           onClick={closeMobileMenu}
                           className={({ isActive }) =>
@@ -118,6 +155,21 @@ export const TopBar = () => {
                           <PlusCircle className="h-4 w-4 shrink-0 text-neon-cyan" />
                           <span className="truncate">{t('createTournament')}</span>
                         </NavLink>
+                        <div className="rounded-lg border border-border bg-background/30 p-3">
+                          <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{t('gestorRole')}</div>
+                          <Select value={activeGestorRole} onValueChange={(value) => setActiveGestorRole(value as typeof activeGestorRole)}>
+                            <SelectTrigger className="h-9 border-border bg-background/60 text-xs font-semibold">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                              {availableGestorRoles.map((role) => (
+                                <SelectItem key={role} value={role}>
+                                  {gestorRoleLabel(role)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     )}
                   </>
@@ -144,10 +196,10 @@ export const TopBar = () => {
               </div>
             </div>
 
-            <div className="border-t border-border px-0 py-1">
+            <div className="border-t border-border">
               <button
                 type="button"
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent"
+                className="flex w-full items-center gap-3 px-4 py-3 text-sm text-sidebar-foreground transition-smooth hover:bg-sidebar-accent"
               >
                 <Settings className="h-4 w-4" /> {t('settings')}
               </button>
@@ -155,7 +207,7 @@ export const TopBar = () => {
               <SheetClose asChild>
                 <button
                   onClick={() => navigate('/login')}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent"
+                  className="flex w-full items-center gap-3 px-4 py-3 text-sm text-sidebar-foreground transition-smooth hover:bg-sidebar-accent"
                 >
                   <LogOut className="h-4 w-4" /> {t('logout')}
                 </button>
@@ -165,7 +217,7 @@ export const TopBar = () => {
         </SheetContent>
       </Sheet>
 
-      <div className="flex-1 max-w-md relative">
+      <div className="order-3 relative basis-full md:order-none md:max-w-md md:flex-1">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input
           placeholder={t('searchPlaceholder')}
@@ -196,7 +248,9 @@ export const TopBar = () => {
       >
         <div className="text-right hidden sm:block">
           <div className="text-sm font-bold leading-tight">{currentUser.name}</div>
-          <div className="text-[10px] uppercase tracking-wider text-neon-cyan font-semibold">{userTypeLabel(activeProfile)}</div>
+          <div className="text-[10px] uppercase tracking-wider text-neon-cyan font-semibold">
+            {activeProfile === 'gestor' ? `${userTypeLabel(activeProfile)} · ${gestorRoleLabel(activeGestorRole)}` : userTypeLabel(activeProfile)}
+          </div>
         </div>
         <Avatar className="h-10 w-10 border border-primary/20 shadow-neon">
           <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />

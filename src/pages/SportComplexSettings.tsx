@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Building2, MapPin, ShieldCheck, Sparkles } from 'lucide-react';
-import { BackgroundUploadField, backgroundPreviewStyle } from '@/components/BackgroundUploadField';
+import { BackgroundUploadField } from '@/components/BackgroundUploadField';
 import { CountrySelect } from '@/components/CountrySelect';
 import { DragSelectField } from '@/components/DragSelectField';
 import { SportIcon } from '@/components/SportIcon';
@@ -16,7 +16,7 @@ const SPORT_ORDER: SportOption[] = ['footvolley', 'beach-tennis', 'beach-soccer'
 
 const SportComplexSettings = () => {
   const { language, t, sportName } = useLanguage();
-  const { isOwnerMode } = useSession();
+  const { isGestorMode } = useSession();
   const { toast } = useToast();
   const [complexName, setComplexName] = useState('Arena Joga Junto Copacabana');
   const [country, setCountry] = useState('BR');
@@ -34,9 +34,9 @@ const SportComplexSettings = () => {
     [selectedSports],
   );
 
-  if (!isOwnerMode) {
+  if (!isGestorMode) {
     return (
-      <div className="max-w-3xl">
+      <div className="mx-auto w-full max-w-3xl">
         <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
           <div className="inline-flex items-center gap-2 rounded-full border border-live/30 bg-live/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-live">
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -73,7 +73,7 @@ const SportComplexSettings = () => {
   const postalPlaceholder = COUNTRY_OPTIONS.find((option) => option.code === country)?.postalPlaceholder ?? '';
 
   return (
-    <div className="max-w-7xl space-y-8">
+    <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('sportComplexBuilder')}</p>
@@ -194,23 +194,6 @@ const SportComplexSettings = () => {
               <h2 className="font-display text-sm font-bold uppercase tracking-[0.2em]">{t('quickPreview')}</h2>
             </div>
             <div className="rounded-2xl border border-primary/20 bg-background/40 p-4">
-              <div className="relative -mx-4 -mt-4 mb-4 h-28 overflow-hidden rounded-t-2xl">
-                {selectedBackgroundImage ? (
-                  <>
-                    <div className="absolute inset-0" style={backgroundPreviewStyle(selectedBackgroundImage, selectedBackgroundOffsetY)} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-background/15" />
-                  </>
-                ) : (
-                  <>
-                    <div className="absolute inset-0 bg-secondary" />
-                    <div className="absolute inset-0 hex-grid opacity-25" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-background/15" />
-                  </>
-                )}
-                <div className="absolute bottom-3 left-4 text-[10px] font-bold uppercase tracking-[0.25em] text-neon-cyan">
-                  {selectedSports.length > 0 ? sportName(selectedSports[0]) : t('sportComplexBuilder')}
-                </div>
-              </div>
               <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-neon-cyan">{t('sportComplexBuilder')}</div>
               <h3 className="mt-2 font-display text-2xl font-black leading-tight">{complexName}</h3>
               <div className="mt-4 space-y-3 text-sm">

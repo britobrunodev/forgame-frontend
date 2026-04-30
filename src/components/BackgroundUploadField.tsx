@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { ImagePlus, MoveVertical } from 'lucide-react';
 
 type Props = {
@@ -19,25 +19,45 @@ export const BackgroundUploadField = ({
   onImageChange,
 }: Props) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const containerRef = useRef<HTMLButtonElement | null>(null);
   const dragStartRef = useRef<{ pointerY: number; offsetY: number } | null>(null);
+  const activePointerIdRef = useRef<number | null>(null);
   const didMoveRef = useRef(false);
+  const [imgNaturalSize, setImgNaturalSize] = useState<{ w: number; h: number } | null>(null);
+
+  const computeMaxOffset = (): number => {
+    if (!imgNaturalSize || !containerRef.current) return 5000;
+    const cW = containerRef.current.clientWidth;
+    const cH = containerRef.current.clientHeight;
+    const scale = Math.max(cW / imgNaturalSize.w, cH / imgNaturalSize.h);
+    return Math.max(0, (imgNaturalSize.h * scale - cH) / 2);
+  };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (!image) return;
     didMoveRef.current = false;
+    activePointerIdRef.current = event.pointerId;
     dragStartRef.current = { pointerY: event.clientY, offsetY };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (!dragStartRef.current) return;
+    if (!dragStartRef.current || activePointerIdRef.current !== event.pointerId) return;
+    if (event.buttons === 0) {
+      dragStartRef.current = null;
+      activePointerIdRef.current = null;
+      return;
+    }
+
     const deltaY = event.clientY - dragStartRef.current.pointerY;
     if (Math.abs(deltaY) > 3) didMoveRef.current = true;
-    onOffsetYChange(clamp(dragStartRef.current.offsetY + deltaY, -200, 200));
+    const maxOffset = computeMaxOffset();
+    onOffsetYChange(clamp(dragStartRef.current.offsetY + deltaY, -maxOffset, maxOffset));
   };
 
   const handlePointerEnd = (event: React.PointerEvent<HTMLButtonElement>) => {
     dragStartRef.current = null;
+    activePointerIdRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -57,18 +77,25 @@ export const BackgroundUploadField = ({
         {label}
       </span>
       <button
+        ref={containerRef}
         type="button"
         onClick={handleClick}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
+        onPointerLeave={(event) => {
+          if (event.buttons === 0) {
+            handlePointerEnd(event);
+          }
+        }}
         className={[
           'group relative flex h-28 w-full items-center justify-center overflow-hidden rounded-2xl',
           'border border-dashed border-primary/35 bg-background/35 transition-smooth',
           'hover:border-primary/55 hover:bg-background/50',
           image ? 'cursor-grab active:cursor-grabbing select-none' : '',
         ].join(' ')}
+        style={{ touchAction: 'none' }}
       >
         {image ? (
           <>
@@ -76,6 +103,7 @@ export const BackgroundUploadField = ({
               src={image}
               alt=""
               draggable={false}
+              onLoad={(e) => setImgNaturalSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
               className="absolute inset-0 h-full w-full object-cover pointer-events-none"
               style={{ objectPosition: `center calc(50% + ${offsetY}px)` }}
             />
@@ -115,12 +143,10 @@ export const backgroundObjectPosition = (offsetY: number) => ({
   objectPosition: `center calc(50% + ${offsetY}px)`,
 });
 
-// Safe for preview containers of any width — maps offsetY to 0-100% range,
-// which CSS background-size:cover guarantees will never produce black gaps.
 export const backgroundPreviewStyle = (image: string, offsetY: number) => ({
   backgroundImage: `url(${image})`,
   backgroundSize: 'cover',
-  backgroundPosition: `center ${Math.max(0, Math.min(100, 50 + offsetY / 4))}%`,
+  backgroundPosition: `center calc(50% + ${offsetY}px)`,
 });
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);

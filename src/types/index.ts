@@ -1,7 +1,9 @@
 export type SportId = 'footvolley' | 'beach-tennis' | 'beach-soccer' | 'volleyball';
-export type UserProfile = 'player' | 'owner';
+export type UserProfile = 'player' | 'gestor';
+export type GestorRole = 'owner' | 'manager' | 'professor';
 export type PlayerCharacteristic = 'right' | 'left' | 'goalkeeper' | 'midfielder';
 export type PlayerLevel = 'beginner' | 'intermediate' | 'advanced' | 'silver' | 'gold' | 'professional';
+export type PaymentMethod = 'pix' | 'credit-card' | 'debit-card' | 'pay-on-site';
 
 export interface Sport {
   id: SportId;
@@ -47,9 +49,12 @@ export interface Championship {
 export interface Court {
   id: string;
   name: string;
-  sport: SportId;
-  application: string; // e.g. FTM, Contorno da Bola
-  reservations: { date: string; start: string; end: string; user: string }[];
+  complexId: string;
+  dimensions: string;
+  application: string; // e.g. Arena Beach Copacabana
+  hourlyRate: number;
+  monthlyRate: number;
+  reservations: { date: string; start: string; end: string; user: string; type?: 'single' | 'monthly' }[];
 }
 
 export interface ReservationPlace {
@@ -66,8 +71,9 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  type: 'player' | 'distributor';
+  type: 'player' | 'gestor';
   profiles?: UserProfile[];
+  gestorRoles?: GestorRole[];
   preferences: SportId[];
   applications?: string[];
   avatarUrl?: string;
@@ -79,6 +85,7 @@ export interface User {
   wins?: number;
   losses?: number;
   draws?: number;
+  ownedComplexIds?: string[];
 }
 
 export interface ManagedPlayer {
@@ -88,5 +95,36 @@ export interface ManagedPlayer {
   complexId: string;
   sports: SportId[];
   level: PlayerLevel;
+  score: number;
   avatarUrl?: string;
+}
+
+export interface DaySchedule {
+  day: string;
+  isClosed: boolean;
+  openTime: string;
+  closeTime: string;
+}
+
+export interface HolidaySchedule {
+  date: string;
+  isClosed: boolean;
+  openTime: string;
+  closeTime: string;
+}
+
+export interface PricingRule {
+  id: string;
+  day: string;
+  startTime: string;
+  endTime: string;
+  price: number;
+}
+
+export interface ComplexPreference {
+  complexId: string;
+  weekSchedule: DaySchedule[];
+  holidays: HolidaySchedule[];
+  paymentMethods: PaymentMethod[];
+  pricingRules: PricingRule[];
 }

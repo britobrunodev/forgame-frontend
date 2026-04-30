@@ -162,6 +162,8 @@ const ProfileSettings = () => {
   }, [cropOpen]);
 
   const cropBounds = getCropBounds(cropPreviewSize, cropImageSize.width, cropImageSize.height, cropZoom);
+  const horizontalRange = getSliderRange(cropBounds.maxOffsetX);
+  const verticalRange = getSliderRange(cropBounds.maxOffsetY);
 
   useEffect(() => {
     setCropX((current) => clamp(current, -cropBounds.maxOffsetX, cropBounds.maxOffsetX));
@@ -169,7 +171,7 @@ const ProfileSettings = () => {
   }, [cropBounds.maxOffsetX, cropBounds.maxOffsetY]);
 
   return (
-    <div className="max-w-7xl space-y-8">
+    <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('profileSettings')}</p>
@@ -203,7 +205,7 @@ const ProfileSettings = () => {
                 <div className="mt-1 text-xs uppercase tracking-[0.2em] text-neon-cyan">{t('playerCard')}</div>
               </div>
 
-              <div className="mt-5 grid grid-cols-3 gap-3">
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <StatCard label={t('wins')} value={String(wins)} accent="text-neon-cyan" />
                 <StatCard label={t('losses')} value={String(losses)} accent="text-live" />
                 <StatCard label={t('draws')} value={String(draws)} accent="text-primary-glow" />
@@ -319,10 +321,9 @@ const ProfileSettings = () => {
             <button
               type="button"
               onClick={handleSave}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-primary px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] shadow-neon transition-smooth hover:brightness-110"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110"
             >
               <Save className="h-4 w-4" />
-              {t('saveProfile')}
             </button>
           </div>
         </section>
@@ -361,18 +362,18 @@ const ProfileSettings = () => {
               </SliderField>
               <SliderField label={t('horizontalPosition')}>
                 <Slider
-                  value={[cropX]}
-                  min={-cropBounds.maxOffsetX}
-                  max={cropBounds.maxOffsetX}
+                  value={[clamp(cropX, horizontalRange.min, horizontalRange.max)]}
+                  min={horizontalRange.min}
+                  max={horizontalRange.max}
                   step={1}
                   onValueChange={([value]) => setCropX(value)}
                 />
               </SliderField>
               <SliderField label={t('verticalPosition')}>
                 <Slider
-                  value={[cropY]}
-                  min={-cropBounds.maxOffsetY}
-                  max={cropBounds.maxOffsetY}
+                  value={[clamp(cropY, verticalRange.min, verticalRange.max)]}
+                  min={verticalRange.min}
+                  max={verticalRange.max}
                   step={1}
                   onValueChange={([value]) => setCropY(value)}
                 />
@@ -478,6 +479,12 @@ const buildCroppedAvatar = async ({
   });
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+const getSliderRange = (maxOffset: number) => (
+  maxOffset > 0
+    ? { min: -maxOffset, max: maxOffset }
+    : { min: -1, max: 1 }
+);
 
 const getCropBounds = (frameSize: number, imageWidth: number, imageHeight: number, zoom: number) => {
   const coverScale = Math.max(frameSize / imageWidth, frameSize / imageHeight);

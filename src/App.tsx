@@ -10,11 +10,16 @@ import Dashboard from "./pages/Dashboard";
 import ChampionshipDetail from "./pages/ChampionshipDetail";
 import Championships from "./pages/Championships";
 import Reservations from "./pages/Reservations";
+import ReservationDetail from "./pages/ReservationDetail";
+import Payment from "./pages/Payment";
 import SportPage from "./pages/SportPage";
 import Schedule from "./pages/Schedule";
 import ManagementDashboard from "./pages/ManagementDashboard";
 import TournamentSettings from "./pages/TournamentSettings";
 import SportComplexSettings from "./pages/SportComplexSettings";
+import CourtCreate from "./pages/CourtCreate";
+import ComplexPreferences from "./pages/ComplexPreferences";
+import StudentsManagement from "./pages/StudentsManagement";
 import ProfileSettings from "./pages/ProfileSettings";
 import NotFound from "./pages/NotFound.tsx";
 import { SessionProvider } from "./session";
@@ -37,10 +42,15 @@ const App = () => (
               <Route path="/championships" element={<Championships />} />
               <Route path="/championships/:id" element={<ChampionshipDetail />} />
               <Route path="/reservations" element={<Reservations />} />
+              <Route path="/reservations/:placeId" element={<ReservationDetail />} />
+              <Route path="/payment" element={<Payment />} />
               <Route path="/sports/:sportId" element={<SportPage />} />
               <Route path="/schedule" element={<Schedule />} />
               <Route path="/profile" element={<ProfileSettings />} />
               <Route path="/management" element={<ManagementDashboard />} />
+              <Route path="/management/courts/new" element={<CourtCreate />} />
+              <Route path="/management/preferences" element={<ComplexPreferences />} />
+              <Route path="/management/students" element={<StudentsManagement />} />
               <Route path="/settings" element={<TournamentSettings />} />
               <Route path="/settings/complex" element={<SportComplexSettings />} />
             </Route>

@@ -3,7 +3,7 @@ import { Building2, Calendar, CircleDollarSign, ShieldCheck, Sparkles, Trophy } 
 import type { DateRange } from 'react-day-picker';
 import { RESERVATION_PLACES } from '@/data/mock';
 import { DragSelectField } from '@/components/DragSelectField';
-import { BackgroundUploadField, backgroundPreviewStyle } from '@/components/BackgroundUploadField';
+import { BackgroundUploadField } from '@/components/BackgroundUploadField';
 import { useLanguage } from '@/i18n';
 import { useToast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
@@ -54,7 +54,7 @@ const buildDateOptions = (range: DateRange | undefined) => {
 
 const TournamentSettings = () => {
   const { t, sportName, language } = useLanguage();
-  const { currentUser, isOwnerMode } = useSession();
+  const { currentUser, isGestorMode } = useSession();
   const { toast } = useToast();
   const today = useMemo(() => {
     const value = new Date();
@@ -154,9 +154,9 @@ const TournamentSettings = () => {
     });
   }, [eventDateOptions]);
 
-  if (!isOwnerMode) {
+  if (!isGestorMode) {
     return (
-      <div className="max-w-3xl">
+      <div className="mx-auto w-full max-w-3xl">
         <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
           <div className="inline-flex items-center gap-2 rounded-full border border-live/30 bg-live/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-live">
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -224,7 +224,7 @@ const TournamentSettings = () => {
 
 
   return (
-    <div className="max-w-7xl space-y-8">
+    <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('tournamentBuilder')}</p>
@@ -232,7 +232,7 @@ const TournamentSettings = () => {
         </div>
       </header>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_360px]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_380px]">
         <section className="rounded-2xl border border-border bg-gradient-card p-5 shadow-card sm:p-6">
           <div className="grid gap-5 md:grid-cols-2">
             <Field label={t('tournamentName')}>
@@ -381,7 +381,7 @@ const TournamentSettings = () => {
             />
           </div>
 
-          <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_260px] xl:items-start">
+          <div className="mt-5 grid gap-5 2xl:grid-cols-2 2xl:items-start">
             <DragSelectField
               label={t('dragCategories')}
               hint=""
@@ -401,16 +401,16 @@ const TournamentSettings = () => {
               selectedItems={selectedAudiences.map((audience) => ({ id: audience, label: t(audience) }))}
               onMove={(id, nextState) => moveAudience(id as Audience, nextState)}
             />
+          </div>
 
-            <div className="flex h-full flex-col">
-              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('uniformIncluded')}</span>
-              <div className="flex min-h-[136px] flex-1 items-start justify-between rounded-2xl border border-border bg-background/40 px-4 py-4">
-                <div className="pr-4 pt-0.5">
-                  <div className="font-semibold text-foreground">{t('uniformIncluded')}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">{uniformIncluded ? t('yes') : t('no')}</div>
-                </div>
-                <Switch checked={uniformIncluded} onCheckedChange={setUniformIncluded} />
+          <div className="mt-5">
+            <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('uniformIncluded')}</span>
+            <div className="flex items-start justify-between rounded-2xl border border-border bg-background/40 px-4 py-4">
+              <div className="pr-4 pt-0.5">
+                <div className="font-semibold text-foreground">{t('uniformIncluded')}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{uniformIncluded ? t('yes') : t('no')}</div>
               </div>
+              <Switch checked={uniformIncluded} onCheckedChange={setUniformIncluded} />
             </div>
           </div>
 
@@ -513,22 +513,8 @@ const TournamentSettings = () => {
               <h2 className="font-display text-sm font-bold uppercase tracking-[0.2em]">{t('quickPreview')}</h2>
             </div>
             <div className="rounded-2xl border border-primary/20 bg-background/40 p-4">
-              <div className="relative -mx-4 -mt-4 mb-4 h-28 overflow-hidden rounded-t-2xl">
-                {selectedBackgroundImage ? (
-                  <>
-                    <div className="absolute inset-0" style={backgroundPreviewStyle(selectedBackgroundImage, selectedBackgroundOffsetY)} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-background/15" />
-                  </>
-                ) : (
-                  <>
-                    <div className="absolute inset-0 bg-secondary" />
-                    <div className="absolute inset-0 hex-grid opacity-25" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-background/15" />
-                  </>
-                )}
-                <div className="absolute bottom-3 left-4 text-[10px] font-bold uppercase tracking-[0.25em] text-neon-cyan">
-                  {sportName('footvolley')}
-                </div>
+              <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-neon-cyan">
+                {sportName('footvolley')}
               </div>
               <h3 className="font-display text-2xl font-black leading-tight">{tournamentName}</h3>
               <div className="mt-4 space-y-3 text-sm">

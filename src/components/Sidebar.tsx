@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Trophy, MapPin, LogOut, Building2, ChevronDown, PlusCircle, Settings } from 'lucide-react';
+import { LayoutDashboard, Calendar, Trophy, MapPin, LogOut, Building2, ChevronDown, PlusCircle, Settings, SlidersHorizontal, GraduationCap } from 'lucide-react';
 import { Logo } from './Logo';
 import { SportIcon } from './SportIcon';
 import { SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { t, sportName } = useLanguage();
-  const { isOwnerMode, currentUser } = useSession();
+  const { t, sportName, gestorRoleLabel } = useLanguage();
+  const { isGestorMode, currentUser, activeGestorRole, setActiveGestorRole, availableGestorRoles } = useSession();
   const [managementOpen, setManagementOpen] = useState(
     location.pathname.startsWith('/management') || location.pathname.startsWith('/settings'),
   );
@@ -23,11 +24,11 @@ export const Sidebar = () => {
   ];
 
   return (
-    <aside className="hidden lg:flex w-64 shrink-0 flex-col border-r border-border bg-sidebar/80 backdrop-blur-xl">
+    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border bg-sidebar/80 backdrop-blur-xl lg:flex xl:w-64">
       <div className="px-5 py-6 border-b border-border flex justify-center">
         <Logo />
       </div>
-      <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+      <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-1">
         <div className="px-3 mb-2 text-[10px] font-display font-bold tracking-[0.25em] text-muted-foreground">{t('menu')}</div>
         {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink
@@ -45,7 +46,7 @@ export const Sidebar = () => {
             {label}
           </NavLink>
         ))}
-        {isOwnerMode && (
+        {isGestorMode && (
           <>
             <button
               type="button"
@@ -73,6 +74,32 @@ export const Sidebar = () => {
                   {t('courtManagement')}
                 </NavLink>
                 <NavLink
+                  to="/management/students"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
+                      isActive
+                        ? 'bg-sidebar-accent text-foreground'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                    }`
+                  }
+                >
+                  <GraduationCap className="h-4 w-4 text-neon-cyan" />
+                  {t('students')}
+                </NavLink>
+                <NavLink
+                  to="/management/preferences"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
+                      isActive
+                        ? 'bg-sidebar-accent text-foreground'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                    }`
+                  }
+                >
+                  <SlidersHorizontal className="h-4 w-4 text-neon-cyan" />
+                  {t('preferences')}
+                </NavLink>
+                <NavLink
                   to="/settings/complex"
                   className={({ isActive }) =>
                     `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
@@ -98,6 +125,21 @@ export const Sidebar = () => {
                   <PlusCircle className="h-4 w-4 text-neon-cyan" />
                   {t('createTournament')}
                 </NavLink>
+                <div className="rounded-lg border border-border bg-background/30 p-3">
+                  <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{t('gestorRole')}</div>
+                  <Select value={activeGestorRole} onValueChange={(value) => setActiveGestorRole(value as typeof activeGestorRole)}>
+                    <SelectTrigger className="h-9 border-border bg-background/60 text-xs font-semibold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                      {availableGestorRoles.map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {gestorRoleLabel(role)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             )}
           </>
@@ -120,15 +162,15 @@ export const Sidebar = () => {
           </NavLink>
         ))}
       </nav>
-      <div className="border-t border-border px-0 py-1">
+      <div className="shrink-0 border-t border-border bg-sidebar/95 backdrop-blur-xl">
         <button
           type="button"
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent"
+          className="flex w-full items-center gap-3 px-4 py-3 text-sm text-sidebar-foreground transition-smooth hover:bg-sidebar-accent"
         >
           <Settings className="w-4 h-4" /> {t('settings')}
         </button>
         <div className="h-px bg-border/80" />
-        <button onClick={() => navigate('/login')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent">
+        <button onClick={() => navigate('/login')} className="flex w-full items-center gap-3 px-4 py-3 text-sm text-sidebar-foreground transition-smooth hover:bg-sidebar-accent">
           <LogOut className="w-4 h-4" /> {t('logout')}
         </button>
       </div>

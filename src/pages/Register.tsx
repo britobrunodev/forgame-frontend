@@ -9,7 +9,7 @@ import type { UserProfile } from '@/types';
 const Register = () => {
   const navigate = useNavigate();
   const { t, userTypeLabel } = useLanguage();
-  const { setAvailableProfiles, setActiveProfile, updateCurrentUser } = useSession();
+  const { setAvailableProfiles, setActiveProfile, setAvailableGestorRoles, updateCurrentUser } = useSession();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,16 +29,21 @@ const Register = () => {
     updateCurrentUser({
       name,
       email,
+      type: selectedProfiles.includes('gestor') ? 'gestor' : 'player',
       profiles: selectedProfiles,
+      gestorRoles: selectedProfiles.includes('gestor') ? ['owner', 'manager', 'professor'] : [],
     });
     setAvailableProfiles(selectedProfiles);
+    if (selectedProfiles.includes('gestor')) {
+      setAvailableGestorRoles(['owner', 'manager', 'professor']);
+    }
     setActiveProfile(selectedProfiles[0] ?? 'player');
     navigate('/dashboard');
   };
 
   const profileOptions: Array<{ id: UserProfile; icon: typeof User }> = [
     { id: 'player', icon: User },
-    { id: 'owner', icon: Building2 },
+    { id: 'gestor', icon: Building2 },
   ];
 
   return (

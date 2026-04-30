@@ -9,18 +9,25 @@ import type { UserProfile } from '@/types';
 const Login = () => {
   const navigate = useNavigate();
   const { t, userTypeLabel } = useLanguage();
-  const { activeProfile, setActiveProfile, availableProfiles } = useSession();
+  const { activeProfile, setActiveProfile, availableProfiles, setAvailableGestorRoles, updateCurrentUser } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    updateCurrentUser({
+      type: activeProfile === 'gestor' ? 'gestor' : 'player',
+      gestorRoles: activeProfile === 'gestor' ? ['owner', 'manager', 'professor'] : [],
+    });
+    if (activeProfile === 'gestor') {
+      setAvailableGestorRoles(['owner', 'manager', 'professor']);
+    }
     navigate('/dashboard');
   };
 
   const profileOptions: Array<{ id: UserProfile; icon: typeof User }> = [
     { id: 'player', icon: User },
-    { id: 'owner', icon: Building2 },
+    { id: 'gestor', icon: Building2 },
   ].filter((option) => availableProfiles.includes(option.id));
 
   return (

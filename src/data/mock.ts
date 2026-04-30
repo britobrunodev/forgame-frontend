@@ -18,7 +18,8 @@ export const CURRENT_USER: User = {
   name: 'Rafael Souza',
   email: 'rafa@jogajunto360.com',
   type: 'player',
-  profiles: ['player', 'owner'],
+  profiles: ['player', 'gestor'],
+  gestorRoles: ['owner', 'manager', 'professor'],
   preferences: ['footvolley', 'beach-tennis'],
   applications: ['FTM Sports Center', 'Contorno da Bola'],
   country: 'BR',
@@ -32,17 +33,18 @@ export const CURRENT_USER: User = {
   wins: 0,
   losses: 0,
   draws: 0,
+  ownedComplexIds: ['p2', 'p3'],
 };
 
 export const MANAGED_PLAYERS: ManagedPlayer[] = [
-  { id: 'pl1', name: 'Rafael Souza', email: 'rafa@jogajunto360.com', complexId: 'p2', sports: ['footvolley', 'beach-tennis'], level: 'intermediate' },
-  { id: 'pl2', name: 'Sandrey Lima', email: 'sandrey@jogajunto360.com', complexId: 'p1', sports: ['footvolley'], level: 'professional' },
-  { id: 'pl3', name: 'Brisa Almeida', email: 'brisa@jogajunto360.com', complexId: 'p1', sports: ['footvolley'], level: 'gold' },
-  { id: 'pl4', name: 'Victor Nunes', email: 'victor@jogajunto360.com', complexId: 'p2', sports: ['footvolley', 'volleyball'], level: 'advanced' },
-  { id: 'pl5', name: 'Carol Tavares', email: 'carol@jogajunto360.com', complexId: 'p4', sports: ['beach-tennis'], level: 'silver' },
-  { id: 'pl6', name: 'Marina Costa', email: 'marina@jogajunto360.com', complexId: 'p4', sports: ['beach-tennis'], level: 'beginner' },
-  { id: 'pl7', name: 'João Pedro', email: 'joao@jogajunto360.com', complexId: 'p3', sports: ['beach-soccer'], level: 'intermediate' },
-  { id: 'pl8', name: 'Lucas Prado', email: 'lucas@jogajunto360.com', complexId: 'p3', sports: ['beach-soccer', 'footvolley'], level: 'advanced' },
+  { id: 'pl1', name: 'Rafael Souza', email: 'rafa@jogajunto360.com', complexId: 'p2', sports: ['footvolley', 'beach-tennis'], level: 'intermediate', score: 1240 },
+  { id: 'pl2', name: 'Sandrey Lima', email: 'sandrey@jogajunto360.com', complexId: 'p1', sports: ['footvolley'], level: 'professional', score: 1860 },
+  { id: 'pl3', name: 'Brisa Almeida', email: 'brisa@jogajunto360.com', complexId: 'p1', sports: ['footvolley'], level: 'gold', score: 1620 },
+  { id: 'pl4', name: 'Victor Nunes', email: 'victor@jogajunto360.com', complexId: 'p2', sports: ['footvolley', 'volleyball'], level: 'advanced', score: 1410 },
+  { id: 'pl5', name: 'Carol Tavares', email: 'carol@jogajunto360.com', complexId: 'p4', sports: ['beach-tennis'], level: 'silver', score: 1500 },
+  { id: 'pl6', name: 'Marina Costa', email: 'marina@jogajunto360.com', complexId: 'p4', sports: ['beach-tennis'], level: 'beginner', score: 980 },
+  { id: 'pl7', name: 'João Pedro', email: 'joao@jogajunto360.com', complexId: 'p3', sports: ['beach-soccer'], level: 'intermediate', score: 1180 },
+  { id: 'pl8', name: 'Lucas Prado', email: 'lucas@jogajunto360.com', complexId: 'p3', sports: ['beach-soccer', 'footvolley'], level: 'advanced', score: 1360 },
 ];
 
 export const FRIENDS = [
@@ -153,6 +155,12 @@ const buildBracket = (teams: string[]) => {
 };
 
 const today = new Date().toISOString().slice(0, 10);
+const addDays = (dateValue: string, days: number) => {
+  const nextDate = new Date(`${dateValue}T12:00:00`);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate.toISOString().slice(0, 10);
+};
+const reservationWindowDates = Array.from({ length: 5 }, (_, index) => addDays(today, index));
 
 export const CHAMPIONSHIPS: Championship[] = [
   {
@@ -239,8 +247,110 @@ export const RESERVATION_PLACES: ReservationPlace[] = [
 ];
 
 export const COURTS: Court[] = [
-  { id: 'ct1', name: 'Court 1', sport: 'footvolley', application: 'FTM', reservations: [{ date: today, start: '08:00', end: '10:00', user: 'João S.' }, { date: today, start: '14:00', end: '16:00', user: 'Maria L.' }] },
-  { id: 'ct2', name: 'Court 2', sport: 'footvolley', application: 'FTM', reservations: [{ date: today, start: '10:00', end: '12:00', user: 'Pedro M.' }] },
-  { id: 'ct3', name: 'Court 3', sport: 'beach-tennis', application: 'Contorno da Bola', reservations: [] },
-  { id: 'ct4', name: 'Court 4', sport: 'volleyball', application: 'FTM', reservations: [{ date: today, start: '18:00', end: '20:00', user: 'Carla R.' }] },
+  {
+    id: 'ct1',
+    name: 'Quadra 1',
+    complexId: 'p1',
+    dimensions: '9x18m',
+    application: 'Arena Beach Copacabana',
+    hourlyRate: 120,
+    monthlyRate: 420,
+    reservations: [
+      { date: today, start: '08:00', end: '09:00', user: 'João S.' },
+      ...reservationWindowDates.map((date) => ({
+        date,
+        start: '18:00',
+        end: '19:00',
+        user: 'Maria L.',
+        type: 'monthly' as const,
+      })),
+    ],
+  },
+  {
+    id: 'ct2',
+    name: 'Quadra 2',
+    complexId: 'p1',
+    dimensions: '8x16m',
+    application: 'Arena Beach Copacabana',
+    hourlyRate: 100,
+    monthlyRate: 360,
+    reservations: [
+      ...reservationWindowDates.map((date) => ({
+        date,
+        start: '10:00',
+        end: '11:00',
+        user: 'Patrícia A.',
+        type: 'monthly' as const,
+      })),
+    ],
+  },
+  {
+    id: 'ct3',
+    name: 'Quadra Central',
+    complexId: 'p2',
+    dimensions: '9x18m',
+    application: 'FTM Sports Center',
+    hourlyRate: 140,
+    monthlyRate: 520,
+    reservations: [
+      { date: today, start: '09:00', end: '10:00', user: 'Pedro M.' },
+      { date: today, start: '19:00', end: '20:00', user: 'Carol R.', type: 'monthly' },
+    ],
+  },
+  {
+    id: 'ct4',
+    name: 'Quadra 4',
+    complexId: 'p2',
+    dimensions: '9x18m',
+    application: 'FTM Sports Center',
+    hourlyRate: 110,
+    monthlyRate: 390,
+    reservations: [
+      { date: today, start: '17:00', end: '18:00', user: 'Carla R.' },
+    ],
+  },
+  {
+    id: 'ct5',
+    name: 'Arena 1',
+    complexId: 'p3',
+    dimensions: '8x16m',
+    application: 'Contorno da Bola',
+    hourlyRate: 95,
+    monthlyRate: 340,
+    reservations: [
+      { date: today, start: '15:00', end: '16:00', user: 'Victor N.', type: 'monthly' },
+    ],
+  },
+  {
+    id: 'ct6',
+    name: 'Arena 2',
+    complexId: 'p3',
+    dimensions: '10x20m',
+    application: 'Contorno da Bola',
+    hourlyRate: 90,
+    monthlyRate: 320,
+    reservations: [],
+  },
+  {
+    id: 'ct7',
+    name: 'Quadra Jurerê 1',
+    complexId: 'p4',
+    dimensions: '8x16m',
+    application: 'Jurerê Beach Club',
+    hourlyRate: 130,
+    monthlyRate: 470,
+    reservations: [
+      { date: today, start: '11:00', end: '12:00', user: 'Brisa A.' },
+    ],
+  },
+  {
+    id: 'ct8',
+    name: 'Quadra Jurerê 2',
+    complexId: 'p4',
+    dimensions: '9x18m',
+    application: 'Jurerê Beach Club',
+    hourlyRate: 115,
+    monthlyRate: 410,
+    reservations: [],
+  },
 ];

@@ -14,7 +14,7 @@ const SportPage = () => {
   const places = RESERVATION_PLACES.filter(p => p.sports.includes(sport.id));
 
   return (
-    <div className="space-y-10 max-w-7xl">
+    <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-10 xl:max-w-[min(116rem,calc(100vw-3rem))]">
       <header>
         <div className="mb-2 flex items-center gap-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">
           <SportIcon sportId={sport.id} className="h-4 w-4 translate-y-[0.5px]" />
@@ -29,7 +29,7 @@ const SportPage = () => {
             {t('noChampionshipsYet')}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {champs.map(c => <ChampionshipCard key={c.id} c={c} />)}
           </div>
         )}
@@ -37,7 +37,7 @@ const SportPage = () => {
 
       <section>
         <h2 className="font-display font-bold text-sm uppercase tracking-[0.2em] text-foreground mb-4">{t('whereToPlay')}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {places.map(p => <PlaceCard key={p.id} p={p} />)}
         </div>
       </section>
