@@ -41,6 +41,18 @@ const StudentsManagement = () => {
     return true;
   });
 
+  const handleSaveAll = () => {
+    players.forEach((player) => {
+      const level = playerProfiles[player.id]?.level ?? player.level;
+      const score = Number(playerProfiles[player.id]?.score ?? player.score) || 0;
+      saveManagedPlayerProfile(player.id, { level, score });
+    });
+    toast({
+      title: t('saveAllScores'),
+      description: t('allStudentsSaved'),
+    });
+  };
+
   if (!isGestorMode) {
     return (
       <div className="mx-auto w-full max-w-3xl">
@@ -101,119 +113,102 @@ const StudentsManagement = () => {
           </div>
         </div>
         <div className="overflow-hidden rounded-2xl border border-border bg-background/25">
-          <div className="hidden grid-cols-[minmax(0,1.5fr)_220px_180px_140px] gap-4 border-b border-border bg-background/30 px-4 py-3 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground md:grid">
+          <div className="hidden grid-cols-[minmax(0,1.8fr)_280px_64px] gap-4 border-b border-border bg-background/30 px-4 py-3 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground md:grid">
             <div>{t('fullName')}</div>
             <div>{t('playerLevel')}</div>
             <div>{t('scorePoints')}</div>
-            <div className="text-right">{t('saveScore')}</div>
           </div>
 
           <div className="divide-y divide-border">
             {visiblePlayers.map((player) => (
-              <div key={player.id} className="grid gap-4 px-4 py-4 md:grid-cols-[minmax(0,1.5fr)_220px_180px_140px] md:items-center">
+              <div key={player.id} className="grid gap-4 px-4 py-4 md:grid-cols-[minmax(0,1.8fr)_280px_64px] md:items-center">
                 <div>
-                  <div className="font-display text-lg font-bold">{player.name}</div>
+                  <div className="font-display text-sm font-bold sm:text-[15px]">{player.name}</div>
                 </div>
 
-                <div className="space-y-2 md:space-y-0">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:hidden">{t('playerLevel')}</div>
-                  <Select
-                    value={playerProfiles[player.id]?.level ?? player.level}
-                    onValueChange={(value) => {
-                      setPlayerProfiles((current) => ({
-                        ...current,
-                        [player.id]: {
-                          level: value as PlayerLevel,
-                          score: current[player.id]?.score ?? String(player.score),
-                        },
-                      }));
-                    }}
-                  >
-                    <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                      {levelOptions.map((level) => (
-                        <SelectItem key={level} value={level}>
-                          {t(level)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2 md:space-y-0">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:hidden">{t('scorePoints')}</div>
-                  <div className="flex overflow-hidden rounded-lg border border-border bg-background/60">
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      value={playerProfiles[player.id]?.score ?? String(player.score)}
-                      onChange={(event) => {
-                        const nextValue = event.target.value.replace(/[^\d]/g, '');
+                <div className="grid grid-cols-[minmax(0,1fr)_56px] items-end gap-3 md:contents">
+                  <div className="space-y-2 md:space-y-0">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:hidden">{t('playerLevel')}</div>
+                    <Select
+                      value={playerProfiles[player.id]?.level ?? player.level}
+                      onValueChange={(value) => {
                         setPlayerProfiles((current) => ({
                           ...current,
                           [player.id]: {
-                            level: current[player.id]?.level ?? player.level,
-                            score: nextValue,
+                            level: value as PlayerLevel,
+                            score: current[player.id]?.score ?? String(player.score),
                           },
                         }));
                       }}
-                      className="border-0 bg-transparent pr-0 shadow-none focus-visible:ring-0"
-                    />
-                    <div className="flex w-10 flex-col border-l border-border">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const currentScore = Number(playerProfiles[player.id]?.score ?? player.score) || 0;
+                    >
+                      <SelectTrigger className="h-10 border-border bg-background/60 text-sm font-semibold">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                        {levelOptions.map((level) => (
+                          <SelectItem key={level} value={level}>
+                            {t(level)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="w-full max-w-[56px] justify-self-start space-y-2 md:max-w-none md:space-y-0">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:hidden">{t('scorePoints')}</div>
+                    <div className="flex h-10 overflow-hidden rounded-lg border border-border bg-background/60">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        value={playerProfiles[player.id]?.score ?? String(player.score)}
+                        onChange={(event) => {
+                          const nextValue = event.target.value.replace(/[^\d]/g, '');
                           setPlayerProfiles((current) => ({
                             ...current,
                             [player.id]: {
                               level: current[player.id]?.level ?? player.level,
-                              score: String(currentScore + 1),
+                              score: nextValue,
                             },
                           }));
                         }}
-                        className="flex h-1/2 items-center justify-center text-muted-foreground transition-smooth hover:bg-secondary/70 hover:text-foreground"
-                      >
-                        <ChevronUp className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const currentScore = Number(playerProfiles[player.id]?.score ?? player.score) || 0;
-                          setPlayerProfiles((current) => ({
-                            ...current,
-                            [player.id]: {
-                              level: current[player.id]?.level ?? player.level,
-                              score: String(Math.max(0, currentScore - 1)),
-                            },
-                          }));
-                        }}
-                        className="flex h-1/2 items-center justify-center border-t border-border text-muted-foreground transition-smooth hover:bg-secondary/70 hover:text-foreground"
-                      >
-                        <ChevronDown className="h-4 w-4" />
-                      </button>
+                        className="border-0 bg-transparent px-1.5 pr-0 text-[10px] shadow-none focus-visible:ring-0"
+                      />
+                      <div className="flex w-6 flex-col border-l border-border">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const currentScore = Number(playerProfiles[player.id]?.score ?? player.score) || 0;
+                            setPlayerProfiles((current) => ({
+                              ...current,
+                              [player.id]: {
+                                level: current[player.id]?.level ?? player.level,
+                                score: String(currentScore + 1),
+                              },
+                            }));
+                          }}
+                          className="flex h-1/2 items-center justify-center text-muted-foreground transition-smooth hover:bg-secondary/70 hover:text-foreground"
+                        >
+                          <ChevronUp className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const currentScore = Number(playerProfiles[player.id]?.score ?? player.score) || 0;
+                            setPlayerProfiles((current) => ({
+                              ...current,
+                              [player.id]: {
+                                level: current[player.id]?.level ?? player.level,
+                                score: String(Math.max(0, currentScore - 1)),
+                              },
+                            }));
+                          }}
+                          className="flex h-1/2 items-center justify-center border-t border-border text-muted-foreground transition-smooth hover:bg-secondary/70 hover:text-foreground"
+                        >
+                          <ChevronDown className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                <div className="flex justify-start md:justify-end">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const level = playerProfiles[player.id]?.level ?? player.level;
-                      const score = Number(playerProfiles[player.id]?.score ?? player.score) || 0;
-                      saveManagedPlayerProfile(player.id, { level, score });
-                      toast({
-                        title: t('studentScoreSaved'),
-                        description: `${player.name} · ${t(level)} · ${score}`,
-                      });
-                    }}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110"
-                  >
-                    <Save className="h-4 w-4" />
-                  </button>
                 </div>
               </div>
             ))}
@@ -224,6 +219,17 @@ const StudentsManagement = () => {
               </div>
             ) : null}
           </div>
+        </div>
+
+        <div className="mt-6 flex justify-start">
+          <button
+            type="button"
+            onClick={handleSaveAll}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 text-sm font-semibold text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110"
+          >
+            <Save className="h-4 w-4" />
+            {t('saveAllScores')}
+          </button>
         </div>
 
         <div className="mt-6 rounded-xl border border-border bg-background/30 p-4 text-sm text-muted-foreground">

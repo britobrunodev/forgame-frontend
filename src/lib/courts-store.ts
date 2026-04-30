@@ -25,6 +25,8 @@ const isCourt = (value: unknown): value is Court => {
     && typeof court.application === 'string'
     && typeof court.hourlyRate === 'number'
     && typeof court.monthlyRate === 'number'
+    && Array.isArray(court.slotOptions)
+    && court.slotOptions.every((slot) => !!slot && typeof slot === 'object' && typeof (slot as Record<string, unknown>).start === 'string' && typeof (slot as Record<string, unknown>).end === 'string')
     && Array.isArray(court.reservations)
     && court.reservations.every(isReservation);
 };

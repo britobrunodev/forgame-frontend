@@ -96,18 +96,6 @@ export const TopBar = () => {
                           <span className="truncate">{t('courtManagement')}</span>
                         </NavLink>
                         <NavLink
-                          to="/management/courts/new"
-                          onClick={closeMobileMenu}
-                          className={({ isActive }) =>
-                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                              isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                            }`
-                          }
-                        >
-                          <PlusCircle className="h-4 w-4 shrink-0 text-neon-cyan" />
-                          <span className="truncate">{t('addCourt')}</span>
-                        </NavLink>
-                        <NavLink
                           to="/management/preferences"
                           onClick={closeMobileMenu}
                           className={({ isActive }) =>

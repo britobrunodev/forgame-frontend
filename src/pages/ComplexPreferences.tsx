@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Calendar, Clock3, Plus, Save, Settings2, X } from 'lucide-react';
 import { RESERVATION_PLACES } from '@/data/mock';
+import { DragSelectField } from '@/components/DragSelectField';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { useToast } from '@/components/ui/use-toast';
@@ -12,6 +13,7 @@ import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { createHolidaySchedule, getComplexPreference, paymentMethodOptions, saveComplexPreference, weekDayOrder } from '@/lib/complex-preferences-store';
 import type { DaySchedule, HolidaySchedule, PaymentMethod, PricingRule } from '@/types';
+import { getAllCourts } from '@/lib/courts-store';
 
 const formatDateValue = (dateValue: string) => {
   const [year, month, day] = dateValue.split('-');
@@ -23,6 +25,26 @@ const toDateValue = (date: Date) => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const todayDateValue = toDateValue(new Date());
+const timeOptions = Array.from({ length: 24 * 4 }, (_, index) => {
+  const totalMinutes = index * 15;
+  const hour = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+  const minute = String(totalMinutes % 60).padStart(2, '0');
+  return `${hour}:${minute}`;
+});
+
+const describePricingRuleCourts = (
+  t: (key: string) => string,
+  courtIds: string[],
+  ownedCourts: { id: string; name: string }[],
+) => {
+  if (courtIds.includes('all')) return t('allCourts');
+  const courtNames = courtIds
+    .map((courtId) => ownedCourts.find((court) => court.id === courtId)?.name)
+    .filter((name): name is string => Boolean(name));
+  return courtNames.join(', ') || '-';
 };
 
 const ComplexPreferences = () => {
@@ -43,6 +65,10 @@ const ComplexPreferences = () => {
   const [dateSectionOpen, setDateSectionOpen] = useState(true);
   const [pricingSectionOpen, setPricingSectionOpen] = useState(true);
   const [paymentSectionOpen, setPaymentSectionOpen] = useState(true);
+  const ownedCourts = useMemo(
+    () => getAllCourts().filter((court) => court.complexId === selectedComplexId),
+    [selectedComplexId],
+  );
 
   const syncPreference = (complexId: string) => {
     const preference = getComplexPreference(complexId);
@@ -108,47 +134,65 @@ const ComplexPreferences = () => {
                   if (!schedule) return null;
 
                   return (
-                    <div key={day} className="grid gap-2 rounded-2xl border border-border bg-background/30 px-3 py-3 lg:grid-cols-[minmax(0,1fr)_auto_72px_auto_72px_auto] lg:items-center">
-                      <div className="font-semibold text-foreground">{t(day)}</div>
-                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('opensShort')}</span>
-                      <Input
-                        type="text"
-                        placeholder="HH:MM"
-                        maxLength={5}
-                        value={schedule.openTime}
-                        disabled={schedule.isClosed}
-                        onChange={(event) => {
-                          setWeekSchedule((current) => current.map((item) => (
-                            item.day === day ? { ...item, openTime: event.target.value } : item
-                          )));
-                        }}
-                        className="h-10 border-border bg-background/60 font-mono disabled:opacity-50"
-                      />
-                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('closesShort')}</span>
-                      <Input
-                        type="text"
-                        placeholder="HH:MM"
-                        maxLength={5}
-                        value={schedule.closeTime}
-                        disabled={schedule.isClosed}
-                        onChange={(event) => {
-                          setWeekSchedule((current) => current.map((item) => (
-                            item.day === day ? { ...item, closeTime: event.target.value } : item
-                          )));
-                        }}
-                        className="h-10 border-border bg-background/60 font-mono disabled:opacity-50"
-                      />
-                      <label className="inline-flex items-center justify-self-start gap-2 text-sm font-medium lg:ml-4 lg:justify-self-end">
-                        <Checkbox
-                          checked={schedule.isClosed}
-                          onCheckedChange={(checked) => {
-                            setWeekSchedule((current) => current.map((item) => (
-                              item.day === day ? { ...item, isClosed: checked === true } : item
-                            )));
-                          }}
-                        />
-                        {t('closed')}
-                      </label>
+                    <div key={day} className="rounded-2xl border border-border bg-background/30 px-3 py-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="min-w-[80px] font-semibold text-foreground">{t(day)}</div>
+                        <div className="flex flex-1 items-center gap-2">
+                          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('opensShort')}</span>
+                          <Select
+                            value={schedule.openTime}
+                            onValueChange={(value) => {
+                              setWeekSchedule((current) => current.map((item) => (
+                                item.day === day ? { ...item, openTime: value } : item
+                              )));
+                            }}
+                            disabled={schedule.isClosed}
+                          >
+                            <SelectTrigger className="h-9 w-24 border-border bg-background/60 font-mono text-sm disabled:opacity-50">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-72 border-border bg-popover/95 backdrop-blur-xl">
+                              {timeOptions.map((time) => (
+                                <SelectItem key={time} value={time} className="font-mono">
+                                  {time}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('closesShort')}</span>
+                          <Select
+                            value={schedule.closeTime}
+                            onValueChange={(value) => {
+                              setWeekSchedule((current) => current.map((item) => (
+                                item.day === day ? { ...item, closeTime: value } : item
+                              )));
+                            }}
+                            disabled={schedule.isClosed}
+                          >
+                            <SelectTrigger className="h-9 w-24 border-border bg-background/60 font-mono text-sm disabled:opacity-50">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-72 border-border bg-popover/95 backdrop-blur-xl">
+                              {timeOptions.map((time) => (
+                                <SelectItem key={time} value={time} className="font-mono">
+                                  {time}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <label className="flex items-center gap-2 text-sm font-medium">
+                          <Checkbox
+                            checked={schedule.isClosed}
+                            onCheckedChange={(checked) => {
+                              setWeekSchedule((current) => current.map((item) => (
+                                item.day === day ? { ...item, isClosed: checked === true } : item
+                              )));
+                            }}
+                          />
+                          {t('closed')}
+                        </label>
+                      </div>
                     </div>
                   );
                 })}
@@ -191,54 +235,72 @@ const ComplexPreferences = () => {
                 ) : (
                   <div className="space-y-3">
                     {holidays.map((holiday) => (
-                      <div key={holiday.date} className="grid gap-2 rounded-2xl border border-border bg-background/30 px-3 py-3 lg:grid-cols-[minmax(0,1fr)_auto_72px_auto_72px_auto_auto] lg:items-center">
-                        <div className="font-semibold text-foreground">{formatDateValue(holiday.date)}</div>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('opensShort')}</span>
-                        <Input
-                          type="text"
-                          placeholder="HH:MM"
-                          maxLength={5}
-                          value={holiday.openTime}
-                          disabled={holiday.isClosed}
-                          onChange={(event) => {
-                            setHolidays((current) => current.map((item) => (
-                              item.date === holiday.date ? { ...item, openTime: event.target.value } : item
-                            )));
-                          }}
-                          className="h-10 border-border bg-background/60 font-mono disabled:opacity-50"
-                        />
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('closesShort')}</span>
-                        <Input
-                          type="text"
-                          placeholder="HH:MM"
-                          maxLength={5}
-                          value={holiday.closeTime}
-                          disabled={holiday.isClosed}
-                          onChange={(event) => {
-                            setHolidays((current) => current.map((item) => (
-                              item.date === holiday.date ? { ...item, closeTime: event.target.value } : item
-                            )));
-                          }}
-                          className="h-10 border-border bg-background/60 font-mono disabled:opacity-50"
-                        />
-                        <label className="inline-flex items-center justify-self-start gap-2 text-sm font-medium lg:ml-4 lg:justify-self-end">
-                          <Checkbox
-                            checked={holiday.isClosed}
-                            onCheckedChange={(checked) => {
-                              setHolidays((current) => current.map((item) => (
-                                item.date === holiday.date ? { ...item, isClosed: checked === true } : item
-                              )));
-                            }}
-                          />
-                          {t('closed')}
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setHolidays((current) => current.filter((item) => item.date !== holiday.date))}
-                          className="justify-self-start text-muted-foreground transition-smooth hover:text-foreground lg:justify-self-end"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
+                      <div key={holiday.date} className="rounded-2xl border border-border bg-background/30 px-3 py-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="min-w-[80px] font-semibold text-foreground">{formatDateValue(holiday.date)}</div>
+                          <div className="flex flex-1 items-center gap-2">
+                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('opensShort')}</span>
+                            <Select
+                              value={holiday.openTime}
+                              onValueChange={(value) => {
+                                setHolidays((current) => current.map((item) => (
+                                  item.date === holiday.date ? { ...item, openTime: value } : item
+                                )));
+                              }}
+                              disabled={holiday.isClosed}
+                            >
+                              <SelectTrigger className="h-9 w-24 border-border bg-background/60 font-mono text-sm disabled:opacity-50">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-72 border-border bg-popover/95 backdrop-blur-xl">
+                                {timeOptions.map((time) => (
+                                  <SelectItem key={time} value={time} className="font-mono">
+                                    {time}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('closesShort')}</span>
+                            <Select
+                              value={holiday.closeTime}
+                              onValueChange={(value) => {
+                                setHolidays((current) => current.map((item) => (
+                                  item.date === holiday.date ? { ...item, closeTime: value } : item
+                                )));
+                              }}
+                              disabled={holiday.isClosed}
+                            >
+                              <SelectTrigger className="h-9 w-24 border-border bg-background/60 font-mono text-sm disabled:opacity-50">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-72 border-border bg-popover/95 backdrop-blur-xl">
+                                {timeOptions.map((time) => (
+                                  <SelectItem key={time} value={time} className="font-mono">
+                                    {time}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <label className="flex items-center gap-2 text-sm font-medium">
+                            <Checkbox
+                              checked={holiday.isClosed}
+                              onCheckedChange={(checked) => {
+                                setHolidays((current) => current.map((item) => (
+                                  item.date === holiday.date ? { ...item, isClosed: checked === true } : item
+                                )));
+                              }}
+                            />
+                            {t('closed')}
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setHolidays((current) => current.filter((item) => item.date !== holiday.date))}
+                            className="ml-auto text-muted-foreground transition-smooth hover:text-foreground"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -249,12 +311,12 @@ const ComplexPreferences = () => {
             <PreferencePanel title={t('pricingBySchedule')} isOpen={pricingSectionOpen} onToggle={() => setPricingSectionOpen((current) => !current)}>
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-sm text-muted-foreground">{t('noPricingRules').split('.')[0]}.</p>
+                  <p className="text-sm text-muted-foreground">{t('pricingRulesHint')}</p>
                   <button
                     type="button"
                     onClick={() => setPricingRules((current) => [
                       ...current,
-                      { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, day: 'monday', startTime: '08:00', endTime: '12:00', price: 0 },
+                      { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, startDate: todayDateValue, endDate: todayDateValue, courtIds: ['all'], price: 0 },
                     ])}
                     className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold transition-smooth hover:border-primary/40 hover:bg-secondary"
                   >
@@ -270,69 +332,84 @@ const ComplexPreferences = () => {
                 ) : (
                   <div className="space-y-3">
                     {pricingRules.map((rule) => (
-                      <div key={rule.id} className="grid gap-2 rounded-2xl border border-border bg-background/30 px-3 py-3 lg:grid-cols-[minmax(0,1fr)_auto_72px_auto_72px_auto_88px_auto] lg:items-center">
-                        <Select
-                          value={rule.day}
-                          onValueChange={(value) => setPricingRules((current) => current.map((item) => (
-                            item.id === rule.id ? { ...item, day: value } : item
-                          )))}
-                        >
-                          <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                            {weekDayOrder.map((day) => (
-                              <SelectItem key={day} value={day}>{t(day)}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div key={rule.id} className="rounded-2xl border border-border bg-background/30 px-3 py-3">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <div className="space-y-2">
+                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('priceRuleFrom')}</span>
+                            <Input
+                              type="date"
+                              value={rule.startDate}
+                              onChange={(event) => setPricingRules((current) => current.map((item) => (
+                                item.id === rule.id ? { ...item, startDate: event.target.value } : item
+                              )))}
+                              className="h-9 border-border bg-background/60 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('priceRuleTo')}</span>
+                            <Input
+                              type="date"
+                              value={rule.endDate}
+                              onChange={(event) => setPricingRules((current) => current.map((item) => (
+                                item.id === rule.id ? { ...item, endDate: event.target.value } : item
+                              )))}
+                              className="h-9 border-border bg-background/60 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('priceRulePrice')}</span>
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              placeholder="0"
+                              value={rule.price === 0 ? '' : String(rule.price)}
+                              onChange={(event) => {
+                                const next = event.target.value.replace(/[^\d]/g, '');
+                                setPricingRules((current) => current.map((item) => (
+                                  item.id === rule.id ? { ...item, price: Number(next) || 0 } : item
+                                )));
+                              }}
+                              className="h-9 w-24 border-border bg-background/60 text-sm"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setPricingRules((current) => current.filter((item) => item.id !== rule.id))}
+                            className="ml-auto text-muted-foreground transition-smooth hover:text-foreground"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
 
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('priceRuleFrom')}</span>
-                        <Input
-                          type="text"
-                          placeholder="HH:MM"
-                          maxLength={5}
-                          value={rule.startTime}
-                          onChange={(event) => setPricingRules((current) => current.map((item) => (
-                            item.id === rule.id ? { ...item, startTime: event.target.value } : item
-                          )))}
-                          className="h-10 border-border bg-background/60 font-mono"
-                        />
-
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('priceRuleTo')}</span>
-                        <Input
-                          type="text"
-                          placeholder="HH:MM"
-                          maxLength={5}
-                          value={rule.endTime}
-                          onChange={(event) => setPricingRules((current) => current.map((item) => (
-                            item.id === rule.id ? { ...item, endTime: event.target.value } : item
-                          )))}
-                          className="h-10 border-border bg-background/60 font-mono"
-                        />
-
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground lg:ml-4">R$</span>
-                        <Input
-                          type="text"
-                          inputMode="numeric"
-                          placeholder="0"
-                          value={rule.price === 0 ? '' : String(rule.price)}
-                          onChange={(event) => {
-                            const next = event.target.value.replace(/[^\d]/g, '');
-                            setPricingRules((current) => current.map((item) => (
-                              item.id === rule.id ? { ...item, price: Number(next) || 0 } : item
-                            )));
-                          }}
-                          className="h-10 border-border bg-background/60"
-                        />
-
-                        <button
-                          type="button"
-                          onClick={() => setPricingRules((current) => current.filter((item) => item.id !== rule.id))}
-                          className="justify-self-start text-muted-foreground transition-smooth hover:text-foreground lg:justify-self-end"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
+                        <div className="mt-4">
+                          <DragSelectField
+                            label={t('courtManagement')}
+                            hint=""
+                            availableTitle={t('availableCourts')}
+                            selectedTitle={t('selectedCourts')}
+                            availableItems={[
+                              { id: 'all', label: t('allCourts') },
+                              ...ownedCourts.map((court) => ({ id: court.id, label: court.name })),
+                            ].filter((item) => !rule.courtIds.includes(item.id))}
+                            selectedItems={rule.courtIds.map((courtId) => ({
+                              id: courtId,
+                              label: courtId === 'all' ? t('allCourts') : ownedCourts.find((court) => court.id === courtId)?.name ?? courtId,
+                            }))}
+                            onMove={(id, nextState) => {
+                              setPricingRules((current) => current.map((item) => {
+                                if (item.id !== rule.id) return item;
+                                const withoutCurrent = item.courtIds.filter((courtId) => courtId !== id);
+                                if (nextState === 'available') {
+                                  return { ...item, courtIds: withoutCurrent };
+                                }
+                                if (id === 'all') {
+                                  return { ...item, courtIds: ['all'] };
+                                }
+                                return { ...item, courtIds: [...withoutCurrent.filter((courtId) => courtId !== 'all'), id] };
+                              }));
+                            }}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -418,7 +495,7 @@ const ComplexPreferences = () => {
             <PreviewRow
               label={t('pricingRules')}
               value={pricingRules.length > 0
-                ? pricingRules.map((rule) => `${t(rule.day)} ${rule.startTime}–${rule.endTime} R$${rule.price}`).join(' · ')
+                ? pricingRules.map((rule) => `${formatDateValue(rule.startDate)} - ${formatDateValue(rule.endDate)} · ${describePricingRuleCourts(t, rule.courtIds, ownedCourts)} · R$${rule.price}`).join(' · ')
                 : '-'}
             />
           </div>

@@ -161,6 +161,18 @@ const addDays = (dateValue: string, days: number) => {
   return nextDate.toISOString().slice(0, 10);
 };
 const reservationWindowDates = Array.from({ length: 5 }, (_, index) => addDays(today, index));
+const defaultSlotOptions = [
+  { start: '08:00', end: '09:00' },
+  { start: '09:00', end: '10:00' },
+  { start: '10:00', end: '11:00' },
+  { start: '11:00', end: '12:00' },
+  { start: '14:00', end: '15:00' },
+  { start: '15:00', end: '16:00' },
+  { start: '16:00', end: '17:00' },
+  { start: '17:00', end: '18:00' },
+  { start: '18:00', end: '19:00' },
+  { start: '19:00', end: '20:00' },
+];
 
 export const CHAMPIONSHIPS: Championship[] = [
   {
@@ -255,6 +267,7 @@ export const COURTS: Court[] = [
     application: 'Arena Beach Copacabana',
     hourlyRate: 120,
     monthlyRate: 420,
+    slotOptions: defaultSlotOptions,
     reservations: [
       { date: today, start: '08:00', end: '09:00', user: 'João S.' },
       ...reservationWindowDates.map((date) => ({
@@ -274,6 +287,7 @@ export const COURTS: Court[] = [
     application: 'Arena Beach Copacabana',
     hourlyRate: 100,
     monthlyRate: 360,
+    slotOptions: defaultSlotOptions,
     reservations: [
       ...reservationWindowDates.map((date) => ({
         date,
@@ -292,6 +306,7 @@ export const COURTS: Court[] = [
     application: 'FTM Sports Center',
     hourlyRate: 140,
     monthlyRate: 520,
+    slotOptions: defaultSlotOptions,
     reservations: [
       { date: today, start: '09:00', end: '10:00', user: 'Pedro M.' },
       { date: today, start: '19:00', end: '20:00', user: 'Carol R.', type: 'monthly' },
@@ -305,6 +320,7 @@ export const COURTS: Court[] = [
     application: 'FTM Sports Center',
     hourlyRate: 110,
     monthlyRate: 390,
+    slotOptions: defaultSlotOptions,
     reservations: [
       { date: today, start: '17:00', end: '18:00', user: 'Carla R.' },
     ],
@@ -317,6 +333,7 @@ export const COURTS: Court[] = [
     application: 'Contorno da Bola',
     hourlyRate: 95,
     monthlyRate: 340,
+    slotOptions: defaultSlotOptions,
     reservations: [
       { date: today, start: '15:00', end: '16:00', user: 'Victor N.', type: 'monthly' },
     ],
@@ -329,6 +346,7 @@ export const COURTS: Court[] = [
     application: 'Contorno da Bola',
     hourlyRate: 90,
     monthlyRate: 320,
+    slotOptions: defaultSlotOptions,
     reservations: [],
   },
   {
@@ -339,6 +357,7 @@ export const COURTS: Court[] = [
     application: 'Jurerê Beach Club',
     hourlyRate: 130,
     monthlyRate: 470,
+    slotOptions: defaultSlotOptions,
     reservations: [
       { date: today, start: '11:00', end: '12:00', user: 'Brisa A.' },
     ],
@@ -351,6 +370,7 @@ export const COURTS: Court[] = [
     application: 'Jurerê Beach Club',
     hourlyRate: 115,
     monthlyRate: 410,
+    slotOptions: defaultSlotOptions,
     reservations: [],
   },
 ];

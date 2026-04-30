@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Ruler, Wallet } from 'lucide-react';
+import { Building2, ChevronDown, ChevronUp, Clock3, Plus, Ruler, Wallet, X } from 'lucide-react';
 import { RESERVATION_PLACES } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
@@ -9,6 +9,31 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { COURT_DIMENSIONS, saveCustomCourt } from '@/lib/courts-store';
+
+const defaultSlotOptions = [
+  { start: '08:00', end: '09:00' },
+  { start: '09:00', end: '10:00' },
+  { start: '10:00', end: '11:00' },
+  { start: '11:00', end: '12:00' },
+  { start: '14:00', end: '15:00' },
+  { start: '15:00', end: '16:00' },
+  { start: '16:00', end: '17:00' },
+  { start: '17:00', end: '18:00' },
+  { start: '18:00', end: '19:00' },
+  { start: '19:00', end: '20:00' },
+];
+
+const timeToMinutes = (time: string) => {
+  const [hour, minute] = time.split(':').map(Number);
+  return hour * 60 + minute;
+};
+
+const timeOptions = Array.from({ length: 24 * 4 }, (_, index) => {
+  const totalMinutes = index * 15;
+  const hour = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+  const minute = String(totalMinutes % 60).padStart(2, '0');
+  return `${hour}:${minute}`;
+});
 
 const CourtCreate = () => {
   const navigate = useNavigate();
@@ -25,6 +50,14 @@ const CourtCreate = () => {
   const [dimensions, setDimensions] = useState(COURT_DIMENSIONS[0]);
   const [hourlyRate, setHourlyRate] = useState('120');
   const [monthlyRate, setMonthlyRate] = useState('420');
+  const [slotStart, setSlotStart] = useState('08:00');
+  const [slotEnd, setSlotEnd] = useState('09:00');
+  const [slotOptions, setSlotOptions] = useState(defaultSlotOptions);
+  const nextSlotKey = `${slotStart}-${slotEnd}`;
+  const canAddSlot = Boolean(slotStart)
+    && Boolean(slotEnd)
+    && timeToMinutes(slotEnd) > timeToMinutes(slotStart)
+    && !slotOptions.some((slot) => `${slot.start}-${slot.end}` === nextSlotKey);
 
   if (!isGestorMode) {
     return (
@@ -100,26 +133,85 @@ const CourtCreate = () => {
 
             <div className="space-y-2">
               <Label htmlFor="hourly-rate" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('hourlyRate')}</Label>
-              <Input
-                id="hourly-rate"
-                type="number"
-                min="0"
+              <StepperNumberField
                 value={hourlyRate}
-                onChange={(event) => setHourlyRate(event.target.value)}
-                className="border-border bg-background/60"
+                onChange={setHourlyRate}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="monthly-rate" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('monthlyRate')}</Label>
-              <Input
-                id="monthly-rate"
-                type="number"
-                min="0"
+              <StepperNumberField
                 value={monthlyRate}
-                onChange={(event) => setMonthlyRate(event.target.value)}
-                className="border-border bg-background/60"
+                onChange={setMonthlyRate}
               />
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-border bg-background/25 p-4">
+            <div className="mb-4">
+              <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('availableTimeSlots')}</span>
+              <p className="mt-2 text-sm text-muted-foreground">{t('courtTimeSlotsHint')}</p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-[minmax(0,140px)_minmax(0,140px)_auto]">
+              <Select value={slotStart} onValueChange={setSlotStart}>
+                <SelectTrigger className="h-10 border-border bg-background/60 font-mono text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-72 border-border bg-popover/95 backdrop-blur-xl">
+                  {timeOptions.map((time) => (
+                    <SelectItem key={time} value={time} className="font-mono">
+                      {time}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={slotEnd} onValueChange={setSlotEnd}>
+                <SelectTrigger className="h-10 border-border bg-background/60 font-mono text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-72 border-border bg-popover/95 backdrop-blur-xl">
+                  {timeOptions.map((time) => (
+                    <SelectItem key={time} value={time} className="font-mono">
+                      {time}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!canAddSlot) return;
+                  setSlotOptions((current) => (
+                    [...current, { start: slotStart, end: slotEnd }].sort((left, right) => (
+                      timeToMinutes(left.start) - timeToMinutes(right.start) || timeToMinutes(left.end) - timeToMinutes(right.end)
+                    ))
+                  ));
+                }}
+                disabled={!canAddSlot}
+                className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-smooth ${
+                  canAddSlot
+                    ? 'border border-border bg-secondary hover:border-primary/35'
+                    : 'cursor-not-allowed border border-border bg-background/40 text-muted-foreground'
+                }`}
+              >
+                <Plus className="h-4 w-4 text-neon-cyan" />
+                {t('addTimeSlot')}
+              </button>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {slotOptions.map((slot) => (
+                <div key={`${slot.start}-${slot.end}`} className="inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-2 text-xs font-semibold">
+                  <span>{slot.start} - {slot.end}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSlotOptions((current) => current.filter((item) => item.start !== slot.start || item.end !== slot.end))}
+                    className="text-muted-foreground transition-smooth hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -127,7 +219,7 @@ const CourtCreate = () => {
             <button
               type="button"
               onClick={() => {
-                if (!selectedPlace || !courtName.trim()) return;
+                if (!selectedPlace || !courtName.trim() || slotOptions.length === 0) return;
                 saveCustomCourt({
                   id: `custom-${Date.now()}`,
                   complexId: selectedPlace.id,
@@ -136,6 +228,7 @@ const CourtCreate = () => {
                   dimensions,
                   hourlyRate: Number(hourlyRate) || 0,
                   monthlyRate: Number(monthlyRate) || 0,
+                  slotOptions,
                   reservations: [],
                 });
                 toast({
@@ -144,9 +237,9 @@ const CourtCreate = () => {
                 });
                 navigate('/management');
               }}
-              disabled={!selectedPlace || !courtName.trim()}
+              disabled={!selectedPlace || !courtName.trim() || slotOptions.length === 0}
               className={`inline-flex items-center justify-center rounded-lg px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.18em] transition-smooth ${
-                selectedPlace && courtName.trim()
+                selectedPlace && courtName.trim() && slotOptions.length > 0
                   ? 'bg-gradient-primary shadow-neon hover:brightness-110'
                   : 'cursor-not-allowed border border-border bg-secondary text-muted-foreground'
               }`}
@@ -174,6 +267,7 @@ const CourtCreate = () => {
               label={t('monthlyRate')}
               value={new Intl.NumberFormat(language === 'pt-BR' ? 'pt-BR' : 'en-US', { style: 'currency', currency: 'BRL' }).format(Number(monthlyRate) || 0)}
             />
+            <PreviewRow label={t('availableTimeSlots')} value={slotOptions.map((slot) => `${slot.start}-${slot.end}`).join(' · ') || '-'} />
           </div>
 
           <div className="mt-5 rounded-xl border border-border bg-background/30 p-4 text-sm text-muted-foreground">
@@ -182,6 +276,14 @@ const CourtCreate = () => {
               {t('dimensions')}
             </div>
             <p>{t('dimensionsHint')}</p>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-border bg-background/30 p-4 text-sm text-muted-foreground">
+            <div className="mb-2 inline-flex items-center gap-2 font-semibold text-foreground">
+              <Clock3 className="h-4 w-4 text-neon-cyan" />
+              {t('availableTimeSlots')}
+            </div>
+            <p>{t('courtTimeSlotsHint')}</p>
           </div>
 
           <div className="mt-4 rounded-xl border border-border bg-background/30 p-4 text-sm text-muted-foreground">
@@ -201,6 +303,40 @@ const PreviewRow = ({ label, value }: { label: string; value: string }) => (
   <div className="rounded-xl border border-border bg-background/30 p-3">
     <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{label}</div>
     <div className="mt-1 font-semibold text-foreground">{value}</div>
+  </div>
+);
+
+const StepperNumberField = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) => (
+  <div className="flex h-10 overflow-hidden rounded-lg border border-border bg-background/60">
+    <Input
+      type="text"
+      inputMode="numeric"
+      value={value}
+      onChange={(event) => onChange(event.target.value.replace(/[^\d]/g, ''))}
+      className="h-full border-0 bg-transparent pr-0 shadow-none focus-visible:ring-0"
+    />
+    <div className="flex w-10 flex-col border-l border-border">
+      <button
+        type="button"
+        onClick={() => onChange(String((Number(value) || 0) + 1))}
+        className="flex h-1/2 items-center justify-center text-muted-foreground transition-smooth hover:bg-secondary/70 hover:text-foreground"
+      >
+        <ChevronUp className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange(String(Math.max(0, (Number(value) || 0) - 1)))}
+        className="flex h-1/2 items-center justify-center border-t border-border text-muted-foreground transition-smooth hover:bg-secondary/70 hover:text-foreground"
+      >
+        <ChevronDown className="h-4 w-4" />
+      </button>
+    </div>
   </div>
 );
 

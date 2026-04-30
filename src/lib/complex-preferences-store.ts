@@ -44,9 +44,10 @@ const isPricingRule = (value: unknown): value is PricingRule => {
   if (!value || typeof value !== 'object') return false;
   const rule = value as Record<string, unknown>;
   return typeof rule.id === 'string'
-    && typeof rule.day === 'string'
-    && typeof rule.startTime === 'string'
-    && typeof rule.endTime === 'string'
+    && typeof rule.startDate === 'string'
+    && typeof rule.endDate === 'string'
+    && Array.isArray(rule.courtIds)
+    && rule.courtIds.every((courtId) => typeof courtId === 'string')
     && typeof rule.price === 'number';
 };
 

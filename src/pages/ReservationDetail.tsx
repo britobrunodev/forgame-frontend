@@ -9,8 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { getAllCourts } from '@/lib/courts-store';
-
-const SLOT_OPTIONS = ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
+import { getComplexPreference } from '@/lib/complex-preferences-store';
 
 const toDateValue = (date: Date) => {
   const year = date.getFullYear();
@@ -30,16 +29,16 @@ const formatDateValue = (dateValue: string) => {
   return `${day}/${month}/${year}`;
 };
 
-const addOneHour = (time: string) => {
+const timeToMinutes = (time: string) => {
   const [hour, minute] = time.split(':').map(Number);
-  return `${String(hour + 1).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  return hour * 60 + minute;
 };
 
-const getSlotPrice = (baseRate: number, slot: string) => {
-  const hour = Number(slot.split(':')[0]);
-  if (hour >= 18) return baseRate + 20;
-  if (hour <= 9) return baseRate - 10;
-  return baseRate;
+const getSlotPrice = (baseRate: number, slot: { start: string; end: string }) => {
+  const durationHours = Math.max((timeToMinutes(slot.end) - timeToMinutes(slot.start)) / 60, 0.5);
+  const hour = Number(slot.start.split(':')[0]);
+  const adjustedBase = hour >= 18 ? baseRate + 20 : hour <= 9 ? baseRate - 10 : baseRate;
+  return adjustedBase * durationHours;
 };
 
 const ReservationDetail = () => {
@@ -60,7 +59,7 @@ const ReservationDetail = () => {
   );
 
   const [selectedDate, setSelectedDate] = useState(dateOptions[0]);
-  const [selectedRange, setSelectedRange] = useState<{ courtId: string; start: string; end: string } | null>(null);
+  const [selectedRange, setSelectedRange] = useState<{ courtId: string; startIndex: number; endIndex: number } | null>(null);
   const [isMonthlyRate, setIsMonthlyRate] = useState(false);
 
   if (!place) {
@@ -69,19 +68,29 @@ const ReservationDetail = () => {
 
   const courts = getAllCourts().filter((court) => court.complexId === place.id);
   const selectedCourt = courts.find((court) => court.id === selectedRange?.courtId) ?? null;
-  const selectedRangeSlots = selectedRange
-    ? SLOT_OPTIONS.slice(
-      SLOT_OPTIONS.indexOf(selectedRange.start),
-      SLOT_OPTIONS.indexOf(selectedRange.end) + 1,
-    )
+  const selectedRangeSlots = selectedRange && selectedCourt
+    ? selectedCourt.slotOptions.slice(selectedRange.startIndex, selectedRange.endIndex + 1)
     : [];
-  const selectedStartTime = selectedRange?.start ?? '-';
-  const selectedEndTime = selectedRange ? addOneHour(selectedRange.end) : '-';
-  const selectedDuration = selectedRange ? `${selectedRangeSlots.length}h` : '-';
+  const selectedStartTime = selectedRangeSlots[0]?.start ?? '-';
+  const selectedEndTime = selectedRangeSlots[selectedRangeSlots.length - 1]?.end ?? '-';
+  const selectedDuration = selectedRange
+    ? `${selectedRangeSlots.reduce((sum, slot) => sum + Math.max((timeToMinutes(slot.end) - timeToMinutes(slot.start)) / 60, 0), 0)}h`
+    : '-';
+  const pricingRules = getComplexPreference(place.id).pricingRules;
+  const overrideRateByCourtId = Object.fromEntries(
+    courts.map((court) => {
+      const matchingRule = pricingRules.find((rule) => (
+        selectedDate >= rule.startDate
+        && selectedDate <= rule.endDate
+        && (rule.courtIds.includes('all') || rule.courtIds.includes(court.id))
+      ));
+      return [court.id, matchingRule?.price ?? court.hourlyRate];
+    }),
+  ) as Record<string, number>;
   const totalPrice = selectedCourt
     ? isMonthlyRate
       ? selectedCourt.monthlyRate
-      : selectedRangeSlots.reduce((sum, slot) => sum + getSlotPrice(selectedCourt.hourlyRate, slot), 0)
+      : selectedRangeSlots.reduce((sum, slot) => sum + getSlotPrice(overrideRateByCourtId[selectedCourt.id] ?? selectedCourt.hourlyRate, slot), 0)
     : 0;
 
   const formattedDate = formatDateValue(selectedDate);
@@ -236,6 +245,9 @@ const ReservationDetail = () => {
                       <h3 className="font-display text-lg font-bold">{court.name}</h3>
                       <p className="mt-1 text-xs uppercase tracking-[0.18em] text-neon-cyan">{court.dimensions}</p>
                       <p className="mt-2 text-sm text-muted-foreground">
+                        {t('hourlyRate')}: {new Intl.NumberFormat(language === 'pt-BR' ? 'pt-BR' : 'en-US', { style: 'currency', currency: 'BRL' }).format(overrideRateByCourtId[court.id] ?? court.hourlyRate)}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
                         {t('monthlyRate')}: {new Intl.NumberFormat(language === 'pt-BR' ? 'pt-BR' : 'en-US', { style: 'currency', currency: 'BRL' }).format(court.monthlyRate)}
                       </p>
                     </div>
@@ -244,38 +256,41 @@ const ReservationDetail = () => {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                    {SLOT_OPTIONS.map((slot) => {
-                      const isReserved = reservedTimes.has(slot);
-                      const isMonthlyBooked = monthlyTimes.has(slot);
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    {court.slotOptions.map((slot, slotIndex) => {
+                      const isReserved = reservedTimes.has(slot.start);
+                      const isMonthlyBooked = monthlyTimes.has(slot.start);
                       const isSelected = selectedRange?.courtId === court.id
-                        && selectedRangeSlots.includes(slot);
-                      const slotPrice = getSlotPrice(court.hourlyRate, slot);
+                        && slotIndex >= selectedRange.startIndex
+                        && slotIndex <= selectedRange.endIndex;
+                      const slotPrice = getSlotPrice(overrideRateByCourtId[court.id] ?? court.hourlyRate, slot);
 
                       return (
                         <button
-                          key={slot}
+                          key={`${slot.start}-${slot.end}`}
                           type="button"
                           disabled={isReserved}
                           onClick={() => {
                             setSelectedRange((current) => {
                               if (!current || current.courtId !== court.id) {
-                                return { courtId: court.id, start: slot, end: slot };
+                                return { courtId: court.id, startIndex: slotIndex, endIndex: slotIndex };
                               }
 
-                              const startIndex = SLOT_OPTIONS.indexOf(current.start);
-                              const slotIndex = SLOT_OPTIONS.indexOf(slot);
-                              const [fromIndex, toIndex] = startIndex <= slotIndex ? [startIndex, slotIndex] : [slotIndex, startIndex];
-                              const rangeSlots = SLOT_OPTIONS.slice(fromIndex, toIndex + 1);
+                              if (isMonthlyRate) {
+                                return { courtId: court.id, startIndex: slotIndex, endIndex: slotIndex };
+                              }
 
-                              if (rangeSlots.some((time) => reservedTimes.has(time))) {
-                                return { courtId: court.id, start: slot, end: slot };
+                              const [fromIndex, toIndex] = current.startIndex <= slotIndex ? [current.startIndex, slotIndex] : [slotIndex, current.startIndex];
+                              const rangeSlots = court.slotOptions.slice(fromIndex, toIndex + 1);
+
+                              if (rangeSlots.some((time) => reservedTimes.has(time.start))) {
+                                return { courtId: court.id, startIndex: slotIndex, endIndex: slotIndex };
                               }
 
                               return {
                                 courtId: court.id,
-                                start: SLOT_OPTIONS[fromIndex],
-                                end: SLOT_OPTIONS[toIndex],
+                                startIndex: fromIndex,
+                                endIndex: toIndex,
                               };
                             });
                           }}
@@ -289,7 +304,7 @@ const ReservationDetail = () => {
                                 : 'border border-border bg-background/35 text-foreground hover:border-neon-cyan/40 hover:text-neon-cyan'
                           }`}
                         >
-                          <span className="block">{slot}</span>
+                          <span className="block">{slot.start} - {slot.end}</span>
                           <span className="mt-1 block text-[11px] font-bold opacity-80">
                             {new Intl.NumberFormat(language === 'pt-BR' ? 'pt-BR' : 'en-US', { style: 'currency', currency: 'BRL' }).format(slotPrice)}
                           </span>
@@ -298,7 +313,7 @@ const ReservationDetail = () => {
                     })}
                   </div>
 
-                  {reservedTimes.size === SLOT_OPTIONS.length ? (
+                  {reservedTimes.size === court.slotOptions.length ? (
                     <p className="mt-4 text-sm text-muted-foreground">{t('noAvailableSlots')}</p>
                   ) : null}
                 </article>

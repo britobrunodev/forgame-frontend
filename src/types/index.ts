@@ -54,6 +54,7 @@ export interface Court {
   application: string; // e.g. Arena Beach Copacabana
   hourlyRate: number;
   monthlyRate: number;
+  slotOptions: { start: string; end: string }[];
   reservations: { date: string; start: string; end: string; user: string; type?: 'single' | 'monthly' }[];
 }
 
@@ -115,9 +116,9 @@ export interface HolidaySchedule {
 
 export interface PricingRule {
   id: string;
-  day: string;
-  startTime: string;
-  endTime: string;
+  startDate: string;
+  endDate: string;
+  courtIds: string[];
   price: number;
 }
 

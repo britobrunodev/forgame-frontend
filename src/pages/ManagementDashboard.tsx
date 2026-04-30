@@ -50,10 +50,9 @@ const ManagementDashboard = () => {
           <button
             type="button"
             onClick={() => navigate('/management/courts/new')}
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary/70 px-3 py-2 text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary/70 text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
           >
             <Plus className="w-4 h-4" />
-            <span className="font-display text-[10px] font-bold uppercase tracking-[0.2em]">{t('addCourt')}</span>
           </button>
           <Popover>
             <PopoverTrigger asChild>
