@@ -4,6 +4,7 @@ import { Calendar, Building2 } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useSession } from '@/session';
 
 const isAvailableNow = (court: typeof COURTS[number], date: string) => {
   const now = new Date();
@@ -22,6 +23,7 @@ const isAvailableNow = (court: typeof COURTS[number], date: string) => {
 
 const ManagementDashboard = () => {
   const { t, sportName, language } = useLanguage();
+  const { isOwnerMode } = useSession();
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const apps = Array.from(new Set(COURTS.map(c => c.application)));
   const selectedDate = new Date(`${date}T12:00:00`);
@@ -30,6 +32,22 @@ const ManagementDashboard = () => {
     month: 'short',
     year: 'numeric',
   });
+
+  if (!isOwnerMode) {
+    return (
+      <div className="max-w-3xl">
+        <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
+          <div className="inline-flex items-center gap-2 rounded-full border border-live/30 bg-live/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-live">
+            {t('ownerOnlyTitle')}
+          </div>
+          <h1 className="mt-5 font-display text-4xl font-black">
+            <span className="neon-text">{t('courtManagement')}</span>
+          </h1>
+          <p className="mt-3 max-w-xl text-sm text-muted-foreground">{t('ownerOnlyDescription')}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-7xl">

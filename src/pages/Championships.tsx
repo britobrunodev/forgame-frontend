@@ -8,8 +8,7 @@ const Championships = () => {
   return (
     <div className="space-y-6 max-w-7xl">
       <header>
-        <p className="text-xs uppercase tracking-[0.3em] text-neon-cyan font-bold mb-1">{t('allCompetitions')}</p>
-        <h1 className="font-display font-black text-4xl"><span className="neon-text">{t('championships')}</span></h1>
+        <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('championships')}</p>
       </header>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {CHAMPIONSHIPS.map(c => <ChampionshipCard key={c.id} c={c} />)}

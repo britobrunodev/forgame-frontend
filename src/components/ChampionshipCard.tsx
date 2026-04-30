@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { MapPin, Users, Calendar, Trophy } from 'lucide-react';
 import { LiveBadge } from './LiveBadge';
 import { SportIcon } from './SportIcon';
+import { MapsButton } from './MapsButton';
+import { YouTubeButton } from './YouTubeButton';
 import { SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import type { Championship } from '@/types';
@@ -9,44 +11,64 @@ import type { Championship } from '@/types';
 export const ChampionshipCard = ({ c }: { c: Championship }) => {
   const { t, sportName } = useLanguage();
   const sport = SPORTS.find(s => s.id === c.sport);
+
   return (
-    <Link
-      to={`/championships/${c.id}`}
-      className="group relative overflow-hidden rounded-xl border border-border bg-gradient-card hover:shadow-neon transition-smooth hover:-translate-y-0.5 block"
-    >
-      <div className="h-32 relative overflow-hidden bg-secondary">
-        {c.image ? (
-          <img src={c.image} alt={c.name} loading="lazy" className="w-full h-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 hex-grid opacity-30" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/30 to-background/10" />
-        <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-background/60 backdrop-blur-md text-xs font-bold uppercase tracking-wider text-foreground border border-white/10 leading-none">
-            {sport && <SportIcon sportId={sport.id} className="h-3.5 w-3.5 translate-y-[0.5px]" />}
-            <span className="translate-y-[0.5px] leading-none">{sport ? sportName(sport.id) : c.sport}</span>
-          </span>
-          <LiveBadge status={c.status} />
-        </div>
-        {c.prize && (
-          <div className="absolute bottom-3 right-3 text-right">
-            <div className="text-[10px] uppercase tracking-widest text-foreground/80">{t('prizePool')}</div>
-            <div className="font-display font-black text-foreground text-lg drop-shadow-lg">{c.prize}</div>
+    <article className="group relative overflow-hidden rounded-xl border border-border bg-gradient-card transition-smooth hover:-translate-y-0.5 hover:shadow-neon">
+      <Link to={`/championships/${c.id}`} className="block">
+        <div className="relative h-32 overflow-hidden bg-secondary">
+          {c.image ? (
+            <img src={c.image} alt={c.name} loading="lazy" className="h-full w-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 hex-grid opacity-30" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/30 to-background/10" />
+          <div className="absolute left-3 right-3 top-3 flex items-start justify-between gap-2">
+            <span className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-background/60 px-1.5 py-0.5 text-xs font-bold uppercase leading-none tracking-wider text-foreground backdrop-blur-md">
+              {sport && <SportIcon sportId={sport.id} className="h-3.5 w-3.5 translate-y-[0.5px]" />}
+              <span className="translate-y-[0.5px] leading-none">{sport ? sportName(sport.id) : c.sport}</span>
+            </span>
+            <LiveBadge status={c.status} />
           </div>
-        )}
-      </div>
+          {c.prize && (
+            <div className="absolute bottom-3 right-3 text-right">
+              <div className="text-[10px] uppercase tracking-widest text-foreground/80">{t('prizePool')}</div>
+              <div className="font-display text-lg font-black text-foreground drop-shadow-lg">{c.prize}</div>
+            </div>
+          )}
+        </div>
+      </Link>
+
       <div className="p-4">
-        <h3 className="font-display font-bold text-base leading-tight mb-2 group-hover:neon-text transition-smooth">{c.name}</h3>
-        <div className="space-y-1.5 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" /> {c.location}</div>
-          <div className="flex items-center gap-1.5"><Calendar className="w-3 h-3" /> {c.startDate} → {c.endDate}</div>
-          <div className="flex items-center gap-1.5"><Users className="w-3 h-3" /> {c.teamsCount} {t('teams')}</div>
+        <Link to={`/championships/${c.id}`} className="block">
+          <h3 className="mb-2 font-display text-base font-bold leading-tight transition-smooth group-hover:neon-text">{c.name}</h3>
+        </Link>
+
+        <div className="flex items-end justify-between gap-3">
+          <Link to={`/championships/${c.id}`} className="block flex-1">
+            <div className="space-y-1.5 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5"><MapPin className="h-3 w-3" /> {c.location}</div>
+              <div className="flex items-center gap-1.5"><Calendar className="h-3 w-3" /> {c.startDate} → {c.endDate}</div>
+              <div className="flex items-center gap-1.5"><Users className="h-3 w-3" /> {c.teamsCount} {t('teams')}</div>
+            </div>
+          </Link>
+          <div className="flex shrink-0 items-center gap-2 self-end">
+            <MapsButton compact />
+            <YouTubeButton url={c.youtubeUrl} compact />
+          </div>
         </div>
-        <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
-          <span className="text-xs font-bold text-neon-cyan flex items-center gap-1"><Trophy className="w-3 h-3" /> {t('viewBracket')}</span>
-          <span className="text-xs uppercase tracking-wider font-bold text-muted-foreground group-hover:text-primary-glow transition-smooth">→</span>
+
+        <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+          <Link to={`/championships/${c.id}`} className="flex items-center gap-1 text-xs font-bold text-neon-cyan">
+            <Trophy className="h-3 w-3" /> {t('viewBracket')}
+          </Link>
+          <Link
+            to={`/championships/${c.id}`}
+            className="text-xs font-bold uppercase tracking-wider text-muted-foreground transition-smooth group-hover:text-primary-glow"
+          >
+            →
+          </Link>
         </div>
       </div>
-    </Link>
+    </article>
   );
 };

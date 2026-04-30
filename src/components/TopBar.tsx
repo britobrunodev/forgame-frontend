@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Bell, Search, Menu, LayoutDashboard, Trophy, MapPin, Calendar, Building2, ChevronDown, PlusCircle, LogOut, Settings } from 'lucide-react';
-import { CURRENT_USER, SPORTS } from '@/data/mock';
+import { SPORTS } from '@/data/mock';
 import { LanguageSelector } from './LanguageSelector';
 import { Logo } from './Logo';
 import { SportIcon } from './SportIcon';
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLanguage } from '@/i18n';
+import { useSession } from '@/session';
 
 export const TopBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t, userTypeLabel, sportName } = useLanguage();
+  const { activeProfile, currentUser, isOwnerMode } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [managementOpen, setManagementOpen] = useState(
     location.pathname.startsWith('/management') || location.pathname.startsWith('/settings'),
@@ -60,7 +63,7 @@ export const TopBar = () => {
                     <span className="truncate">{label}</span>
                   </NavLink>
                 ))}
-                {CURRENT_USER.type === 'distributor' && (
+                {isOwnerMode && (
                   <>
                     <button
                       type="button"
@@ -80,7 +83,7 @@ export const TopBar = () => {
                     {managementOpen && (
                       <div className="ml-3 space-y-1 border-l border-border pl-3">
                         <NavLink
-                          to="/settings"
+                          to="/management"
                           onClick={closeMobileMenu}
                           className={({ isActive }) =>
                             `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
@@ -88,8 +91,8 @@ export const TopBar = () => {
                             }`
                           }
                         >
-                          <PlusCircle className="h-4 w-4 shrink-0 text-neon-cyan" />
-                          <span className="truncate">{t('createTournament')}</span>
+                          <Building2 className="h-4 w-4 shrink-0 text-neon-pink" />
+                          <span className="truncate">{t('courtManagement')}</span>
                         </NavLink>
                         <NavLink
                           to="/settings/complex"
@@ -104,7 +107,7 @@ export const TopBar = () => {
                           <span className="truncate">{t('createSportComplex')}</span>
                         </NavLink>
                         <NavLink
-                          to="/reservations"
+                          to="/settings"
                           onClick={closeMobileMenu}
                           className={({ isActive }) =>
                             `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
@@ -112,20 +115,8 @@ export const TopBar = () => {
                             }`
                           }
                         >
-                          <MapPin className="h-4 w-4 shrink-0 text-neon-cyan" />
-                          <span className="truncate">{t('reservations')}</span>
-                        </NavLink>
-                        <NavLink
-                          to="/management"
-                          onClick={closeMobileMenu}
-                          className={({ isActive }) =>
-                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                              isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                            }`
-                          }
-                        >
-                          <Building2 className="h-4 w-4 shrink-0 text-neon-pink" />
-                          <span className="truncate">{t('courtManagement')}</span>
+                          <PlusCircle className="h-4 w-4 shrink-0 text-neon-cyan" />
+                          <span className="truncate">{t('createTournament')}</span>
                         </NavLink>
                       </div>
                     )}
@@ -143,7 +134,7 @@ export const TopBar = () => {
                     className={({ isActive }) =>
                       `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-3 rounded-lg px-3 py-2 text-sm transition-smooth ${
                         isActive ? 'bg-sidebar-accent text-foreground border-l-2 border-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent/60'
-                      } ${CURRENT_USER.preferences.includes(sport.id) ? 'font-bold' : 'font-medium'}`
+                      } ${currentUser.preferences.includes(sport.id) ? 'font-bold' : 'font-medium'}`
                     }
                   >
                     <SportIcon sportId={sport.id} className="h-4 w-4 shrink-0" />
@@ -153,14 +144,14 @@ export const TopBar = () => {
               </div>
             </div>
 
-            <div className="border-t border-border p-3 space-y-1">
+            <div className="border-t border-border px-0 py-1">
               <button
                 type="button"
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent"
               >
                 <Settings className="h-4 w-4" /> {t('settings')}
               </button>
-              <div className="-mx-3 my-1 h-px bg-border/80" />
+              <div className="h-px bg-border/80" />
               <SheetClose asChild>
                 <button
                   onClick={() => navigate('/login')}
@@ -186,15 +177,34 @@ export const TopBar = () => {
         <Bell className="w-5 h-5 text-muted-foreground" />
         <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-neon-pink rounded-full shadow-[0_0_8px_hsl(var(--neon-pink))]" />
       </button>
-      <div className="hidden sm:flex items-center gap-3 pl-4 border-l border-border">
+      <button
+        type="button"
+        onClick={() => navigate('/profile')}
+        className="sm:hidden inline-flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 bg-secondary/60"
+      >
+        <Avatar className="h-9 w-9">
+          <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
+          <AvatarFallback className="bg-gradient-primary font-display text-xs font-bold text-primary-foreground">
+            {currentUser.name.split(' ').map((name) => name[0]).join('')}
+          </AvatarFallback>
+        </Avatar>
+      </button>
+      <button
+        type="button"
+        onClick={() => navigate('/profile')}
+        className="hidden sm:flex items-center gap-3 pl-4 border-l border-border transition-smooth hover:text-foreground"
+      >
         <div className="text-right hidden sm:block">
-          <div className="text-sm font-bold leading-tight">{CURRENT_USER.name}</div>
-          <div className="text-[10px] uppercase tracking-wider text-neon-cyan font-semibold">{userTypeLabel(CURRENT_USER.type)}</div>
+          <div className="text-sm font-bold leading-tight">{currentUser.name}</div>
+          <div className="text-[10px] uppercase tracking-wider text-neon-cyan font-semibold">{userTypeLabel(activeProfile)}</div>
         </div>
-        <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center font-display font-bold text-sm shadow-neon">
-          {CURRENT_USER.name.split(' ').map(n => n[0]).join('')}
-        </div>
-      </div>
+        <Avatar className="h-10 w-10 border border-primary/20 shadow-neon">
+          <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
+          <AvatarFallback className="bg-gradient-primary font-display text-sm font-bold text-primary-foreground">
+            {currentUser.name.split(' ').map((name) => name[0]).join('')}
+          </AvatarFallback>
+        </Avatar>
+      </button>
     </header>
   );
 };

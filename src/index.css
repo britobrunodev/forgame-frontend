@@ -122,6 +122,24 @@
   .animate-status-pulse {
     animation: pulse-live 2s ease-in-out infinite;
   }
+
+  .auth-card-shell {
+    perspective: 1600px;
+  }
+
+  .auth-card-flip-login,
+  .auth-card-flip-register {
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+  }
+
+  .auth-card-flip-login {
+    animation: auth-flip-login 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .auth-card-flip-register {
+    animation: auth-flip-register 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
 }
 
 @keyframes pulse-live {
@@ -132,4 +150,26 @@
 @keyframes glow-sweep {
   0%, 100% { box-shadow: 0 0 12px hsl(var(--primary) / 0.3); }
   50% { box-shadow: 0 0 28px hsl(var(--accent) / 0.6); }
+}
+
+@keyframes auth-flip-login {
+  0% {
+    opacity: 0;
+    transform: rotateY(-24deg) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: rotateY(0deg) scale(1);
+  }
+}
+
+@keyframes auth-flip-register {
+  0% {
+    opacity: 0;
+    transform: rotateY(24deg) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: rotateY(0deg) scale(1);
+  }
 }

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/AppLayout";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import ChampionshipDetail from "./pages/ChampionshipDetail";
 import Championships from "./pages/Championships";
@@ -14,7 +15,9 @@ import Schedule from "./pages/Schedule";
 import ManagementDashboard from "./pages/ManagementDashboard";
 import TournamentSettings from "./pages/TournamentSettings";
 import SportComplexSettings from "./pages/SportComplexSettings";
+import ProfileSettings from "./pages/ProfileSettings";
 import NotFound from "./pages/NotFound.tsx";
+import { SessionProvider } from "./session";
 
 const queryClient = new QueryClient();
 
@@ -23,24 +26,28 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/login" element={<Login />} />
-          <Route element={<AppLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/championships" element={<Championships />} />
-            <Route path="/championships/:id" element={<ChampionshipDetail />} />
-            <Route path="/reservations" element={<Reservations />} />
-            <Route path="/sports/:sportId" element={<SportPage />} />
-            <Route path="/schedule" element={<Schedule />} />
-            <Route path="/management" element={<ManagementDashboard />} />
-            <Route path="/settings" element={<TournamentSettings />} />
-            <Route path="/settings/complex" element={<SportComplexSettings />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <SessionProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route element={<AppLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/championships" element={<Championships />} />
+              <Route path="/championships/:id" element={<ChampionshipDetail />} />
+              <Route path="/reservations" element={<Reservations />} />
+              <Route path="/sports/:sportId" element={<SportPage />} />
+              <Route path="/schedule" element={<Schedule />} />
+              <Route path="/profile" element={<ProfileSettings />} />
+              <Route path="/management" element={<ManagementDashboard />} />
+              <Route path="/settings" element={<TournamentSettings />} />
+              <Route path="/settings/complex" element={<SportComplexSettings />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </SessionProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

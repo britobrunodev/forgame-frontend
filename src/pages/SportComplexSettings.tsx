@@ -1,20 +1,32 @@
 import { useMemo, useState } from 'react';
 import { Building2, MapPin, ShieldCheck, Sparkles } from 'lucide-react';
+import { BackgroundUploadField, backgroundPreviewStyle } from '@/components/BackgroundUploadField';
+import { CountrySelect } from '@/components/CountrySelect';
 import { DragSelectField } from '@/components/DragSelectField';
 import { SportIcon } from '@/components/SportIcon';
-import { CURRENT_USER, SPORTS } from '@/data/mock';
+import { COUNTRY_OPTIONS, formatPostalCode, getCountryLabel } from '@/data/countries';
+import { SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useToast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
+import { useSession } from '@/session';
 
 type SportOption = 'footvolley' | 'beach-tennis' | 'beach-soccer' | 'volleyball';
 const SPORT_ORDER: SportOption[] = ['footvolley', 'beach-tennis', 'beach-soccer', 'volleyball'];
 
 const SportComplexSettings = () => {
-  const { t, sportName } = useLanguage();
+  const { language, t, sportName } = useLanguage();
+  const { isOwnerMode } = useSession();
   const { toast } = useToast();
   const [complexName, setComplexName] = useState('Arena Joga Junto Copacabana');
+  const [country, setCountry] = useState('BR');
   const [city, setCity] = useState('Rio de Janeiro');
+  const [zipCode, setZipCode] = useState('');
+  const [street, setStreet] = useState('Avenida Atlântica');
+  const [addressNumber, setAddressNumber] = useState('1702');
+  const [addressComplement, setAddressComplement] = useState('');
+  const [selectedBackgroundImage, setSelectedBackgroundImage] = useState('');
+  const [selectedBackgroundOffsetY, setSelectedBackgroundOffsetY] = useState(0);
   const [selectedSports, setSelectedSports] = useState<SportOption[]>(['footvolley', 'beach-tennis']);
 
   const availableSports = useMemo(
@@ -22,7 +34,7 @@ const SportComplexSettings = () => {
     [selectedSports],
   );
 
-  if (CURRENT_USER.type !== 'distributor') {
+  if (!isOwnerMode) {
     return (
       <div className="max-w-3xl">
         <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
@@ -52,18 +64,19 @@ const SportComplexSettings = () => {
   const handleCreate = () => {
     toast({
       title: t('sportComplexPublished'),
-      description: `${complexName} · ${city}`,
+      description: `${complexName} · ${street}, ${addressNumber} · ${getCountryLabel(country, language)}`,
     });
   };
+
+
+  const fullAddress = `${street}${addressNumber ? `, ${addressNumber}` : ''}${addressComplement ? ` · ${addressComplement}` : ''}`;
+  const postalPlaceholder = COUNTRY_OPTIONS.find((option) => option.code === country)?.postalPlaceholder ?? '';
 
   return (
     <div className="max-w-7xl space-y-8">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <p className="mb-1 text-xs font-bold uppercase tracking-[0.3em] text-neon-cyan">{t('settingsAccess')}</p>
-          <h1 className="font-display text-4xl font-black">
-            <span className="neon-text">{t('sportComplexBuilder')}</span>
-          </h1>
+          <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('sportComplexBuilder')}</p>
           <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('sportComplexBuilderIntro')}</p>
         </div>
       </header>
@@ -80,14 +93,74 @@ const SportComplexSettings = () => {
               />
             </Field>
 
+            <Field label={t('country')}>
+              <CountrySelect value={country} onValueChange={(value) => {
+                setCountry(value);
+                setZipCode((current) => formatPostalCode(value, current));
+              }} language={language} />
+            </Field>
+
             <Field label={t('city')}>
               <Input
+                required
                 value={city}
                 onChange={(event) => setCity(event.target.value)}
                 placeholder={t('cityPlaceholder')}
                 className="border-border bg-background/60"
               />
             </Field>
+
+            <Field label={t('zipCode')}>
+              <Input
+                value={zipCode}
+                onChange={(event) => setZipCode(formatPostalCode(country, event.target.value))}
+                placeholder={postalPlaceholder || t('zipCodePlaceholder')}
+                className="border-border bg-background/60"
+              />
+            </Field>
+
+            <Field label={t('street')}>
+              <Input
+                required
+                value={street}
+                onChange={(event) => setStreet(event.target.value)}
+                placeholder={t('streetPlaceholder')}
+                className="border-border bg-background/60"
+              />
+            </Field>
+
+            <Field label={t('addressNumber')}>
+              <Input
+                required
+                value={addressNumber}
+                onChange={(event) => setAddressNumber(event.target.value)}
+                placeholder={t('addressNumberPlaceholder')}
+                className="border-border bg-background/60"
+              />
+            </Field>
+
+            <Field label={t('addressComplement')}>
+              <Input
+                value={addressComplement}
+                onChange={(event) => setAddressComplement(event.target.value)}
+                placeholder={t('addressComplementPlaceholder')}
+                className="border-border bg-background/60"
+              />
+            </Field>
+          </div>
+
+          <div className="mt-5">
+            <BackgroundUploadField
+              label={t('championshipBackground')}
+              buttonLabel={t('selectImage')}
+              image={selectedBackgroundImage}
+              offsetY={selectedBackgroundOffsetY}
+              onOffsetYChange={setSelectedBackgroundOffsetY}
+              onImageChange={async (file) => {
+                setSelectedBackgroundImage(await readFileAsDataUrl(file));
+                setSelectedBackgroundOffsetY(0);
+              }}
+            />
           </div>
 
           <div className="mt-5">
@@ -121,10 +194,30 @@ const SportComplexSettings = () => {
               <h2 className="font-display text-sm font-bold uppercase tracking-[0.2em]">{t('quickPreview')}</h2>
             </div>
             <div className="rounded-2xl border border-primary/20 bg-background/40 p-4">
+              <div className="relative -mx-4 -mt-4 mb-4 h-28 overflow-hidden rounded-t-2xl">
+                {selectedBackgroundImage ? (
+                  <>
+                    <div className="absolute inset-0" style={backgroundPreviewStyle(selectedBackgroundImage, selectedBackgroundOffsetY)} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-background/15" />
+                  </>
+                ) : (
+                  <>
+                    <div className="absolute inset-0 bg-secondary" />
+                    <div className="absolute inset-0 hex-grid opacity-25" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-background/15" />
+                  </>
+                )}
+                <div className="absolute bottom-3 left-4 text-[10px] font-bold uppercase tracking-[0.25em] text-neon-cyan">
+                  {selectedSports.length > 0 ? sportName(selectedSports[0]) : t('sportComplexBuilder')}
+                </div>
+              </div>
               <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-neon-cyan">{t('sportComplexBuilder')}</div>
               <h3 className="mt-2 font-display text-2xl font-black leading-tight">{complexName}</h3>
               <div className="mt-4 space-y-3 text-sm">
+                <PreviewRow icon={<MapPin className="h-4 w-4 text-neon-cyan" />} label={t('fullAddress')} value={fullAddress} />
+                <PreviewRow icon={<MapPin className="h-4 w-4 text-neon-cyan" />} label={t('country')} value={getCountryLabel(country, language)} />
                 <PreviewRow icon={<MapPin className="h-4 w-4 text-neon-cyan" />} label={t('city')} value={city} />
+                <PreviewRow icon={<MapPin className="h-4 w-4 text-neon-cyan" />} label={t('zipCode')} value={zipCode || '-'} />
                 <PreviewRow icon={<Building2 className="h-4 w-4 text-neon-cyan" />} label={t('sportsAvailable')} value={String(selectedSports.length)} />
               </div>
               <div className="mt-5 flex flex-wrap gap-2">
@@ -174,5 +267,13 @@ const PreviewRow = ({ icon, label, value }: { icon: React.ReactNode; label: stri
     </div>
   </div>
 );
+
+const readFileAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 
 export default SportComplexSettings;

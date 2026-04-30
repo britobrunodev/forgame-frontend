@@ -3,13 +3,15 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Calendar, Trophy, MapPin, LogOut, Building2, ChevronDown, PlusCircle, Settings } from 'lucide-react';
 import { Logo } from './Logo';
 import { SportIcon } from './SportIcon';
-import { SPORTS, CURRENT_USER } from '@/data/mock';
+import { SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
+import { useSession } from '@/session';
 
 export const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t, sportName } = useLanguage();
+  const { isOwnerMode, currentUser } = useSession();
   const [managementOpen, setManagementOpen] = useState(
     location.pathname.startsWith('/management') || location.pathname.startsWith('/settings'),
   );
@@ -43,7 +45,7 @@ export const Sidebar = () => {
             {label}
           </NavLink>
         ))}
-        {CURRENT_USER.type === 'distributor' && (
+        {isOwnerMode && (
           <>
             <button
               type="button"
@@ -60,17 +62,15 @@ export const Sidebar = () => {
             {managementOpen && (
               <div className="ml-3 space-y-1 border-l border-border pl-3">
                 <NavLink
-                  to="/settings"
+                  to="/management"
                   className={({ isActive }) =>
                     `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                      isActive
-                        ? 'bg-sidebar-accent text-foreground'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                      isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
                     }`
                   }
                 >
-                  <PlusCircle className="h-4 w-4 text-neon-cyan" />
-                  {t('createTournament')}
+                  <Building2 className="h-4 w-4 text-neon-pink" />
+                  {t('courtManagement')}
                 </NavLink>
                 <NavLink
                   to="/settings/complex"
@@ -86,26 +86,17 @@ export const Sidebar = () => {
                   {t('createSportComplex')}
                 </NavLink>
                 <NavLink
-                  to="/reservations"
+                  to="/settings"
                   className={({ isActive }) =>
                     `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                      isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                      isActive
+                        ? 'bg-sidebar-accent text-foreground'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
                     }`
                   }
                 >
-                  <MapPin className="h-4 w-4 text-neon-cyan" />
-                  {t('reservations')}
-                </NavLink>
-                <NavLink
-                  to="/management"
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                      isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                    }`
-                  }
-                >
-                  <Building2 className="h-4 w-4 text-neon-pink" />
-                  {t('courtManagement')}
+                  <PlusCircle className="h-4 w-4 text-neon-cyan" />
+                  {t('createTournament')}
                 </NavLink>
               </div>
             )}
@@ -120,23 +111,23 @@ export const Sidebar = () => {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
                 isActive ? 'bg-sidebar-accent text-foreground border-l-2 border-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent/60'
-              } ${CURRENT_USER.preferences.includes(s.id) ? 'font-bold' : 'font-medium'}`
+              } ${currentUser.preferences.includes(s.id) ? 'font-bold' : 'font-medium'}`
             }
           >
             <SportIcon sportId={s.id} className="h-4 w-4 translate-y-[0.5px]" />
             {sportName(s.id)}
-            {CURRENT_USER.preferences.includes(s.id) && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-neon-cyan shadow-[0_0_8px_hsl(var(--neon-cyan))]" />}
+            {currentUser.preferences.includes(s.id) && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-neon-cyan shadow-[0_0_8px_hsl(var(--neon-cyan))]" />}
           </NavLink>
         ))}
       </nav>
-      <div className="p-3 border-t border-border space-y-1">
+      <div className="border-t border-border px-0 py-1">
         <button
           type="button"
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent"
         >
           <Settings className="w-4 h-4" /> {t('settings')}
         </button>
-        <div className="-mx-3 my-1 h-px bg-border/80" />
+        <div className="h-px bg-border/80" />
         <button onClick={() => navigate('/login')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent">
           <LogOut className="w-4 h-4" /> {t('logout')}
         </button>

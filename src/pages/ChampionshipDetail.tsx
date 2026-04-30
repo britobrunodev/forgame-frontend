@@ -4,8 +4,10 @@ import { CHAMPIONSHIPS, SPORTS } from '@/data/mock';
 import { Bracket, CARD_HEIGHT, PreciseBracketConnector } from '@/components/Bracket';
 import { BracketMobile } from '@/components/BracketMobile';
 import { LiveBadge } from '@/components/LiveBadge';
+import { MapsButton } from '@/components/MapsButton';
 import { MatchNode } from '@/components/MatchNode';
 import { SportIcon } from '@/components/SportIcon';
+import { YouTubeButton } from '@/components/YouTubeButton';
 import { ArrowLeft, MapPin, Calendar, Users, Trophy } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 import {
@@ -100,6 +102,10 @@ const ChampionshipDetail = () => {
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
             <LiveBadge status={c.status} />
+          </div>
+          <div className="absolute bottom-8 right-8 flex items-center gap-2">
+            <MapsButton />
+            <YouTubeButton url={c.youtubeUrl} />
           </div>
         </div>
       </div>
@@ -396,6 +402,8 @@ const resolveMatch = (round: string, id: string, teamA: Team | null, teamB: Team
   const teamAWins = index % 3 !== 1;
   const scoreA = teamAWins ? 18 : 15;
   const scoreB = teamAWins ? 14 : 18;
+  const setScoreA = teamAWins ? 2 : 1;
+  const setScoreB = teamAWins ? 1 : 2;
 
   return {
     match: {
@@ -403,6 +411,8 @@ const resolveMatch = (round: string, id: string, teamA: Team | null, teamB: Team
       round,
       teamA,
       teamB,
+      setScoreA,
+      setScoreB,
       scoreA,
       scoreB,
       time,
@@ -456,6 +466,8 @@ const buildFinalsBracket = (winnerQualified: Team[], loserQualified: Team[]): Fi
   const thirdPlaceResolved = resolveMatch('3º Lugar', 'finals-third', semifinalOne.loser, semifinalTwo.loser, 0);
   const thirdPlaceMatch = {
     ...thirdPlaceResolved.match,
+    setScoreA: 1,
+    setScoreB: 1,
     scoreA: 1,
     scoreB: 1,
     status: 'live' as const,

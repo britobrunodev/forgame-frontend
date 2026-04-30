@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Building2, Calendar, CircleDollarSign, ShieldCheck, Sparkles, Trophy } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
-import { CURRENT_USER, RESERVATION_PLACES } from '@/data/mock';
+import { RESERVATION_PLACES } from '@/data/mock';
 import { DragSelectField } from '@/components/DragSelectField';
+import { BackgroundUploadField, backgroundPreviewStyle } from '@/components/BackgroundUploadField';
 import { useLanguage } from '@/i18n';
 import { useToast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useSession } from '@/session';
 
 type TournamentType = 'open-pairs' | 'mixed-pairs' | 'king-of-the-court';
 type Category = 'professional' | 'gold' | 'silver' | 'advanced' | 'intermediate' | 'beginner';
@@ -52,6 +54,7 @@ const buildDateOptions = (range: DateRange | undefined) => {
 
 const TournamentSettings = () => {
   const { t, sportName, language } = useLanguage();
+  const { currentUser, isOwnerMode } = useSession();
   const { toast } = useToast();
   const today = useMemo(() => {
     const value = new Date();
@@ -62,10 +65,10 @@ const TournamentSettings = () => {
     () =>
       RESERVATION_PLACES.filter(
         (place) =>
-          CURRENT_USER.applications?.includes(place.name) &&
+          currentUser.applications?.includes(place.name) &&
           place.sports.includes('footvolley'),
       ),
-    [],
+    [currentUser.applications],
   );
 
   const [tournamentName, setTournamentName] = useState('Copa Joga Junto Footvolley');
@@ -82,7 +85,10 @@ const TournamentSettings = () => {
   const [complexId, setComplexId] = useState(ownerComplexes[0]?.id ?? '');
   const [entryFee, setEntryFee] = useState('180');
   const [bracketSize, setBracketSize] = useState<BracketSize>('16');
+  const [transmissionUrl, setTransmissionUrl] = useState('');
   const [notes, setNotes] = useState('');
+  const [selectedBackgroundImage, setSelectedBackgroundImage] = useState('');
+  const [selectedBackgroundOffsetY, setSelectedBackgroundOffsetY] = useState(0);
   const [categorySchedules, setCategorySchedules] = useState<CategorySchedule>({
     beginner: { date: '2026-05-18', time: '08:00' },
     intermediate: { date: '2026-05-18', time: '09:00' },
@@ -148,7 +154,7 @@ const TournamentSettings = () => {
     });
   }, [eventDateOptions]);
 
-  if (CURRENT_USER.type !== 'distributor') {
+  if (!isOwnerMode) {
     return (
       <div className="max-w-3xl">
         <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
@@ -215,6 +221,7 @@ const TournamentSettings = () => {
       description: `${tournamentName} · ${selectedComplex?.name ?? '-'}`,
     });
   };
+
 
   return (
     <div className="max-w-7xl space-y-8">
@@ -337,6 +344,15 @@ const TournamentSettings = () => {
               </div>
             </Field>
 
+            <Field label={t('transmissionUrl')}>
+              <Input
+                value={transmissionUrl}
+                onChange={(event) => setTransmissionUrl(event.target.value)}
+                placeholder={t('transmissionUrlPlaceholder')}
+                className="border-border bg-background/60"
+              />
+            </Field>
+
             <Field label={t('bracketSize')}>
               <Select value={bracketSize} onValueChange={(value: BracketSize) => setBracketSize(value)}>
                 <SelectTrigger className="border-border bg-background/60">
@@ -349,6 +365,20 @@ const TournamentSettings = () => {
                 </SelectContent>
               </Select>
             </Field>
+          </div>
+
+          <div className="mt-5">
+            <BackgroundUploadField
+              label={t('championshipBackground')}
+              buttonLabel={t('selectImage')}
+              image={selectedBackgroundImage}
+              offsetY={selectedBackgroundOffsetY}
+              onOffsetYChange={setSelectedBackgroundOffsetY}
+              onImageChange={async (file) => {
+                setSelectedBackgroundImage(await readFileAsDataUrl(file));
+                setSelectedBackgroundOffsetY(0);
+              }}
+            />
           </div>
 
           <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_260px] xl:items-start">
@@ -483,14 +513,31 @@ const TournamentSettings = () => {
               <h2 className="font-display text-sm font-bold uppercase tracking-[0.2em]">{t('quickPreview')}</h2>
             </div>
             <div className="rounded-2xl border border-primary/20 bg-background/40 p-4">
-              <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-neon-cyan">{sportName('footvolley')}</div>
-              <h3 className="mt-2 font-display text-2xl font-black leading-tight">{tournamentName}</h3>
+              <div className="relative -mx-4 -mt-4 mb-4 h-28 overflow-hidden rounded-t-2xl">
+                {selectedBackgroundImage ? (
+                  <>
+                    <div className="absolute inset-0" style={backgroundPreviewStyle(selectedBackgroundImage, selectedBackgroundOffsetY)} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-background/15" />
+                  </>
+                ) : (
+                  <>
+                    <div className="absolute inset-0 bg-secondary" />
+                    <div className="absolute inset-0 hex-grid opacity-25" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-background/15" />
+                  </>
+                )}
+                <div className="absolute bottom-3 left-4 text-[10px] font-bold uppercase tracking-[0.25em] text-neon-cyan">
+                  {sportName('footvolley')}
+                </div>
+              </div>
+              <h3 className="font-display text-2xl font-black leading-tight">{tournamentName}</h3>
               <div className="mt-4 space-y-3 text-sm">
                 <PreviewRow icon={<Trophy className="h-4 w-4 text-neon-cyan" />} label={t('tournamentType')} value={tournamentTypeLabel} />
                 <PreviewRow icon={<Calendar className="h-4 w-4 text-neon-cyan" />} label={t('eventDate')} value={formattedEventDate} />
                 <PreviewRow icon={<Calendar className="h-4 w-4 text-neon-cyan" />} label={t('registrationDeadline')} value={formattedRegistrationDeadline} />
                 <PreviewRow icon={<Building2 className="h-4 w-4 text-neon-cyan" />} label={t('selectedVenue')} value={selectedComplex?.name ?? '-'} />
                 <PreviewRow icon={<CircleDollarSign className="h-4 w-4 text-neon-cyan" />} label={t('entryFee')} value={`R$ ${entryFee}`} />
+                <PreviewRow icon={<Sparkles className="h-4 w-4 text-neon-cyan" />} label={t('transmissionUrl')} value={transmissionUrl || '-'} />
                 <PreviewRow icon={<Sparkles className="h-4 w-4 text-neon-cyan" />} label={t('targetAudience')} value={audienceLabels.join(' · ') || '-'} />
                 <PreviewRow icon={<Sparkles className="h-4 w-4 text-neon-cyan" />} label={t('uniformIncluded')} value={uniformIncluded ? t('yes') : t('no')} />
               </div>
@@ -577,5 +624,13 @@ const Tag = ({ children }: { children: React.ReactNode }) => (
     {children}
   </span>
 );
+
+const readFileAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 
 export default TournamentSettings;

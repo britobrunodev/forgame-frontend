@@ -1,4 +1,7 @@
 export type SportId = 'footvolley' | 'beach-tennis' | 'beach-soccer' | 'volleyball';
+export type UserProfile = 'player' | 'owner';
+export type PlayerCharacteristic = 'right' | 'left' | 'goalkeeper' | 'midfielder';
+export type PlayerLevel = 'beginner' | 'intermediate' | 'advanced' | 'silver' | 'gold' | 'professional';
 
 export interface Sport {
   id: SportId;
@@ -17,6 +20,8 @@ export interface Match {
   round: string;
   teamA: Team | null;
   teamB: Team | null;
+  setScoreA?: number;
+  setScoreB?: number;
   scoreA?: number;
   scoreB?: number;
   status: 'scheduled' | 'live' | 'finished';
@@ -35,6 +40,7 @@ export interface Championship {
   banner?: string;
   image?: string;
   prize?: string;
+  youtubeUrl?: string;
   rounds: { name: string; matches: Match[] }[];
 }
 
@@ -61,6 +67,26 @@ export interface User {
   name: string;
   email: string;
   type: 'player' | 'distributor';
+  profiles?: UserProfile[];
   preferences: SportId[];
   applications?: string[];
+  avatarUrl?: string;
+  country?: string;
+  phoneCountry?: string;
+  phoneNumber?: string;
+  sportCharacteristics?: Partial<Record<SportId, PlayerCharacteristic[]>>;
+  level?: PlayerLevel;
+  wins?: number;
+  losses?: number;
+  draws?: number;
+}
+
+export interface ManagedPlayer {
+  id: string;
+  name: string;
+  email: string;
+  complexId: string;
+  sports: SportId[];
+  level: PlayerLevel;
+  avatarUrl?: string;
 }

@@ -16,11 +16,10 @@ const SportPage = () => {
   return (
     <div className="space-y-10 max-w-7xl">
       <header>
-        <p className="text-xs uppercase tracking-[0.3em] text-neon-cyan font-bold mb-1">{t('sport')}</p>
-        <h1 className="font-display font-black text-4xl flex items-center gap-3">
-          <SportIcon sportId={sport.id} className="h-8 w-8 translate-y-[1px]" />
-          <span className="neon-text">{sportName(sport.id)}</span>
-        </h1>
+        <div className="mb-2 flex items-center gap-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">
+          <SportIcon sportId={sport.id} className="h-4 w-4 translate-y-[0.5px]" />
+          <span>{sportName(sport.id)}</span>
+        </div>
       </header>
 
       <section>
