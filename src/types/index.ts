@@ -1,10 +1,33 @@
-export type SportId = 'footvolley' | 'beach-tennis' | 'beach-soccer' | 'volleyball';
-export type UserProfile = 'player' | 'gestor';
-export type GestorRole = 'owner' | 'manager' | 'professor';
-export type PlayerCharacteristic = 'right' | 'left' | 'goalkeeper' | 'midfielder';
-export type PlayerLevel = 'beginner' | 'intermediate' | 'advanced' | 'silver' | 'gold' | 'professional';
-export type PaymentMethod = 'pix' | 'credit-card' | 'debit-card' | 'pay-on-site';
-export type PaymentTransactionStatus = 'paid' | 'pending' | 'failed';
+export type SportId =
+  | "footvolley"
+  | "beach-tennis"
+  | "beach-soccer"
+  | "volleyball";
+export type UserProfile = "player" | "gestor";
+export type GestorRole = "owner" | "manager" | "professor";
+export type PlayerCharacteristic =
+  | "right"
+  | "left"
+  | "goalkeeper"
+  | "midfielder";
+export type PlayerLevel =
+  | "beginner"
+  | "intermediate"
+  | "advanced"
+  | "silver"
+  | "gold"
+  | "professional";
+export type PaymentMethod =
+  | "pix"
+  | "credit-card"
+  | "debit-card"
+  | "pay-on-site";
+export type PaymentSourceType =
+  | "championship"
+  | "court"
+  | "wellhub"
+  | "totalpass";
+export type PaymentTransactionStatus = "paid" | "pending" | "failed";
 
 export interface Sport {
   id: SportId;
@@ -27,8 +50,17 @@ export interface Match {
   setScoreB?: number;
   scoreA?: number;
   scoreB?: number;
-  status: 'scheduled' | 'live' | 'finished';
+  status: "scheduled" | "live" | "finished";
   time?: string;
+}
+
+export type ChampionshipFormat = "double" | "cumbuca" | "rei-da-praia";
+
+export interface ChampionshipCategory {
+  id: string;
+  name: string;
+  format: ChampionshipFormat;
+  entryFee: number;
 }
 
 export interface Championship {
@@ -39,12 +71,16 @@ export interface Championship {
   startDate: string;
   endDate: string;
   teamsCount: number;
-  status: 'upcoming' | 'live' | 'finished';
+  status: "upcoming" | "live" | "finished";
   banner?: string;
   image?: string;
   prize?: string;
   youtubeUrl?: string;
   rounds: { name: string; matches: Match[] }[];
+  format?: ChampionshipFormat;
+  entryFee?: number;
+  complexId?: string;
+  categories?: ChampionshipCategory[];
 }
 
 export interface PaymentTransaction {
@@ -63,7 +99,7 @@ export interface ManagedChampionshipPayment {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
-  status: 'paid' | 'pending';
+  status: "paid" | "pending";
   transactions: PaymentTransaction[];
 }
 
@@ -75,7 +111,7 @@ export interface ManagedChampionship {
   startDate: string;
   endDate: string;
   teamsCount: number;
-  status: 'upcoming' | 'live' | 'finished';
+  status: "upcoming" | "live" | "finished";
   image?: string;
   payments: ManagedChampionshipPayment[];
 }
@@ -93,8 +129,36 @@ export interface ManagedCourtPayment {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
-  status: 'paid' | 'pending';
+  status: "paid" | "pending";
   transactions: PaymentTransaction[];
+}
+
+export interface ManagedThirdPartyPayment {
+  id: string;
+  complexId: string;
+  sourceType: "wellhub" | "totalpass";
+  userName: string;
+  userEmail: string;
+  date: string;
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  status: "paid" | "pending";
+  transactions: PaymentTransaction[];
+}
+
+export interface ClassSlot {
+  id: string;
+  complexId: string;
+  complexName: string;
+  sport: SportId;
+  professorName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  maxSpots: number;
+  bookedSpots: number;
+  level?: PlayerLevel;
 }
 
 export interface Court {
@@ -106,7 +170,13 @@ export interface Court {
   hourlyRate: number;
   monthlyRate: number;
   slotOptions: { start: string; end: string }[];
-  reservations: { date: string; start: string; end: string; user: string; type?: 'single' | 'monthly' }[];
+  reservations: {
+    date: string;
+    start: string;
+    end: string;
+    user: string;
+    type?: "single" | "monthly";
+  }[];
 }
 
 export interface ReservationPlace {
@@ -124,11 +194,14 @@ export interface ReservationPlace {
   addressComplement?: string;
 }
 
+export type DocumentType = "cpf" | "rg" | "cc" | "passport";
+export type UniformSize = "XS" | "S" | "M" | "L" | "XL" | "XXL";
+
 export interface User {
   id: string;
   name: string;
   email: string;
-  type: 'player' | 'gestor';
+  type: "player" | "gestor";
   profiles?: UserProfile[];
   gestorRoles?: GestorRole[];
   preferences: SportId[];
@@ -143,6 +216,10 @@ export interface User {
   losses?: number;
   draws?: number;
   ownedComplexIds?: string[];
+  documentType?: DocumentType;
+  documentNumber?: string;
+  uniformSize?: UniformSize;
+  preferredClassPaymentMethod?: PaymentMethod;
 }
 
 export interface ManagedPlayer {
@@ -183,5 +260,8 @@ export interface ComplexPreference {
   weekSchedule: DaySchedule[];
   holidays: HolidaySchedule[];
   paymentMethods: PaymentMethod[];
+  classesPaymentMethods: PaymentMethod[];
+  rentalPaymentMethods: PaymentMethod[];
+  championshipPaymentMethods: PaymentMethod[];
   pricingRules: PricingRule[];
 }

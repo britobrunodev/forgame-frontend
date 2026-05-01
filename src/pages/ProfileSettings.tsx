@@ -5,13 +5,14 @@ import { CountrySelect } from '@/components/CountrySelect';
 import { DragSelectField } from '@/components/DragSelectField';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { COUNTRY_OPTIONS, formatPhoneNumber, getCountryLabel } from '@/data/countries';
 import { SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { useToast } from '@/components/ui/use-toast';
-import type { PlayerCharacteristic, SportId } from '@/types';
+import type { DocumentType, PaymentMethod, PlayerCharacteristic, SportId } from '@/types';
 
 const CHARACTERISTICS_BY_SPORT: Partial<Record<SportId, PlayerCharacteristic[]>> = {
   footvolley: ['right', 'left'],
@@ -34,6 +35,11 @@ const ProfileSettings = () => {
   const [selectedSports, setSelectedSports] = useState<SportId[]>(currentUser.preferences);
   const [sportCharacteristics, setSportCharacteristics] = useState<Partial<Record<SportId, PlayerCharacteristic[]>>>(
     currentUser.sportCharacteristics ?? {},
+  );
+  const [documentType, setDocumentType] = useState<DocumentType>(currentUser.documentType ?? 'cpf');
+  const [documentNumber, setDocumentNumber] = useState(currentUser.documentNumber ?? '');
+  const [preferredClassPaymentMethod, setPreferredClassPaymentMethod] = useState<PaymentMethod | ''>(
+    currentUser.preferredClassPaymentMethod ?? '',
   );
   const [cropSource, setCropSource] = useState('');
   const [cropImageSize, setCropImageSize] = useState({ width: 1, height: 1 });
@@ -121,6 +127,9 @@ const ProfileSettings = () => {
       avatarUrl,
       preferences: selectedSports,
       sportCharacteristics,
+      documentType,
+      documentNumber,
+      preferredClassPaymentMethod: preferredClassPaymentMethod || undefined,
     });
     toast({
       title: t('profileSaved'),
@@ -252,6 +261,44 @@ const ProfileSettings = () => {
                 placeholder={t('searchCountry')}
                 emptyMessage={t('noCountryFound')}
               />
+            </Field>
+
+            <Field label={t('documentType')}>
+              <Select value={documentType} onValueChange={(value) => setDocumentType(value as DocumentType)}>
+                <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                  {getDocumentOptions(nationality).map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Field label={t('documentNumber')}>
+              <Input
+                value={documentNumber}
+                onChange={(event) => setDocumentNumber(event.target.value)}
+                placeholder={t('documentNumberPlaceholder')}
+                className="border-border bg-background/60"
+              />
+            </Field>
+
+            <Field label={t('preferredClassPaymentMethod')}>
+              <Select value={preferredClassPaymentMethod} onValueChange={(v) => setPreferredClassPaymentMethod(v as PaymentMethod)}>
+                <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                  <SelectItem value="pix">{t('pix')}</SelectItem>
+                  <SelectItem value="credit-card">{t('creditCard')}</SelectItem>
+                  <SelectItem value="debit-card">{t('debitCard')}</SelectItem>
+                  <SelectItem value="pay-on-site">{t('payOnSite')}</SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
 
             <Field label={t('phoneNumber')}>
@@ -506,5 +553,30 @@ const readImageSize = (source: string) =>
     image.onerror = reject;
     image.src = source;
   });
+
+const getDocumentOptions = (nationality: string): { value: DocumentType; label: string }[] => {
+  // Brazil: CPF and RG are most common
+  if (nationality === 'BR') {
+    return [
+      { value: 'cpf', label: 'CPF' },
+      { value: 'rg', label: 'RG' },
+      { value: 'passport', label: 'Passport' },
+    ];
+  }
+  // Portugal: CC (Cartão de Cidadão) is the main document
+  if (nationality === 'PT') {
+    return [
+      { value: 'cc', label: 'Cartão de Cidadão' },
+      { value: 'passport', label: 'Passport' },
+    ];
+  }
+  // Default for other countries
+  return [
+    { value: 'passport', label: 'Passport' },
+    { value: 'cpf', label: 'CPF / National ID' },
+    { value: 'rg', label: 'RG / ID Card' },
+    { value: 'cc', label: 'CC / Citizen Card' },
+  ];
+};
 
 export default ProfileSettings;

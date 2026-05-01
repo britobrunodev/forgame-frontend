@@ -46,6 +46,7 @@ export const Sidebar = () => {
             {label}
           </NavLink>
         ))}
+
         {isGestorMode && (
           <>
             <button

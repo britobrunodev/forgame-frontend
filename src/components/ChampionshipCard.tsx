@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { MapPin, Users, Calendar, Trophy } from 'lucide-react';
 import { LiveBadge } from './LiveBadge';
 import { SportIcon } from './SportIcon';
@@ -10,6 +10,7 @@ import type { Championship } from '@/types';
 
 export const ChampionshipCard = ({ c }: { c: Championship }) => {
   const { t, sportName } = useLanguage();
+  const navigate = useNavigate();
   const sport = SPORTS.find(s => s.id === c.sport);
 
   return (
@@ -61,12 +62,15 @@ export const ChampionshipCard = ({ c }: { c: Championship }) => {
           <Link to={`/championships/${c.id}`} className="flex items-center gap-1 text-xs font-bold text-neon-cyan">
             <Trophy className="h-3 w-3" /> {t('viewBracket')}
           </Link>
-          <Link
-            to={`/championships/${c.id}`}
-            className="text-xs font-bold uppercase tracking-wider text-muted-foreground transition-smooth group-hover:text-primary-glow"
-          >
-            →
-          </Link>
+          {c.status === 'upcoming' || c.status === 'live' ? (
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); navigate(`/championships/${c.id}/register`); }}
+              className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary-glow transition-smooth hover:bg-primary/16"
+            >
+              {t('register')}
+            </button>
+          ) : null}
         </div>
       </div>
     </article>

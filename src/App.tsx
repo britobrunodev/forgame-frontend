@@ -12,6 +12,8 @@ import Championships from "./pages/Championships";
 import Reservations from "./pages/Reservations";
 import ReservationDetail from "./pages/ReservationDetail";
 import Payment from "./pages/Payment";
+import ClassSchedule from "./pages/ClassSchedule";
+import ChampionshipRegistration from "./pages/ChampionshipRegistration";
 import SportPage from "./pages/SportPage";
 import Schedule from "./pages/Schedule";
 import ManagementDashboard from "./pages/ManagementDashboard";
@@ -44,7 +46,9 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/championships" element={<Championships />} />
               <Route path="/championships/:id" element={<ChampionshipDetail />} />
+              <Route path="/championships/:id/register" element={<ChampionshipRegistration />} />
               <Route path="/reservations" element={<Reservations />} />
+              <Route path="/reservations/classes" element={<ClassSchedule />} />
               <Route path="/reservations/:placeId" element={<ReservationDetail />} />
               <Route path="/payment" element={<Payment />} />
               <Route path="/sports/:sportId" element={<SportPage />} />

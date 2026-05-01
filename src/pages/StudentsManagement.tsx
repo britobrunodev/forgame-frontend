@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, GraduationCap, Save } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, GraduationCap, Save, Search } from 'lucide-react';
 import { RESERVATION_PLACES } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
@@ -26,6 +26,8 @@ const StudentsManagement = () => {
   );
   const [selectedComplexId, setSelectedComplexId] = useState<'all' | string>('all');
   const [selectedSportId, setSelectedSportId] = useState<'all' | SportId>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
   const [playerProfiles, setPlayerProfiles] = useState<Record<string, { level: PlayerLevel; score: string }>>(
     () => Object.fromEntries(players.map((player) => [player.id, { level: player.level, score: String(player.score) }])),
   );
@@ -38,8 +40,17 @@ const StudentsManagement = () => {
   const visiblePlayers = players.filter((player) => {
     if (selectedComplexId !== 'all' && player.complexId !== selectedComplexId) return false;
     if (selectedSportId !== 'all' && !player.sports.includes(selectedSportId)) return false;
+    if (searchQuery.trim() && !player.name.toLowerCase().includes(searchQuery.trim().toLowerCase())) return false;
     return true;
   });
+
+  const PAGE_SIZE = 20;
+  const totalPages = Math.max(1, Math.ceil(visiblePlayers.length / PAGE_SIZE));
+  const pagedPlayers = visiblePlayers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedComplexId, selectedSportId, searchQuery]);
 
   const handleSaveAll = () => {
     players.forEach((player) => {
@@ -78,7 +89,7 @@ const StudentsManagement = () => {
         </div>
       </header>
       <div className="rounded-[2rem] border border-border bg-gradient-card p-5 shadow-card sm:p-6">
-        <div className="mb-6 grid w-full gap-3 md:max-w-2xl md:grid-cols-2">
+        <div className="mb-3 grid w-full gap-3 md:max-w-2xl md:grid-cols-2">
           <div className="space-y-2">
             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('sportComplex')}</div>
             <Select value={selectedComplexId} onValueChange={setSelectedComplexId}>
@@ -112,6 +123,15 @@ const StudentsManagement = () => {
             </Select>
           </div>
         </div>
+        <div className="relative mb-6 md:max-w-2xl">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('searchStudents')}
+            className="border-border bg-background/60 pl-9 text-sm"
+          />
+        </div>
         <div className="overflow-hidden rounded-2xl border border-border bg-background/25">
           <div className="hidden grid-cols-[minmax(0,1.8fr)_280px_64px] gap-4 border-b border-border bg-background/30 px-4 py-3 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground md:grid">
             <div>{t('fullName')}</div>
@@ -120,7 +140,7 @@ const StudentsManagement = () => {
           </div>
 
           <div className="divide-y divide-border">
-            {visiblePlayers.map((player) => (
+            {pagedPlayers.map((player) => (
               <div key={player.id} className="grid gap-4 px-4 py-4 md:grid-cols-[minmax(0,1.8fr)_280px_64px] md:items-center">
                 <div>
                   <div className="font-display text-sm font-bold sm:text-[15px]">{player.name}</div>
@@ -220,6 +240,30 @@ const StudentsManagement = () => {
             ) : null}
           </div>
         </div>
+
+        {visiblePlayers.length > 0 ? (
+          <div className="mt-4 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">{visiblePlayers.length} · {page}/{totalPages}</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mt-6 flex justify-start">
           <button

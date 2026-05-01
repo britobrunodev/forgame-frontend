@@ -81,10 +81,17 @@ const normalizeHolidays = (value: unknown): HolidaySchedule[] => {
   return [];
 };
 
+const normalizePaymentMethods = (value: unknown, fallback: PaymentMethod[]): PaymentMethod[] => {
+  if (Array.isArray(value) && value.every(isPaymentMethod)) return value;
+  return fallback;
+};
+
 const normalizePreference = (value: unknown): ComplexPreference | null => {
   if (!value || typeof value !== 'object') return null;
   const preference = value as Record<string, unknown>;
   if (typeof preference.complexId !== 'string') return null;
+
+  const legacyMethods = normalizePaymentMethods(preference.paymentMethods, ['pix', 'credit-card', 'debit-card']);
 
   return {
     complexId: preference.complexId,
@@ -94,9 +101,10 @@ const normalizePreference = (value: unknown): ComplexPreference | null => {
       openDays: Array.isArray(preference.openDays) ? preference.openDays.filter((day): day is string => typeof day === 'string') : undefined,
     }),
     holidays: normalizeHolidays(preference.holidays),
-    paymentMethods: Array.isArray(preference.paymentMethods)
-      ? preference.paymentMethods.filter(isPaymentMethod)
-      : ['pix', 'credit-card', 'debit-card'],
+    paymentMethods: legacyMethods,
+    classesPaymentMethods: normalizePaymentMethods(preference.classesPaymentMethods, legacyMethods),
+    rentalPaymentMethods: normalizePaymentMethods(preference.rentalPaymentMethods, legacyMethods),
+    championshipPaymentMethods: normalizePaymentMethods(preference.championshipPaymentMethods, legacyMethods),
     pricingRules: normalizePricingRules(preference.pricingRules),
   };
 };
@@ -106,6 +114,9 @@ const defaultPreference = (complexId: string): ComplexPreference => ({
   weekSchedule: weekDayOrder.map((day) => defaultDaySchedule(day)),
   holidays: [],
   paymentMethods: ['pix', 'credit-card', 'debit-card'],
+  classesPaymentMethods: ['pix', 'credit-card', 'debit-card'],
+  rentalPaymentMethods: ['pix', 'credit-card', 'debit-card'],
+  championshipPaymentMethods: ['pix', 'credit-card', 'debit-card'],
   pricingRules: [],
 });
 

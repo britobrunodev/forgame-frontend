@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { createHolidaySchedule, getComplexPreference, paymentMethodOptions, saveComplexPreference, weekDayOrder } from '@/lib/complex-preferences-store';
+
 import type { DaySchedule, HolidaySchedule, PaymentMethod, PricingRule } from '@/types';
 import { getAllCourts } from '@/lib/courts-store';
 
@@ -61,6 +62,9 @@ const ComplexPreferences = () => {
   const [weekSchedule, setWeekSchedule] = useState<DaySchedule[]>(basePreference?.weekSchedule ?? []);
   const [holidays, setHolidays] = useState<HolidaySchedule[]>(basePreference?.holidays ?? []);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(basePreference?.paymentMethods ?? []);
+  const [classesPaymentMethods, setClassesPaymentMethods] = useState<PaymentMethod[]>(basePreference?.classesPaymentMethods ?? []);
+  const [rentalPaymentMethods, setRentalPaymentMethods] = useState<PaymentMethod[]>(basePreference?.rentalPaymentMethods ?? []);
+  const [championshipPaymentMethods, setChampionshipPaymentMethods] = useState<PaymentMethod[]>(basePreference?.championshipPaymentMethods ?? []);
   const [pricingRules, setPricingRules] = useState<PricingRule[]>(basePreference?.pricingRules ?? []);
   const [dateSectionOpen, setDateSectionOpen] = useState(true);
   const [pricingSectionOpen, setPricingSectionOpen] = useState(true);
@@ -75,6 +79,9 @@ const ComplexPreferences = () => {
     setWeekSchedule(preference.weekSchedule);
     setHolidays(preference.holidays);
     setPaymentMethods(preference.paymentMethods);
+    setClassesPaymentMethods(preference.classesPaymentMethods);
+    setRentalPaymentMethods(preference.rentalPaymentMethods);
+    setChampionshipPaymentMethods(preference.championshipPaymentMethods);
     setPricingRules(preference.pricingRules);
   };
 
@@ -418,25 +425,25 @@ const ComplexPreferences = () => {
             </PreferencePanel>
 
             <PreferencePanel title={t('paymentMethods')} isOpen={paymentSectionOpen} onToggle={() => setPaymentSectionOpen((current) => !current)}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {paymentMethodOptions.map((method) => {
-                  const isSelected = paymentMethods.includes(method);
-                  return (
-                    <label key={method} className="flex items-center gap-3 rounded-xl border border-border bg-background/30 px-4 py-3 text-sm">
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={(checked) => {
-                          setPaymentMethods((current) => (
-                            checked
-                              ? Array.from(new Set([...current, method]))
-                              : current.filter((item) => item !== method)
-                          ));
-                        }}
-                      />
-                      <span className="font-medium">{paymentMethodLabel(t, method)}</span>
-                    </label>
-                  );
-                })}
+              <div className="space-y-5">
+                <PaymentMethodSubSection
+                  title={t('classesPaymentMethods')}
+                  selected={classesPaymentMethods}
+                  onChange={setClassesPaymentMethods}
+                  t={t}
+                />
+                <PaymentMethodSubSection
+                  title={t('rentalPaymentMethods')}
+                  selected={rentalPaymentMethods}
+                  onChange={setRentalPaymentMethods}
+                  t={t}
+                />
+                <PaymentMethodSubSection
+                  title={t('championshipPaymentMethods')}
+                  selected={championshipPaymentMethods}
+                  onChange={setChampionshipPaymentMethods}
+                  t={t}
+                />
               </div>
             </PreferencePanel>
           </div>
@@ -451,6 +458,9 @@ const ComplexPreferences = () => {
                   weekSchedule,
                   holidays,
                   paymentMethods,
+                  classesPaymentMethods,
+                  rentalPaymentMethods,
+                  championshipPaymentMethods,
                   pricingRules,
                 });
                 toast({
@@ -552,5 +562,41 @@ const paymentMethodLabel = (t: (key: string) => string, method: PaymentMethod) =
   'debit-card': t('debitCard'),
   'pay-on-site': t('payOnSite'),
 }[method]);
+
+const PaymentMethodSubSection = ({
+  title,
+  selected,
+  onChange,
+  t,
+}: {
+  title: string;
+  selected: PaymentMethod[];
+  onChange: (next: PaymentMethod[]) => void;
+  t: (key: string) => string;
+}) => (
+  <div>
+    <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{title}</div>
+    <div className="grid gap-2 sm:grid-cols-2">
+      {paymentMethodOptions.map((method) => {
+        const isSelected = selected.includes(method);
+        return (
+          <label key={method} className="flex items-center gap-3 rounded-xl border border-border bg-background/30 px-4 py-3 text-sm">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={(checked) => {
+                onChange(
+                  checked
+                    ? Array.from(new Set([...selected, method]))
+                    : selected.filter((item) => item !== method),
+                );
+              }}
+            />
+            <span className="font-medium">{paymentMethodLabel(t, method)}</span>
+          </label>
+        );
+      })}
+    </div>
+  </div>
+);
 
 export default ComplexPreferences;

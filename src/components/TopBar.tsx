@@ -64,6 +64,7 @@ export const TopBar = () => {
                     <span className="truncate">{label}</span>
                   </NavLink>
                 ))}
+
                 {isGestorMode && (
                   <>
                     <button
