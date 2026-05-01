@@ -15,7 +15,10 @@ import Payment from "./pages/Payment";
 import SportPage from "./pages/SportPage";
 import Schedule from "./pages/Schedule";
 import ManagementDashboard from "./pages/ManagementDashboard";
+import ManagementChampionships from "./pages/ManagementChampionships";
+import ManagementPayments from "./pages/ManagementPayments";
 import TournamentSettings from "./pages/TournamentSettings";
+import SportComplexesManagement from "./pages/SportComplexesManagement";
 import SportComplexSettings from "./pages/SportComplexSettings";
 import CourtCreate from "./pages/CourtCreate";
 import ComplexPreferences from "./pages/ComplexPreferences";
@@ -48,11 +51,14 @@ const App = () => (
               <Route path="/schedule" element={<Schedule />} />
               <Route path="/profile" element={<ProfileSettings />} />
               <Route path="/management" element={<ManagementDashboard />} />
+              <Route path="/management/championships" element={<ManagementChampionships />} />
+              <Route path="/management/payments" element={<ManagementPayments />} />
               <Route path="/management/courts/new" element={<CourtCreate />} />
               <Route path="/management/preferences" element={<ComplexPreferences />} />
               <Route path="/management/students" element={<StudentsManagement />} />
               <Route path="/settings" element={<TournamentSettings />} />
-              <Route path="/settings/complex" element={<SportComplexSettings />} />
+              <Route path="/settings/complex" element={<SportComplexesManagement />} />
+              <Route path="/settings/complex/new" element={<SportComplexSettings />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

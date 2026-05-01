@@ -4,6 +4,7 @@ export type GestorRole = 'owner' | 'manager' | 'professor';
 export type PlayerCharacteristic = 'right' | 'left' | 'goalkeeper' | 'midfielder';
 export type PlayerLevel = 'beginner' | 'intermediate' | 'advanced' | 'silver' | 'gold' | 'professional';
 export type PaymentMethod = 'pix' | 'credit-card' | 'debit-card' | 'pay-on-site';
+export type PaymentTransactionStatus = 'paid' | 'pending' | 'failed';
 
 export interface Sport {
   id: SportId;
@@ -46,6 +47,56 @@ export interface Championship {
   rounds: { name: string; matches: Match[] }[];
 }
 
+export interface PaymentTransaction {
+  id: string;
+  reference: string;
+  amount: number;
+  method: PaymentMethod;
+  paidAt: string;
+  status: PaymentTransactionStatus;
+}
+
+export interface ManagedChampionshipPayment {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  status: 'paid' | 'pending';
+  transactions: PaymentTransaction[];
+}
+
+export interface ManagedChampionship {
+  id: string;
+  complexId: string;
+  name: string;
+  sport: SportId;
+  startDate: string;
+  endDate: string;
+  teamsCount: number;
+  status: 'upcoming' | 'live' | 'finished';
+  image?: string;
+  payments: ManagedChampionshipPayment[];
+}
+
+export interface ManagedCourtPayment {
+  id: string;
+  complexId: string;
+  courtId: string;
+  courtName: string;
+  reservationDate: string;
+  timeSlot: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  status: 'paid' | 'pending';
+  transactions: PaymentTransaction[];
+}
+
 export interface Court {
   id: string;
   name: string;
@@ -66,6 +117,11 @@ export interface ReservationPlace {
   courts: number;
   rating: number;
   image?: string;
+  country?: string;
+  zipCode?: string;
+  street?: string;
+  addressNumber?: string;
+  addressComplement?: string;
 }
 
 export interface User {

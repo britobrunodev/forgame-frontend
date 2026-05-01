@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Building2, MapPin, ShieldCheck, Sparkles } from 'lucide-react';
 import { BackgroundUploadField } from '@/components/BackgroundUploadField';
 import { CountrySelect } from '@/components/CountrySelect';
@@ -10,11 +11,13 @@ import { useLanguage } from '@/i18n';
 import { useToast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
 import { useSession } from '@/session';
+import { saveCustomSportComplex } from '@/lib/sport-complexes-store';
 
 type SportOption = 'footvolley' | 'beach-tennis' | 'beach-soccer' | 'volleyball';
 const SPORT_ORDER: SportOption[] = ['footvolley', 'beach-tennis', 'beach-soccer', 'volleyball'];
 
 const SportComplexSettings = () => {
+  const navigate = useNavigate();
   const { language, t, sportName } = useLanguage();
   const { isGestorMode } = useSession();
   const { toast } = useToast();
@@ -62,10 +65,25 @@ const SportComplexSettings = () => {
   };
 
   const handleCreate = () => {
+    saveCustomSportComplex({
+      id: `custom-complex-${Date.now()}`,
+      name: complexName,
+      city,
+      sports: selectedSports,
+      courts: 0,
+      rating: 0,
+      image: selectedBackgroundImage || undefined,
+      country,
+      zipCode,
+      street,
+      addressNumber,
+      addressComplement,
+    });
     toast({
       title: t('sportComplexPublished'),
       description: `${complexName} · ${street}, ${addressNumber} · ${getCountryLabel(country, language)}`,
     });
+    navigate('/settings/complex');
   };
 
 
