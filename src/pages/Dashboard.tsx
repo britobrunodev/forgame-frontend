@@ -28,7 +28,7 @@ const Dashboard = () => {
     .slice(0, 2);
 
   return (
-    <div className="mx-auto grid max-w-7xl gap-5 xl:grid-cols-[minmax(0,1.55fr)_340px] xl:gap-6">
+    <div className="mx-auto w-full grid max-w-7xl gap-5 xl:grid-cols-[minmax(0,1.55fr)_340px] xl:gap-6">
       <div className="space-y-6">
         <section className="overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-card shadow-card">
           <div className="relative overflow-hidden px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
@@ -42,7 +42,7 @@ const Dashboard = () => {
                 <p className="mt-3 text-sm text-muted-foreground">{t('playerFeedIntro')}</p>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 sm:min-w-[320px] sm:gap-3">
+              <div className="grid w-full grid-cols-3 gap-2 sm:gap-3 lg:w-auto lg:min-w-[300px]">
                 <MetricCard label={t('following')} value="128" accent="text-neon-cyan" />
                 <MetricCard label={t('activeFriends')} value={String(FRIENDS.length)} accent="text-neon-pink" />
                 <MetricCard label={t('profileViews')} value="1.8k" accent="text-primary-glow" />

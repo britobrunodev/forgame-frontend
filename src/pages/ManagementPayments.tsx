@@ -6,7 +6,7 @@ import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { getManagedSportComplexes } from '@/lib/sport-complexes-store';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { PaymentMethod, PaymentTransaction, PaymentTransactionStatus } from '@/types';
+import type { PaymentMethod, PaymentTransaction } from '@/types';
 
 type PaymentKind = 'all' | 'championship' | 'court';
 type PaymentStatusFilter = 'all' | 'paid' | 'pending' | 'failed';
@@ -167,7 +167,7 @@ const ManagementPayments = () => {
       </header>
 
       <section className="rounded-[2rem] border border-border bg-gradient-card p-5 shadow-card sm:p-6">
-        <div className="mb-6 grid gap-3 md:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_180px_180px]">
+        <div className="mb-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_minmax(0,1fr)_160px]">
           <div className="space-y-2">
             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('sportComplex')}</div>
             <Select value={selectedComplexId} onValueChange={(value) => setSelectedComplexId(value as 'all' | string)}>
@@ -239,11 +239,12 @@ const ManagementPayments = () => {
         </div>
 
         <div className="hidden overflow-hidden rounded-2xl border border-border bg-background/20 md:block">
-          <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_90px_56px] gap-4 border-b border-border bg-background/25 px-4 py-3 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+          <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_36px_110px_90px_48px] gap-4 border-b border-border bg-background/25 px-4 py-3 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
             <div>{t('fullName')}</div>
             <div>{t('paymentSource')}</div>
-            <div>{t('paymentType')}</div>
-            <div>{t('paymentAttemptsLabel')}</div>
+            <div />
+            <div>{t('paymentStatusSummary')}</div>
+            <div>{t('paidAmount')}</div>
             <div />
           </div>
 
@@ -253,7 +254,7 @@ const ManagementPayments = () => {
 
               return (
                 <div key={row.key}>
-                  <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_120px_90px_56px] gap-4 px-4 py-3">
+                  <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_36px_110px_90px_48px] items-center gap-4 px-4 py-3">
                     <div>
                       <div className="font-display text-sm font-bold">{row.userName}</div>
                       <div className="mt-0.5 text-xs text-muted-foreground">{row.userEmail}</div>
@@ -264,12 +265,17 @@ const ManagementPayments = () => {
                       <div className="mt-0.5 text-xs text-muted-foreground">{row.sourceDate}</div>
                     </div>
 
-                    <div className="pt-0.5">
-                      <TypeBadge type={row.sourceType} t={t} />
+                    <div>
+                      <TypeIcon type={row.sourceType} />
                     </div>
 
-                    <div className="flex items-center">
-                      <span className="font-semibold text-foreground">{row.transactions.length}</span>
+                    <div>
+                      <RowStatusBadge status={row.status} t={t} />
+                    </div>
+
+                    <div>
+                      <div className="text-sm font-semibold text-foreground">{formatCurrency(row.paidAmount, language)}</div>
+                      <div className="text-xs text-muted-foreground">/ {formatCurrency(row.totalAmount, language)}</div>
                     </div>
 
                     <div className="flex justify-end">
@@ -315,9 +321,11 @@ const ManagementPayments = () => {
                     <ChevronDown className={`mt-1 h-4 w-4 shrink-0 text-primary-glow transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                   </div>
 
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <TypeBadge type={row.sourceType} t={t} />
-                    <span className="text-xs text-muted-foreground">{row.transactions.length} {t('paymentAttemptsLabel')}</span>
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <TypeIcon type={row.sourceType} />
+                    <RowStatusBadge status={row.status} t={t} />
+                    <span className="text-sm font-semibold text-foreground">{formatCurrency(row.paidAmount, language)}</span>
+                    <span className="text-xs text-muted-foreground">/ {formatCurrency(row.totalAmount, language)}</span>
                   </div>
                 </button>
 
@@ -343,13 +351,15 @@ const TransactionsPanel = ({
   row,
   t,
   language,
-  compact = false,
 }: {
   row: PaymentRow;
   t: (key: string) => string;
   language: 'en' | 'pt-BR';
 }) => (
   <div className="border-t border-border bg-background/12 px-4 pb-3 pt-2">
+    <div className="mb-1.5 px-1 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+      {row.transactions.length} {t('paymentAttemptsLabel')}
+    </div>
     <div className="space-y-1">
       {row.transactions.map((transaction, index) => (
         <div key={transaction.id} className="flex items-center gap-3 rounded-md border border-border/60 bg-background/20 px-3 py-1.5">
@@ -373,20 +383,24 @@ const TransactionsPanel = ({
   </div>
 );
 
-const TypeBadge = ({
-  type,
-  t,
-}: {
-  type: 'championship' | 'court';
-  t: (key: string) => string;
-}) => (
-  <div className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] ${
+const TypeIcon = ({ type }: { type: 'championship' | 'court' }) => (
+  <div className={`inline-flex h-7 w-7 items-center justify-center rounded-full border ${
     type === 'championship'
       ? 'border-neon-cyan/20 bg-neon-cyan/10 text-neon-cyan'
       : 'border-neon-pink/20 bg-neon-pink/10 text-neon-pink'
   }`}>
     {type === 'championship' ? <Trophy className="h-3.5 w-3.5" /> : <Receipt className="h-3.5 w-3.5" />}
-    {type === 'championship' ? t('championshipLabel') : t('courtLabel')}
+  </div>
+);
+
+const RowStatusBadge = ({ status, t }: { status: 'paid' | 'pending'; t: (key: string) => string }) => (
+  <div className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${
+    status === 'paid'
+      ? 'border-neon-cyan/20 bg-neon-cyan/10 text-neon-cyan'
+      : 'border-neon-pink/20 bg-neon-pink/10 text-neon-pink'
+  }`}>
+    {status === 'paid' ? <CircleCheckBig className="h-3 w-3" /> : <CircleAlert className="h-3 w-3" />}
+    {status === 'paid' ? t('paidStatus') : t('pendingStatus')}
   </div>
 );
 
@@ -423,11 +437,5 @@ const paymentMethodLabel = (t: (key: string) => string, method: PaymentMethod) =
   'debit-card': t('debitCard'),
   'pay-on-site': t('payOnSite'),
 }[method]);
-
-const statusLabel = (t: (key: string) => string, status: PaymentTransactionStatus) => {
-  if (status === 'paid') return t('paidStatus');
-  if (status === 'failed') return t('failedStatus');
-  return t('pendingStatus');
-};
 
 export default ManagementPayments;
