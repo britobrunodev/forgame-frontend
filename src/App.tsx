@@ -19,6 +19,9 @@ import Schedule from "./pages/Schedule";
 import ManagementDashboard from "./pages/ManagementDashboard";
 import ManagementChampionships from "./pages/ManagementChampionships";
 import ManagementPayments from "./pages/ManagementPayments";
+import ManagementClasses from "./pages/ManagementClasses";
+import ManagementClassCreate from "./pages/ManagementClassCreate";
+import ManagementUsers from "./pages/ManagementUsers";
 import TournamentSettings from "./pages/TournamentSettings";
 import SportComplexesManagement from "./pages/SportComplexesManagement";
 import SportComplexSettings from "./pages/SportComplexSettings";
@@ -56,6 +59,9 @@ const App = () => (
               <Route path="/profile" element={<ProfileSettings />} />
               <Route path="/management" element={<ManagementDashboard />} />
               <Route path="/management/championships" element={<ManagementChampionships />} />
+              <Route path="/management/classes" element={<ManagementClasses />} />
+              <Route path="/management/classes/new" element={<ManagementClassCreate />} />
+              <Route path="/management/users" element={<ManagementUsers />} />
               <Route path="/management/payments" element={<ManagementPayments />} />
               <Route path="/management/courts/new" element={<CourtCreate />} />
               <Route path="/management/preferences" element={<ComplexPreferences />} />

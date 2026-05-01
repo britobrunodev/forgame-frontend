@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, MapPin, Plus } from 'lucide-react';
+import { Building2, MapPin, Plus, SlidersHorizontal } from 'lucide-react';
 import { SportIcon } from '@/components/SportIcon';
 import { getCountryLabel } from '@/data/countries';
 import { useLanguage } from '@/i18n';
@@ -90,6 +90,16 @@ const SportComplexesManagement = () => {
                       </span>
                     ))}
                   </div>
+                </div>
+                <div className="mt-5">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/management/preferences?complexId=${complex.id}`)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    {t('preferences')}
+                  </button>
                 </div>
               </article>
             );

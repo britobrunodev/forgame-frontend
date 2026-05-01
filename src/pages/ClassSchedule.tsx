@@ -63,11 +63,10 @@ const ClassSchedule = ({ embedded = false }: { embedded?: boolean }) => {
               key={date}
               type="button"
               onClick={() => setSelectedDate(date)}
-              className={`flex min-w-[68px] shrink-0 flex-col items-center rounded-2xl border px-3 py-3 transition-smooth ${
-                isSelected
+              className={`flex min-w-[68px] shrink-0 flex-col items-center rounded-2xl border px-3 py-3 transition-smooth ${isSelected
                   ? 'border-primary/35 bg-primary/10 text-primary-glow shadow-[0_0_14px_hsl(var(--primary)/0.18)]'
                   : 'border-border bg-background/35 text-muted-foreground hover:border-primary/25 hover:text-foreground'
-              }`}
+                }`}
             >
               <span className="text-[9px] font-bold uppercase tracking-wider">{formatDayLabel(date)}</span>
               <span className="mt-0.5 font-display text-xl font-black">{formatDayNum(date)}</span>
@@ -127,11 +126,10 @@ const ClassSchedule = ({ embedded = false }: { embedded?: boolean }) => {
             return (
               <div
                 key={slot.id}
-                className={`flex flex-col rounded-2xl border bg-gradient-card p-4 shadow-card transition-smooth ${
-                  isEnrolled
+                className={`flex flex-col rounded-2xl border bg-gradient-card p-4 shadow-card transition-smooth ${isEnrolled
                     ? 'border-neon-cyan/30'
                     : 'border-border hover:-translate-y-0.5 hover:shadow-neon'
-                }`}
+                  }`}
               >
                 {/* Sport + level */}
                 <div className="flex items-start justify-between gap-2">
@@ -149,7 +147,7 @@ const ClassSchedule = ({ embedded = false }: { embedded?: boolean }) => {
                 </div>
 
                 {/* Time */}
-                <div className="mt-3 font-display text-2xl font-black leading-none">
+                <div className="mt-3 font-display text-2xl font-medium leading-none tracking-tight text-foreground">
                   {slot.startTime}
                   <span className="mx-1 text-base font-normal text-muted-foreground">–</span>
                   {slot.endTime}

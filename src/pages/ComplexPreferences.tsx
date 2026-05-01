@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Calendar, Clock3, Plus, Save, Settings2, X } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { RESERVATION_PLACES } from '@/data/mock';
 import { DragSelectField } from '@/components/DragSelectField';
 import { useLanguage } from '@/i18n';
@@ -52,11 +53,19 @@ const ComplexPreferences = () => {
   const { t } = useLanguage();
   const { isGestorMode, currentUser } = useSession();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const ownedPlaces = useMemo(
     () => RESERVATION_PLACES.filter((place) => (currentUser.ownedComplexIds ?? []).includes(place.id)),
     [currentUser.ownedComplexIds],
   );
-  const [selectedComplexId, setSelectedComplexId] = useState(ownedPlaces[0]?.id ?? '');
+  const queryComplexId = searchParams.get('complexId') ?? '';
+  const defaultComplexId = useMemo(() => {
+    if (queryComplexId && ownedPlaces.some((place) => place.id === queryComplexId)) {
+      return queryComplexId;
+    }
+    return ownedPlaces[0]?.id ?? '';
+  }, [ownedPlaces, queryComplexId]);
+  const [selectedComplexId, setSelectedComplexId] = useState(defaultComplexId);
   const selectedPlace = ownedPlaces.find((place) => place.id === selectedComplexId) ?? null;
   const basePreference = selectedPlace ? getComplexPreference(selectedPlace.id) : null;
   const [weekSchedule, setWeekSchedule] = useState<DaySchedule[]>(basePreference?.weekSchedule ?? []);
@@ -73,6 +82,17 @@ const ComplexPreferences = () => {
     () => getAllCourts().filter((court) => court.complexId === selectedComplexId),
     [selectedComplexId],
   );
+
+  useEffect(() => {
+    if (defaultComplexId && defaultComplexId !== selectedComplexId) {
+      setSelectedComplexId(defaultComplexId);
+    }
+  }, [defaultComplexId, selectedComplexId]);
+
+  useEffect(() => {
+    if (!selectedComplexId) return;
+    syncPreference(selectedComplexId);
+  }, [selectedComplexId]);
 
   const syncPreference = (complexId: string) => {
     const preference = getComplexPreference(complexId);

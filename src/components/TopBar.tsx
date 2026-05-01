@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Search, Menu, LayoutDashboard, Trophy, MapPin, Calendar, Building2, ChevronDown, LogOut, Receipt, Settings, SlidersHorizontal, GraduationCap } from 'lucide-react';
+import { Bell, Search, Menu, LayoutDashboard, Trophy, MapPin, Calendar, Building2, ChevronDown, LogOut, Receipt, Settings, GraduationCap, Users } from 'lucide-react';
 import { SPORTS } from '@/data/mock';
 import { LanguageSelector } from './LanguageSelector';
 import { Logo } from './Logo';
@@ -53,10 +53,9 @@ export const TopBar = () => {
                     to={to}
                     onClick={closeMobileMenu}
                     className={({ isActive }) =>
-                      `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-smooth ${
-                        isActive
-                          ? 'bg-gradient-primary text-primary-foreground shadow-glow'
-                          : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground'
+                      `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-smooth ${isActive
+                        ? 'bg-gradient-primary text-primary-foreground shadow-glow'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground'
                       }`
                     }
                   >
@@ -70,11 +69,10 @@ export const TopBar = () => {
                     <button
                       type="button"
                       onClick={() => setManagementOpen((current) => !current)}
-                      className={`w-full flex items-center rounded-lg px-3 py-2.5 text-sm transition-smooth ${
-                        managementOpen || location.pathname.startsWith('/management')
+                      className={`w-full flex items-center rounded-lg px-3 py-2.5 text-sm transition-smooth ${managementOpen || location.pathname.startsWith('/management')
                           ? 'bg-sidebar-accent text-foreground border border-primary/30'
                           : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground'
-                      }`}
+                        }`}
                     >
                       <div className="grid min-w-0 flex-1 grid-cols-[16px_minmax(0,1fr)] items-center gap-3 text-left">
                         <Building2 className="h-4 w-4 shrink-0" />
@@ -88,8 +86,7 @@ export const TopBar = () => {
                           to="/management"
                           onClick={closeMobileMenu}
                           className={({ isActive }) =>
-                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                              isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
                             }`
                           }
                         >
@@ -100,8 +97,7 @@ export const TopBar = () => {
                           to="/management/championships"
                           onClick={closeMobileMenu}
                           className={({ isActive }) =>
-                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                              isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
                             }`
                           }
                         >
@@ -109,11 +105,21 @@ export const TopBar = () => {
                           <span className="truncate">{t('championships')}</span>
                         </NavLink>
                         <NavLink
+                          to="/management/classes"
+                          onClick={closeMobileMenu}
+                          className={({ isActive }) =>
+                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                            }`
+                          }
+                        >
+                          <Calendar className="h-4 w-4 shrink-0 text-neon-cyan" />
+                          <span className="truncate">{t('managementClasses')}</span>
+                        </NavLink>
+                        <NavLink
                           to="/management/students"
                           onClick={closeMobileMenu}
                           className={({ isActive }) =>
-                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                              isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
                             }`
                           }
                         >
@@ -121,11 +127,21 @@ export const TopBar = () => {
                           <span className="truncate">{t('students')}</span>
                         </NavLink>
                         <NavLink
+                          to="/management/users"
+                          onClick={closeMobileMenu}
+                          className={({ isActive }) =>
+                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                            }`
+                          }
+                        >
+                          <Users className="h-4 w-4 shrink-0 text-neon-cyan" />
+                          <span className="truncate">{t('users')}</span>
+                        </NavLink>
+                        <NavLink
                           to="/settings/complex"
                           onClick={closeMobileMenu}
                           className={({ isActive }) =>
-                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                              isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
                             }`
                           }
                         >
@@ -136,25 +152,12 @@ export const TopBar = () => {
                           to="/management/payments"
                           onClick={closeMobileMenu}
                           className={({ isActive }) =>
-                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                              isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
                             }`
                           }
                         >
                           <Receipt className="h-4 w-4 shrink-0 text-neon-pink" />
                           <span className="truncate">{t('managementPayments')}</span>
-                        </NavLink>
-                        <NavLink
-                          to="/management/preferences"
-                          onClick={closeMobileMenu}
-                          className={({ isActive }) =>
-                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                              isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                            }`
-                          }
-                        >
-                          <SlidersHorizontal className="h-4 w-4 shrink-0 text-neon-cyan" />
-                          <span className="truncate">{t('preferences')}</span>
                         </NavLink>
                         <div className="rounded-lg border border-border bg-background/30 p-3">
                           <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{t('gestorRole')}</div>
@@ -185,8 +188,7 @@ export const TopBar = () => {
                     to={`/sports/${sport.id}`}
                     onClick={closeMobileMenu}
                     className={({ isActive }) =>
-                      `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-3 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                        isActive ? 'bg-sidebar-accent text-foreground border-l-2 border-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent/60'
+                      `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-3 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground border-l-2 border-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent/60'
                       } ${currentUser.preferences.includes(sport.id) ? 'font-bold' : 'font-medium'}`
                     }
                   >

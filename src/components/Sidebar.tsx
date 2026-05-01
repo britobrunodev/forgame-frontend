@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Trophy, MapPin, LogOut, Building2, ChevronDown, Receipt, Settings, SlidersHorizontal, GraduationCap } from 'lucide-react';
+import { LayoutDashboard, Calendar, Trophy, MapPin, LogOut, Building2, ChevronDown, Receipt, Settings, GraduationCap, Users } from 'lucide-react';
 import { Logo } from './Logo';
 import { SportIcon } from './SportIcon';
 import { SPORTS } from '@/data/mock';
@@ -35,10 +35,9 @@ export const Sidebar = () => {
             key={to}
             to={to}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-smooth ${
-                isActive
-                  ? 'bg-gradient-primary text-primary-foreground shadow-glow'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground'
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-smooth ${isActive
+                ? 'bg-gradient-primary text-primary-foreground shadow-glow'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground'
               }`
             }
           >
@@ -52,11 +51,10 @@ export const Sidebar = () => {
             <button
               type="button"
               onClick={() => setManagementOpen((current) => !current)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-smooth ${
-                managementOpen || location.pathname.startsWith('/management')
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-smooth ${managementOpen || location.pathname.startsWith('/management')
                   ? 'bg-sidebar-accent text-foreground border border-primary/30'
                   : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground'
-              }`}
+                }`}
             >
               <Building2 className="w-4 h-4" /> {t('management')}
               <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${managementOpen ? 'rotate-180' : ''}`} />
@@ -66,8 +64,7 @@ export const Sidebar = () => {
                 <NavLink
                   to="/management"
                   className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                      isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
                     }`
                   }
                 >
@@ -77,10 +74,9 @@ export const Sidebar = () => {
                 <NavLink
                   to="/management/championships"
                   className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                      isActive
-                        ? 'bg-sidebar-accent text-foreground'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
+                      ? 'bg-sidebar-accent text-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
                     }`
                   }
                 >
@@ -88,12 +84,23 @@ export const Sidebar = () => {
                   {t('championships')}
                 </NavLink>
                 <NavLink
+                  to="/management/classes"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
+                      ? 'bg-sidebar-accent text-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                    }`
+                  }
+                >
+                  <Calendar className="h-4 w-4 text-neon-cyan" />
+                  {t('managementClasses')}
+                </NavLink>
+                <NavLink
                   to="/management/students"
                   className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                      isActive
-                        ? 'bg-sidebar-accent text-foreground'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
+                      ? 'bg-sidebar-accent text-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
                     }`
                   }
                 >
@@ -101,12 +108,23 @@ export const Sidebar = () => {
                   {t('students')}
                 </NavLink>
                 <NavLink
+                  to="/management/users"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
+                      ? 'bg-sidebar-accent text-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                    }`
+                  }
+                >
+                  <Users className="h-4 w-4 text-neon-cyan" />
+                  {t('users')}
+                </NavLink>
+                <NavLink
                   to="/settings/complex"
                   className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                      isActive
-                        ? 'bg-sidebar-accent text-foreground'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
+                      ? 'bg-sidebar-accent text-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
                     }`
                   }
                 >
@@ -116,28 +134,14 @@ export const Sidebar = () => {
                 <NavLink
                   to="/management/payments"
                   className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                      isActive
-                        ? 'bg-sidebar-accent text-foreground'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
+                      ? 'bg-sidebar-accent text-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
                     }`
                   }
                 >
                   <Receipt className="h-4 w-4 text-neon-pink" />
                   {t('managementPayments')}
-                </NavLink>
-                <NavLink
-                  to="/management/preferences"
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${
-                      isActive
-                        ? 'bg-sidebar-accent text-foreground'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                    }`
-                  }
-                >
-                  <SlidersHorizontal className="h-4 w-4 text-neon-cyan" />
-                  {t('preferences')}
                 </NavLink>
                 <div className="rounded-lg border border-border bg-background/30 p-3">
                   <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{t('gestorRole')}</div>
@@ -165,8 +169,7 @@ export const Sidebar = () => {
             key={s.id}
             to={`/sports/${s.id}`}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
-                isActive ? 'bg-sidebar-accent text-foreground border-l-2 border-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent/60'
+              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground border-l-2 border-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent/60'
               } ${currentUser.preferences.includes(s.id) ? 'font-bold' : 'font-medium'}`
             }
           >
