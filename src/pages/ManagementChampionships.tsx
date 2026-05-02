@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Calendar, Plus, Receipt, Trophy } from 'lucide-react';
+import { Building2, Calendar, Pencil, Plus, Receipt, Trophy } from 'lucide-react';
 import { MANAGED_CHAMPIONSHIPS, RESERVATION_PLACES } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
@@ -90,13 +90,22 @@ const ManagementChampionships = () => {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/management/payments?type=championship&id=${championship.id}`)}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary/70 text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
-                  >
-                    <Receipt className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/management/championships/${championship.id}/edit`)}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary/70 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground hover:bg-secondary"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/management/payments?type=championship&id=${championship.id}`)}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary/70 text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+                    >
+                      <Receipt className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </article>
             );

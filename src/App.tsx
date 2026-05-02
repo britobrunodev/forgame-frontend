@@ -21,6 +21,9 @@ import ManagementChampionships from "./pages/ManagementChampionships";
 import ManagementPayments from "./pages/ManagementPayments";
 import ManagementClasses from "./pages/ManagementClasses";
 import ManagementClassCreate from "./pages/ManagementClassCreate";
+import ManagementClassEdit from "./pages/ManagementClassEdit";
+import ManagementCourtEdit from "./pages/ManagementCourtEdit";
+import ManagementChampionshipEdit from "./pages/ManagementChampionshipEdit";
 import ManagementUsers from "./pages/ManagementUsers";
 import TournamentSettings from "./pages/TournamentSettings";
 import SportComplexesManagement from "./pages/SportComplexesManagement";
@@ -61,9 +64,12 @@ const App = () => (
               <Route path="/management/championships" element={<ManagementChampionships />} />
               <Route path="/management/classes" element={<ManagementClasses />} />
               <Route path="/management/classes/new" element={<ManagementClassCreate />} />
+              <Route path="/management/classes/:id/edit" element={<ManagementClassEdit />} />
+              <Route path="/management/courts/new" element={<CourtCreate />} />
+              <Route path="/management/courts/:id/edit" element={<ManagementCourtEdit />} />
+              <Route path="/management/championships/:id/edit" element={<ManagementChampionshipEdit />} />
               <Route path="/management/users" element={<ManagementUsers />} />
               <Route path="/management/payments" element={<ManagementPayments />} />
-              <Route path="/management/courts/new" element={<CourtCreate />} />
               <Route path="/management/preferences" element={<ComplexPreferences />} />
               <Route path="/management/students" element={<StudentsManagement />} />
               <Route path="/settings" element={<TournamentSettings />} />

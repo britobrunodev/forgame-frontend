@@ -79,25 +79,23 @@ const ChampionshipRegistration = () => {
 
   return (
     <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-6">
-      <header>
+      <header className="flex items-center gap-4">
         <button
           type="button"
           onClick={() => navigate(`/championships/${id}`)}
-          className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-smooth hover:text-foreground"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          {t('back')}
         </button>
-        <div className="flex items-center gap-2">
-          <SportIcon sportId={championship.sport} className="h-4 w-4 text-neon-cyan" />
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neon-cyan">
-            {sportName(championship.sport)}
-          </span>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <SportIcon sportId={championship.sport} className="h-3.5 w-3.5 text-neon-cyan" />
+            <span className="font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">
+              {sportName(championship.sport)}
+            </span>
+          </div>
+          <h1 className="mt-0.5 truncate font-display text-lg font-black sm:text-xl">{championship.name}</h1>
         </div>
-        <h1 className="mt-2 font-display text-2xl font-black sm:text-3xl">{championship.name}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {championship.startDate} → {championship.endDate} · {championship.location}
-        </p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">

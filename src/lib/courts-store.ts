@@ -51,3 +51,16 @@ export const saveCustomCourt = (court: Court) => {
   const nextCourts = [...getCustomCourts(), court];
   window.localStorage.setItem(storageKey, JSON.stringify(nextCourts));
 };
+
+export const updateCourt = (id: string, updates: Partial<Omit<Court, 'id' | 'reservations'>>) => {
+  if (typeof window === 'undefined') return;
+  const all = getAllCourts();
+  const updated = all.map((court) => court.id === id ? { ...court, ...updates } : court);
+  window.localStorage.setItem(storageKey, JSON.stringify(updated));
+};
+
+export const deleteCourt = (id: string) => {
+  if (typeof window === 'undefined') return;
+  const filtered = getAllCourts().filter((court) => court.id !== id);
+  window.localStorage.setItem(storageKey, JSON.stringify(filtered));
+};

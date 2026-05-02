@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar as CalendarIcon, Check, Users } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Calendar as CalendarIcon, Check, Save, Trash2, Users } from 'lucide-react';
 import { MANAGED_PLAYERS, RESERVATION_PLACES, SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
@@ -11,12 +11,11 @@ import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { ClassSlot, PlayerLevel, SportId } from '@/types';
 
-type EnrollmentMode = 'all' | 'select';
-
 const classStorageKey = 'joga-junto-management-classes';
 const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 type Weekday = (typeof weekdays)[number];
 type ScheduleMode = 'weekly' | 'specific';
+type EnrollmentMode = 'all' | 'select';
 
 const levelOptions: PlayerLevel[] = ['beginner', 'intermediate', 'advanced', 'silver', 'gold', 'professional'];
 
@@ -30,7 +29,18 @@ const toDateStr = (d: Date) => {
 const formatDisplayDate = (d: Date, locale: string) =>
   d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-const ManagementClassCreate = () => {
+const getClasses = (): ClassSlot[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = window.localStorage.getItem(classStorageKey);
+    return stored ? (JSON.parse(stored) as ClassSlot[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+const ManagementClassEdit = () => {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t, sportName, language } = useLanguage();
   const { isGestorMode, currentUser } = useSession();
@@ -48,35 +58,50 @@ const ManagementClassCreate = () => {
     [ownedComplexIds],
   );
 
-  const [complexId, setComplexId] = useState(ownedPlaces[0]?.id ?? '');
-  const [sportId, setSportId] = useState<SportId>('footvolley');
-  const [professorId, setProfessorId] = useState(ownedPlayers[0]?.id ?? '');
-  const [level, setLevel] = useState<PlayerLevel>('intermediate');
+  const slot = useMemo(() => getClasses().find((c) => c.id === id) ?? null, [id]);
 
-  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>('weekly');
-  const [selectedWeekday, setSelectedWeekday] = useState<Weekday>('monday');
+  const [complexId, setComplexId] = useState(slot?.complexId ?? ownedPlaces[0]?.id ?? '');
+  const [sportId, setSportId] = useState<SportId>((slot?.sport as SportId) ?? 'footvolley');
+  const [professorId, setProfessorId] = useState(
+    ownedPlayers.find((p) => p.name === slot?.professorName)?.id ?? ownedPlayers[0]?.id ?? '',
+  );
+  const [level, setLevel] = useState<PlayerLevel>((slot?.level as PlayerLevel) ?? 'intermediate');
+
+  const inferScheduleMode = (): ScheduleMode => {
+    if (!slot?.date) return 'weekly';
+    const lower = slot.date.toLowerCase();
+    return weekdays.some((d) => lower.startsWith(d)) ? 'weekly' : 'specific';
+  };
+
+  const inferWeekday = (): Weekday => {
+    if (!slot?.date) return 'monday';
+    const lower = slot.date.toLowerCase();
+    return weekdays.find((d) => lower.startsWith(d)) ?? 'monday';
+  };
+
+  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>(inferScheduleMode);
+  const [selectedWeekday, setSelectedWeekday] = useState<Weekday>(inferWeekday);
   const [specificDate, setSpecificDate] = useState<Date>(new Date());
 
-  const [startTime, setStartTime] = useState('08:00');
-  const [endTime, setEndTime] = useState('09:00');
-  const [maxSpots, setMaxSpots] = useState('10');
+  const [startTime, setStartTime] = useState(slot?.startTime ?? '08:00');
+  const [endTime, setEndTime] = useState(slot?.endTime ?? '09:00');
+  const [maxSpots, setMaxSpots] = useState(String(slot?.maxSpots ?? 10));
 
-  const [enrollmentMode, setEnrollmentMode] = useState<EnrollmentMode>('all');
-  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+  const [enrollmentMode, setEnrollmentMode] = useState<EnrollmentMode>(
+    slot?.enrolledPlayerIds ? 'select' : 'all',
+  );
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>(slot?.enrolledPlayerIds ?? []);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const togglePlayer = (id: string) => {
+  const togglePlayer = (pid: string) => {
     setSelectedPlayerIds((current) =>
-      current.includes(id) ? current.filter((pid) => pid !== id) : [...current, id],
+      current.includes(pid) ? current.filter((id) => id !== pid) : [...current, pid],
     );
   };
 
   useEffect(() => {
     if (!complexId && ownedPlaces.length > 0) setComplexId(ownedPlaces[0].id);
   }, [ownedPlaces, complexId]);
-
-  useEffect(() => {
-    if (!professorId && ownedPlayers.length > 0) setProfessorId(ownedPlayers[0].id);
-  }, [ownedPlayers, professorId]);
 
   const selectedComplex = ownedPlaces.find((p) => p.id === complexId);
   const selectedProfessor = ownedPlayers.find((p) => p.id === professorId);
@@ -86,10 +111,10 @@ const ManagementClassCreate = () => {
       ? t(selectedWeekday)
       : `${toDateStr(specificDate)} · ${t(weekdays[specificDate.getDay() === 0 ? 6 : specificDate.getDay() - 1])}`;
 
-  const handleCreate = () => {
+  const handleSave = () => {
     if (!selectedComplex || !selectedProfessor) return;
-    const newClass: ClassSlot = {
-      id: `class-${Date.now()}`,
+    const updated: ClassSlot = {
+      ...(slot as ClassSlot),
       complexId: selectedComplex.id,
       complexName: selectedComplex.name,
       sport: sportId,
@@ -98,21 +123,20 @@ const ManagementClassCreate = () => {
       startTime,
       endTime,
       maxSpots: Number(maxSpots) || 0,
-      bookedSpots: 0,
       level,
       enrolledPlayerIds: enrollmentMode === 'select' ? selectedPlayerIds : null,
     };
-    try {
-      const stored = window.localStorage.getItem(classStorageKey);
-      const current = stored ? (JSON.parse(stored) as ClassSlot[]) : [];
-      window.localStorage.setItem(classStorageKey, JSON.stringify([newClass, ...current]));
-    } catch {
-      window.localStorage.setItem(classStorageKey, JSON.stringify([newClass]));
-    }
-    toast({
-      title: t('classCreated'),
-      description: `${selectedComplex.name} · ${selectedProfessor.name} · ${dateLabel} ${startTime}–${endTime}`,
-    });
+    const all = getClasses();
+    const next = all.map((c) => c.id === id ? updated : c);
+    window.localStorage.setItem(classStorageKey, JSON.stringify(next));
+    toast({ title: t('classUpdated'), description: `${selectedComplex.name} · ${selectedProfessor.name} · ${dateLabel}` });
+    navigate('/management/classes');
+  };
+
+  const handleDelete = () => {
+    const all = getClasses();
+    window.localStorage.setItem(classStorageKey, JSON.stringify(all.filter((c) => c.id !== id)));
+    toast({ title: t('classDeleted'), description: slot?.complexName });
     navigate('/management/classes');
   };
 
@@ -124,9 +148,19 @@ const ManagementClassCreate = () => {
             {t('ownerOnlyTitle')}
           </div>
           <h1 className="mt-5 font-display text-4xl font-black">
-            <span className="neon-text">{t('createClass')}</span>
+            <span className="neon-text">{t('editClass')}</span>
           </h1>
           <p className="mt-3 max-w-xl text-sm text-muted-foreground">{t('ownerOnlyDescription')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!slot) {
+    return (
+      <div className="mx-auto w-full max-w-3xl">
+        <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
+          <h1 className="font-display text-2xl font-black text-muted-foreground">Class not found</h1>
         </div>
       </div>
     );
@@ -142,11 +176,44 @@ const ManagementClassCreate = () => {
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <div>
-          <p className="font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('createClass')}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{t('managementClassesIntro')}</p>
+        <div className="flex-1 min-w-0">
+          <p className="font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('editClass')}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground truncate">{slot.complexName} · {slot.professorName}</p>
         </div>
+        <button
+          type="button"
+          onClick={() => setShowDeleteConfirm(true)}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-live/30 bg-live/10 text-live transition-smooth hover:border-live/60 hover:bg-live/20"
+          title={t('confirmDelete')}
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!selectedComplex || !selectedProfessor}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+          title={t('saveChanges')}
+        >
+          <Save className="h-4 w-4" />
+        </button>
       </header>
+
+      {showDeleteConfirm && (
+        <div className="rounded-2xl border border-live/30 bg-live/10 p-5">
+          <p className="font-semibold text-live">{t('deleteConfirmTitle')}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t('deleteConfirmDescription')}</p>
+          <div className="mt-4 flex gap-3">
+            <button type="button" onClick={handleDelete} className="inline-flex items-center gap-2 rounded-lg bg-live px-4 py-2 text-sm font-bold text-white transition-smooth hover:brightness-110">
+              <Trash2 className="h-4 w-4" />
+              {t('confirmDelete')}
+            </button>
+            <button type="button" onClick={() => setShowDeleteConfirm(false)} className="inline-flex items-center rounded-lg border border-border bg-background/60 px-4 py-2 text-sm font-semibold transition-smooth hover:bg-secondary">
+              {t('cancel')}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-[2rem] border border-border bg-gradient-card p-5 shadow-card sm:p-6">
         {/* Basic info */}
@@ -208,21 +275,11 @@ const ManagementClassCreate = () => {
         <div className="mt-6 rounded-2xl border border-border bg-background/25 p-4 sm:p-5">
           <div className="mb-4 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{t('weekSchedule')}</div>
 
-          {/* Mode toggle */}
           <div className="mb-5 flex gap-2">
-            <ModeBtn
-              active={scheduleMode === 'weekly'}
-              onClick={() => setScheduleMode('weekly')}
-              label={t('weekSchedule')}
-            />
-            <ModeBtn
-              active={scheduleMode === 'specific'}
-              onClick={() => setScheduleMode('specific')}
-              label={t('customDate')}
-            />
+            <ModeBtn active={scheduleMode === 'weekly'} onClick={() => setScheduleMode('weekly')} label={t('weekSchedule')} />
+            <ModeBtn active={scheduleMode === 'specific'} onClick={() => setScheduleMode('specific')} label={t('customDate')} />
           </div>
 
-          {/* Weekly day selector */}
           <div className={scheduleMode === 'specific' ? 'pointer-events-none opacity-40' : ''}>
             <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('weekSchedule')}</div>
             <div className="flex flex-wrap gap-2">
@@ -253,7 +310,6 @@ const ManagementClassCreate = () => {
             <div className="h-px flex-1 bg-border/60" />
           </div>
 
-          {/* Specific date */}
           <div className={scheduleMode === 'weekly' ? 'pointer-events-none opacity-40' : ''}>
             <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('customDate')}</div>
             <Popover>
@@ -285,29 +341,13 @@ const ManagementClassCreate = () => {
         {/* Time + capacity */}
         <div className="mt-5 grid gap-4 sm:grid-cols-3">
           <Field label={t('reservationStartTime')}>
-            <Input
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              className="border-border bg-background/60"
-            />
+            <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="border-border bg-background/60" />
           </Field>
           <Field label={t('reservationEndTime')}>
-            <Input
-              type="time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              className="border-border bg-background/60"
-            />
+            <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="border-border bg-background/60" />
           </Field>
           <Field label={t('spotCapacity')}>
-            <Input
-              type="number"
-              min={1}
-              value={maxSpots}
-              onChange={(e) => setMaxSpots(e.target.value)}
-              className="border-border bg-background/60"
-            />
+            <Input type="number" min={1} value={maxSpots} onChange={(e) => setMaxSpots(e.target.value)} className="border-border bg-background/60" />
           </Field>
         </div>
 
@@ -349,9 +389,6 @@ const ManagementClassCreate = () => {
                 );
               })}
             </div>
-            {enrollmentMode === 'select' && selectedPlayerIds.length === 0 && (
-              <p className="mt-3 text-center text-xs text-muted-foreground">{t('selectPlayers')}</p>
-            )}
           </div>
           {enrollmentMode === 'all' && (
             <p className="text-xs text-muted-foreground">{t('allPlayers')}</p>
@@ -371,11 +408,11 @@ const ManagementClassCreate = () => {
           </div>
           <button
             type="button"
-            onClick={handleCreate}
+            onClick={handleSave}
             disabled={!selectedComplex || !selectedProfessor}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-primary px-6 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] shadow-neon transition-smooth hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {t('createClass')}
+            {t('saveChanges')}
           </button>
         </div>
       </div>
@@ -404,4 +441,4 @@ const ModeBtn = ({ active, onClick, label }: { active: boolean; onClick: () => v
   </button>
 );
 
-export default ManagementClassCreate;
+export default ManagementClassEdit;

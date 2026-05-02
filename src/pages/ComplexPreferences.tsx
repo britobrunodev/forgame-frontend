@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Calendar, Clock3, Plus, Save, Settings2, X } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Calendar, Clock3, Plus, Save, Settings2, X } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { RESERVATION_PLACES } from '@/data/mock';
 import { DragSelectField } from '@/components/DragSelectField';
 import { useLanguage } from '@/i18n';
@@ -53,6 +53,7 @@ const ComplexPreferences = () => {
   const { t } = useLanguage();
   const { isGestorMode, currentUser } = useSession();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const ownedPlaces = useMemo(
     () => RESERVATION_PLACES.filter((place) => (currentUser.ownedComplexIds ?? []).includes(place.id)),
@@ -123,10 +124,17 @@ const ComplexPreferences = () => {
 
   return (
     <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
-      <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+      <header className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => navigate('/management')}
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
         <div>
-          <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('preferences')}</p>
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('complexPreferencesIntro')}</p>
+          <p className="font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('preferences')}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{t('complexPreferencesIntro')}</p>
         </div>
       </header>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_320px]">

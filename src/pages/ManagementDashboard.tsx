@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RESERVATION_PLACES } from '@/data/mock';
-import { Calendar, Building2, Plus, Receipt } from 'lucide-react';
+import { Calendar, Building2, Pencil, Plus, Receipt } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -100,13 +100,22 @@ const ManagementDashboard = () => {
                       <div className="mt-0.5 text-xs text-muted-foreground uppercase tracking-wider">{court.dimensions}</div>
                       <div className="mt-2 text-xs text-muted-foreground">{t('hourlyRate')}: {new Intl.NumberFormat(language === 'pt-BR' ? 'pt-BR' : 'en-US', { style: 'currency', currency: 'BRL' }).format(court.hourlyRate)}</div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/management/payments?type=court&id=${court.id}`)}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary/70 text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
-                    >
-                      <Receipt className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/management/courts/${court.id}/edit`)}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary/70 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground hover:bg-secondary"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/management/payments?type=court&id=${court.id}`)}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary/70 text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+                      >
+                        <Receipt className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t('reservationsLabel')}</div>

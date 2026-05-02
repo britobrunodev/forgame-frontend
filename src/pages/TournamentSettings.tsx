@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Building2, Calendar, CircleDollarSign, PlusCircle, ShieldCheck, Sparkles, Trash2, Trophy } from 'lucide-react';
+import { ArrowLeft, Building2, Calendar, CircleDollarSign, PlusCircle, ShieldCheck, Sparkles, Trash2, Trophy } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 import { RESERVATION_PLACES } from '@/data/mock';
 import { BackgroundUploadField } from '@/components/BackgroundUploadField';
@@ -200,11 +200,26 @@ const TournamentSettings = () => {
 
   return (
     <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
-      <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('tournamentBuilder')}</p>
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('tournamentBuilderIntro')}</p>
+      <header className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => window.history.back()}
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className="font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('tournamentBuilder')}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{t('tournamentBuilderIntro')}</p>
         </div>
+        <button
+          type="button"
+          onClick={handleDraft}
+          title={t('saveDraft')}
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110"
+        >
+          <Sparkles className="h-4 w-4" />
+        </button>
       </header>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_380px]">
@@ -505,14 +520,6 @@ const TournamentSettings = () => {
           </div>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={handleDraft}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-secondary px-4 py-3 text-sm font-semibold transition-smooth hover:border-primary/40 hover:bg-secondary/80"
-            >
-              <Sparkles className="h-4 w-4 text-neon-cyan" />
-              {t('saveDraft')}
-            </button>
             <button
               type="button"
               onClick={handlePublish}

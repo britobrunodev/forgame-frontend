@@ -159,6 +159,7 @@ export interface ClassSlot {
   maxSpots: number;
   bookedSpots: number;
   level?: PlayerLevel;
+  enrolledPlayerIds?: string[] | null;
 }
 
 export interface Court {

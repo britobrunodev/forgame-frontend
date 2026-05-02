@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Users } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Pencil, Plus, Users } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { useNavigate } from 'react-router-dom';
@@ -60,6 +60,71 @@ const exampleClasses: ClassSlot[] = [
     maxSpots: 6,
     bookedSpots: 2,
     level: 'advanced',
+  },
+  {
+    id: 'class-example-5',
+    complexId: 'p2',
+    complexName: 'FTM Sports Center',
+    sport: 'beach-tennis',
+    professorName: 'Fernanda Rocha',
+    date: 'Tuesday',
+    startTime: '07:00',
+    endTime: '08:00',
+    maxSpots: 8,
+    bookedSpots: 7,
+    level: 'intermediate',
+  },
+  {
+    id: 'class-example-6',
+    complexId: 'p3',
+    complexName: 'Contorno da Bola',
+    sport: 'footvolley',
+    professorName: 'Thiago Cardoso',
+    date: 'Thursday',
+    startTime: '17:00',
+    endTime: '18:30',
+    maxSpots: 10,
+    bookedSpots: 5,
+    level: 'silver',
+  },
+  {
+    id: 'class-example-7',
+    complexId: 'p2',
+    complexName: 'FTM Sports Center',
+    sport: 'volleyball',
+    professorName: 'Isabela Matos',
+    date: 'Saturday',
+    startTime: '09:00',
+    endTime: '10:30',
+    maxSpots: 14,
+    bookedSpots: 10,
+    level: 'gold',
+  },
+  {
+    id: 'class-example-8',
+    complexId: 'p3',
+    complexName: 'Contorno da Bola',
+    sport: 'beach-soccer',
+    professorName: 'Rodrigo Ferreira',
+    date: 'Sunday',
+    startTime: '16:00',
+    endTime: '17:00',
+    maxSpots: 8,
+    bookedSpots: 2,
+    level: 'beginner',
+  },
+  {
+    id: 'class-example-9',
+    complexId: 'p2',
+    complexName: 'FTM Sports Center',
+    sport: 'beach-tennis',
+    professorName: 'Camila Duarte',
+    date: '2026-05-15 · SEX',
+    startTime: '11:00',
+    endTime: '12:00',
+    maxSpots: 6,
+    bookedSpots: 6,
+    level: 'professional',
   },
 ];
 
@@ -166,12 +231,21 @@ const ManagementClasses = () => {
                       <MapPin className="h-3.5 w-3.5 shrink-0" />
                       <span className="truncate">{slot.complexName}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-3.5 w-3.5 shrink-0" />
-                      <span>
-                        <span className="font-bold text-neon-cyan">{slot.bookedSpots}</span>
-                        <span> / {slot.maxSpots} {t('spots')}</span>
-                      </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-3.5 w-3.5 shrink-0" />
+                        <span>
+                          <span className="font-bold text-neon-cyan">{slot.bookedSpots}</span>
+                          <span> / {slot.maxSpots} {t('spots')}</span>
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/management/classes/${slot.id}/edit`)}
+                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -182,12 +256,13 @@ const ManagementClasses = () => {
             <div className="hidden overflow-x-auto rounded-2xl border border-border sm:block">
               <table className="w-full table-fixed text-sm">
                 <colgroup>
-                  <col className="w-[20%]" />
-                  <col className="w-[18%]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[16%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[22%]" />
+                  <col className="w-[19%]" />
+                  <col className="w-[17%]" />
+                  <col className="w-[13%]" />
+                  <col className="w-[15%]" />
+                  <col className="w-[9%]" />
+                  <col className="w-[19%]" />
+                  <col className="w-[8%]" />
                 </colgroup>
                 <thead>
                   <tr className="border-b border-border bg-background/30 text-left text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
@@ -197,6 +272,7 @@ const ManagementClasses = () => {
                     <th className="px-4 py-3">{t('startTime')} / {t('reservationEndTime')}</th>
                     <th className="px-4 py-3">{t('spots')}</th>
                     <th className="px-4 py-3">{t('sportComplex')}</th>
+                    <th className="px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -238,6 +314,15 @@ const ManagementClasses = () => {
                           <span className="truncate text-sm">{slot.complexName}</span>
                         </div>
                       </td>
+                      <td className="px-4 py-4">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/management/classes/${slot.id}/edit`)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -247,9 +332,8 @@ const ManagementClasses = () => {
         )}
 
         {/* Pagination */}
-        {createdClasses.length > PAGE_SIZE && (
+        {createdClasses.length > 0 && (
           <div className="mt-5 flex items-center justify-between gap-4">
-            <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -259,6 +343,7 @@ const ManagementClasses = () => {
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
+              <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
               <button
                 type="button"
                 disabled={page === totalPages}
