@@ -39,7 +39,7 @@ export const TopBar = () => {
         </SheetTrigger>
         <SheetContent side="left" className="w-[88vw] max-w-sm border-r border-border bg-sidebar/95 p-0 backdrop-blur-xl">
           <div className="flex h-full flex-col">
-            <div className="border-b border-border px-5 py-5">
+            <div className="border-b border-border px-5 pb-5 pt-14">
               <SheetTitle className="sr-only">Joga Junto 360</SheetTitle>
               <Logo />
             </div>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar as CalendarIcon, Check, Plus } from 'lucide-react';
+import { ArrowLeft, Calendar as CalendarIcon } from 'lucide-react';
 import { MANAGED_PLAYERS, RESERVATION_PLACES, SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
@@ -12,264 +12,337 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { ClassSlot, PlayerLevel, SportId } from '@/types';
 
 const classStorageKey = 'joga-junto-management-classes';
-const todayStr = new Date().toISOString().slice(0, 10);
 const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 type Weekday = (typeof weekdays)[number];
-type ScheduleOption = Weekday | 'specific';
+type ScheduleMode = 'weekly' | 'specific';
 
 const levelOptions: PlayerLevel[] = ['beginner', 'intermediate', 'advanced', 'silver', 'gold', 'professional'];
 
-const getWeekdayFromDate = (value: string): Weekday | '' => {
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return '';
-    const dayIndex = parsed.getDay();
-    return weekdays[dayIndex === 0 ? 6 : dayIndex - 1];
+const toDateStr = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 };
+
+const formatDisplayDate = (d: Date, locale: string) =>
+  d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 const ManagementClassCreate = () => {
-    const navigate = useNavigate();
-    const { t, sportName } = useLanguage();
-    const { isGestorMode, currentUser } = useSession();
-    const { toast } = useToast();
-    const ownedComplexIds = currentUser.ownedComplexIds ?? [];
+  const navigate = useNavigate();
+  const { t, sportName, language } = useLanguage();
+  const { isGestorMode, currentUser } = useSession();
+  const { toast } = useToast();
+  const locale = language === 'pt-BR' ? 'pt-BR' : 'en-US';
+  const ownedComplexIds = currentUser.ownedComplexIds ?? [];
 
-    const ownedPlaces = useMemo(
-        () => RESERVATION_PLACES.filter((place) => ownedComplexIds.includes(place.id)),
-        [ownedComplexIds],
-    );
+  const ownedPlaces = useMemo(
+    () => RESERVATION_PLACES.filter((place) => ownedComplexIds.includes(place.id)),
+    [ownedComplexIds],
+  );
 
-    const ownedPlayers = useMemo(
-        () => MANAGED_PLAYERS.filter((player) => ownedComplexIds.includes(player.complexId)),
-        [ownedComplexIds],
-    );
+  const ownedPlayers = useMemo(
+    () => MANAGED_PLAYERS.filter((player) => ownedComplexIds.includes(player.complexId)),
+    [ownedComplexIds],
+  );
 
-    const [complexId, setComplexId] = useState(ownedPlaces[0]?.id ?? '');
-    const [sportId, setSportId] = useState<SportId>('footvolley');
-    const [professorId, setProfessorId] = useState(ownedPlayers[0]?.id ?? '');
-    const [scheduleOption, setScheduleOption] = useState<ScheduleOption>('monday');
-    const [date, setDate] = useState(todayStr); const [selectedDate, setSelectedDate] = useState<Date>(new Date()); const [startTime, setStartTime] = useState('08:00');
-    const [endTime, setEndTime] = useState('09:00');
-    const [maxSpots, setMaxSpots] = useState('10');
-    const [level, setLevel] = useState<PlayerLevel>('intermediate');
+  const [complexId, setComplexId] = useState(ownedPlaces[0]?.id ?? '');
+  const [sportId, setSportId] = useState<SportId>('footvolley');
+  const [professorId, setProfessorId] = useState(ownedPlayers[0]?.id ?? '');
+  const [level, setLevel] = useState<PlayerLevel>('intermediate');
 
-    useEffect(() => {
-        if (!complexId && ownedPlaces.length > 0) {
-            setComplexId(ownedPlaces[0].id);
-        }
-    }, [ownedPlaces, complexId]);
+  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>('weekly');
+  const [selectedWeekday, setSelectedWeekday] = useState<Weekday>('monday');
+  const [specificDate, setSpecificDate] = useState<Date>(new Date());
 
-    useEffect(() => {
-        if (!professorId && ownedPlayers.length > 0) {
-            setProfessorId(ownedPlayers[0].id);
-        }
-    }, [ownedPlayers, professorId]);
+  const [startTime, setStartTime] = useState('08:00');
+  const [endTime, setEndTime] = useState('09:00');
+  const [maxSpots, setMaxSpots] = useState('10');
 
-    const selectedComplex = ownedPlaces.find((place) => place.id === complexId);
-    const selectedProfessor = ownedPlayers.find((player) => player.id === professorId);
-    const specificDateWeekday = scheduleOption === 'specific' ? getWeekdayFromDate(date) : '';
+  useEffect(() => {
+    if (!complexId && ownedPlaces.length > 0) setComplexId(ownedPlaces[0].id);
+  }, [ownedPlaces, complexId]);
 
-    const handleCreateClass = () => {
-        if (!selectedComplex || !selectedProfessor) return;
-        const scheduleLabel = scheduleOption === 'specific'
-            ? `${date}${specificDateWeekday ? ` (${t(specificDateWeekday)})` : ''}`
-            : t(scheduleOption);
+  useEffect(() => {
+    if (!professorId && ownedPlayers.length > 0) setProfessorId(ownedPlayers[0].id);
+  }, [ownedPlayers, professorId]);
 
-        const newClass: ClassSlot = {
-            id: `class-${Date.now()}`,
-            complexId: selectedComplex.id,
-            complexName: selectedComplex.name,
-            sport: sportId,
-            professorName: selectedProfessor.name,
-            date: scheduleLabel,
-            startTime,
-            endTime,
-            maxSpots: Number(maxSpots) || 0,
-            bookedSpots: 0,
-            level,
-        };
+  const selectedComplex = ownedPlaces.find((p) => p.id === complexId);
+  const selectedProfessor = ownedPlayers.find((p) => p.id === professorId);
 
-        try {
-            const stored = window.localStorage.getItem(classStorageKey);
-            const current = stored ? (JSON.parse(stored) as ClassSlot[]) : [];
-            window.localStorage.setItem(classStorageKey, JSON.stringify([newClass, ...current]));
-        } catch {
-            window.localStorage.setItem(classStorageKey, JSON.stringify([newClass]));
-        }
+  const dateLabel =
+    scheduleMode === 'weekly'
+      ? t(selectedWeekday)
+      : `${toDateStr(specificDate)} · ${t(weekdays[specificDate.getDay() === 0 ? 6 : specificDate.getDay() - 1])}`;
 
-        toast({
-            title: t('classCreated'),
-            description: `${selectedComplex.name} · ${selectedProfessor.name} · ${scheduleLabel} ${startTime}–${endTime}`,
-        });
-        navigate('/management/classes');
+  const handleCreate = () => {
+    if (!selectedComplex || !selectedProfessor) return;
+    const newClass: ClassSlot = {
+      id: `class-${Date.now()}`,
+      complexId: selectedComplex.id,
+      complexName: selectedComplex.name,
+      sport: sportId,
+      professorName: selectedProfessor.name,
+      date: dateLabel,
+      startTime,
+      endTime,
+      maxSpots: Number(maxSpots) || 0,
+      bookedSpots: 0,
+      level,
     };
-
-    if (!isGestorMode) {
-        return (
-            <div className="mx-auto w-full max-w-3xl">
-                <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-live/30 bg-live/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-live">
-                        {t('ownerOnlyTitle')}
-                    </div>
-                    <h1 className="mt-5 font-display text-4xl font-black">
-                        <span className="neon-text">{t('createClass')}</span>
-                    </h1>
-                    <p className="mt-3 max-w-xl text-sm text-muted-foreground">{t('ownerOnlyDescription')}</p>
-                </div>
-            </div>
-        );
+    try {
+      const stored = window.localStorage.getItem(classStorageKey);
+      const current = stored ? (JSON.parse(stored) as ClassSlot[]) : [];
+      window.localStorage.setItem(classStorageKey, JSON.stringify([newClass, ...current]));
+    } catch {
+      window.localStorage.setItem(classStorageKey, JSON.stringify([newClass]));
     }
+    toast({
+      title: t('classCreated'),
+      description: `${selectedComplex.name} · ${selectedProfessor.name} · ${dateLabel} ${startTime}–${endTime}`,
+    });
+    navigate('/management/classes');
+  };
 
+  if (!isGestorMode) {
     return (
-        <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
-            <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-                <div>
-                    <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('createClass')}</p>
-                    <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('managementClassesIntro')}</p>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => navigate('/management/classes')}
-                    className="inline-flex h-11 items-center gap-2 rounded-xl border border-border bg-secondary/70 px-4 text-sm font-semibold text-neon-cyan shadow-neon transition-smooth hover:border-neon-cyan/50 hover:bg-secondary"
-                >
-                    <Plus className="h-4 w-4" />
-                    {t('managementClasses')}
-                </button>
-            </header>
-
-            <div className="rounded-[2rem] border border-border bg-gradient-card p-5 shadow-card sm:p-6">
-                <div className="grid gap-4 lg:grid-cols-3">
-                    <div className="space-y-4">
-                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('sportComplex')}</div>
-                        <Select value={complexId} onValueChange={setComplexId}>
-                            <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                                {ownedPlaces.map((place) => (
-                                    <SelectItem key={place.id} value={place.id}>{place.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-4">
-                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('sport')}</div>
-                        <Select value={sportId} onValueChange={(value) => setSportId(value as SportId)}>
-                            <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                                {SPORTS.map((sport) => (
-                                    <SelectItem key={sport.id} value={sport.id}>{sportName(sport.id)}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-4">
-                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('professor')}</div>
-                        <Select value={professorId} onValueChange={setProfessorId}>
-                            <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                                {ownedPlayers.map((player) => (
-                                    <SelectItem key={player.id} value={player.id}>{player.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-
-                <div className="mt-8 grid gap-4 lg:grid-cols-4">
-                    <div className="space-y-4">
-                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('weekSchedule')}</div>
-                        <Select value={scheduleOption} onValueChange={(value) => setScheduleOption(value as ScheduleOption)}>
-                            <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                                {weekdays.map((weekdayOption) => (
-                                    <SelectItem key={weekdayOption} value={weekdayOption}>{t(weekdayOption)}</SelectItem>
-                                ))}
-                                <SelectItem value="specific">{t('date')}</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {scheduleOption === 'specific' ? (
-                        <div className="space-y-3">
-                            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('customDate')}</div>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <button
-                                        type="button"
-                                        className="inline-flex h-11 w-full items-center justify-between rounded-2xl border border-border bg-background/60 px-4 text-sm font-semibold text-foreground transition-smooth hover:border-primary/40 hover:bg-secondary/70"
-                                    >
-                                        <span>{new Intl.DateTimeFormat('default', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(selectedDate)}</span>
-                                        <CalendarIcon className="h-4 w-4 text-neon-cyan" />
-                                    </button>
-                                </PopoverTrigger>
-                                <PopoverContent align="start" className="w-auto border-border bg-popover/95 p-0 backdrop-blur-xl">
-                                    <CalendarPicker
-                                        mode="single"
-                                        selected={selectedDate}
-                                        onSelect={(nextDate) => {
-                                            if (!nextDate) return;
-                                            setSelectedDate(nextDate);
-                                            const year = nextDate.getFullYear();
-                                            const month = String(nextDate.getMonth() + 1).padStart(2, '0');
-                                            const day = String(nextDate.getDate()).padStart(2, '0');
-                                            setDate(`${year}-${month}-${day}`);
-                                        }}
-                                        initialFocus
-                                    />
-                                </PopoverContent>
-                            </Popover>
-                            {specificDateWeekday ? (
-                                <p className="text-xs text-muted-foreground">{t('weekday')}: {t(specificDateWeekday)}</p>
-                            ) : null}
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('weekday')}</div>
-                            <div className="rounded-lg border border-border bg-background/60 px-3 py-3 text-sm text-foreground">{t(scheduleOption)}</div>
-                        </div>
-                    )}
-
-                    <div className="space-y-4">
-                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('reservationStartTime')}</div>
-                        <Input type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} className="border-border bg-background/60 text-sm" />
-                    </div>
-                    <div className="space-y-4">
-                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('reservationEndTime')}</div>
-                        <Input type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} className="border-border bg-background/60 text-sm" />
-                    </div>
-                </div>
-
-                <div className="mt-8 grid gap-4 lg:grid-cols-2">
-                    <div className="space-y-4">
-                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('spotCapacity')}</div>
-                        <Input
-                            type="number"
-                            min={1}
-                            value={maxSpots}
-                            onChange={(event) => setMaxSpots(event.target.value)}
-                            className="border-border bg-background/60 text-sm"
-                        />
-                    </div>
-
-                    <div className="flex items-end">
-                        <button
-                            type="button"
-                            onClick={handleCreateClass}
-                            className="inline-flex h-11 items-center justify-center rounded-xl bg-gradient-primary px-4 text-sm font-semibold uppercase tracking-[0.12em] text-foreground shadow-neon transition-smooth hover:brightness-110"
-                        >
-                            {t('createClass')}
-                        </button>
-                    </div>
-                </div>
-            </div>
+      <div className="mx-auto w-full max-w-3xl">
+        <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
+          <div className="inline-flex items-center gap-2 rounded-full border border-live/30 bg-live/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-live">
+            {t('ownerOnlyTitle')}
+          </div>
+          <h1 className="mt-5 font-display text-4xl font-black">
+            <span className="neon-text">{t('createClass')}</span>
+          </h1>
+          <p className="mt-3 max-w-xl text-sm text-muted-foreground">{t('ownerOnlyDescription')}</p>
         </div>
+      </div>
     );
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-[min(88rem,calc(100vw-2rem))] space-y-8">
+      <header className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => navigate('/management/classes')}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <div>
+          <p className="font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('createClass')}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{t('managementClassesIntro')}</p>
+        </div>
+      </header>
+
+      <div className="rounded-[2rem] border border-border bg-gradient-card p-5 shadow-card sm:p-6">
+        {/* Basic info */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label={t('sportComplex')}>
+            <Select value={complexId} onValueChange={setComplexId}>
+              <SelectTrigger className="border-border bg-background/60">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                {ownedPlaces.map((place) => (
+                  <SelectItem key={place.id} value={place.id}>{place.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field label={t('sport')}>
+            <Select value={sportId} onValueChange={(v) => setSportId(v as SportId)}>
+              <SelectTrigger className="border-border bg-background/60">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                {SPORTS.map((sport) => (
+                  <SelectItem key={sport.id} value={sport.id}>{sportName(sport.id)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field label={t('professor')}>
+            <Select value={professorId} onValueChange={setProfessorId}>
+              <SelectTrigger className="border-border bg-background/60">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                {ownedPlayers.map((player) => (
+                  <SelectItem key={player.id} value={player.id}>{player.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field label={t('difficultyLevel')}>
+            <Select value={level} onValueChange={(v) => setLevel(v as PlayerLevel)}>
+              <SelectTrigger className="border-border bg-background/60">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                {levelOptions.map((lvl) => (
+                  <SelectItem key={lvl} value={lvl}>{t(lvl)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        </div>
+
+        {/* Schedule */}
+        <div className="mt-6 rounded-2xl border border-border bg-background/25 p-4 sm:p-5">
+          <div className="mb-4 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{t('weekSchedule')}</div>
+
+          {/* Mode toggle */}
+          <div className="mb-5 flex gap-2">
+            <ModeBtn
+              active={scheduleMode === 'weekly'}
+              onClick={() => setScheduleMode('weekly')}
+              label={t('weekSchedule')}
+            />
+            <ModeBtn
+              active={scheduleMode === 'specific'}
+              onClick={() => setScheduleMode('specific')}
+              label={t('customDate')}
+            />
+          </div>
+
+          {/* Weekly day selector */}
+          <div className={scheduleMode === 'specific' ? 'pointer-events-none opacity-40' : ''}>
+            <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('weekSchedule')}</div>
+            <div className="flex flex-wrap gap-2">
+              {weekdays.map((day) => {
+                const short = t(day).slice(0, 3).toUpperCase();
+                const active = scheduleMode === 'weekly' && selectedWeekday === day;
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => { setScheduleMode('weekly'); setSelectedWeekday(day); }}
+                    className={`min-w-[48px] rounded-xl border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] transition-smooth ${
+                      active
+                        ? 'border-primary/50 bg-primary/15 text-primary-glow shadow-glow'
+                        : 'border-border bg-background/40 text-muted-foreground hover:border-primary/30 hover:text-foreground'
+                    }`}
+                  >
+                    {short}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="my-4 flex items-center gap-3">
+            <div className="h-px flex-1 bg-border/60" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">ou</span>
+            <div className="h-px flex-1 bg-border/60" />
+          </div>
+
+          {/* Specific date */}
+          <div className={scheduleMode === 'weekly' ? 'pointer-events-none opacity-40' : ''}>
+            <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('customDate')}</div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => setScheduleMode('specific')}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/60 px-4 py-2.5 text-sm font-semibold text-foreground transition-smooth hover:border-primary/40 hover:bg-secondary/70"
+                >
+                  <CalendarIcon className="h-4 w-4 text-neon-cyan" />
+                  {formatDisplayDate(specificDate, locale)}
+                  <span className="ml-1 text-xs text-muted-foreground">
+                    · {t(weekdays[specificDate.getDay() === 0 ? 6 : specificDate.getDay() - 1]).slice(0, 3).toUpperCase()}
+                  </span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-auto border-border bg-popover/95 p-0 backdrop-blur-xl">
+                <CalendarPicker
+                  mode="single"
+                  selected={specificDate}
+                  onSelect={(d) => { if (d) { setSpecificDate(d); setScheduleMode('specific'); } }}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+
+        {/* Time + capacity */}
+        <div className="mt-5 grid gap-4 sm:grid-cols-3">
+          <Field label={t('reservationStartTime')}>
+            <Input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="border-border bg-background/60"
+            />
+          </Field>
+          <Field label={t('reservationEndTime')}>
+            <Input
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className="border-border bg-background/60"
+            />
+          </Field>
+          <Field label={t('spotCapacity')}>
+            <Input
+              type="number"
+              min={1}
+              value={maxSpots}
+              onChange={(e) => setMaxSpots(e.target.value)}
+              className="border-border bg-background/60"
+            />
+          </Field>
+        </div>
+
+        {/* Preview + submit */}
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="rounded-xl border border-border bg-background/40 px-4 py-3 text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground">{selectedComplex?.name ?? '–'}</span>
+            {' · '}
+            <span>{selectedProfessor?.name ?? '–'}</span>
+            {' · '}
+            <span className="text-neon-cyan">{dateLabel}</span>
+            {' · '}
+            <span>{startTime}–{endTime}</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleCreate}
+            disabled={!selectedComplex || !selectedProfessor}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-primary px-6 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] shadow-neon transition-smooth hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {t('createClass')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
+
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div className="space-y-1.5">
+    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{label}</div>
+    {children}
+  </div>
+);
+
+const ModeBtn = ({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`rounded-lg border px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-smooth ${
+      active
+        ? 'border-neon-cyan/50 bg-neon-cyan/15 text-neon-cyan'
+        : 'border-border bg-background/40 text-muted-foreground hover:border-primary/30 hover:text-foreground'
+    }`}
+  >
+    {label}
+  </button>
+);
 
 export default ManagementClassCreate;

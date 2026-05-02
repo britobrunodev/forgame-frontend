@@ -22,6 +22,11 @@ import type { Championship, Match, Team } from '@/types';
 type TeamCount = number;
 type BracketRounds = Championship['rounds'];
 type FinalsRounds = Array<{ name: string; matches: Match[] }>;
+type BracketFormat = 'dupla-fechada' | 'cumbuca' | 'rei-da-praia';
+
+type GroupStandingRow = { team: Team; wins: number; losses: number; points: number };
+type GroupData = { name: string; standings: GroupStandingRow[] };
+
 const BRACKET_SIZE_OPTIONS = [8, 16, 32];
 
 const FOOTVOLLEY_TEAM_POOL = [
@@ -65,13 +70,32 @@ const ChampionshipDetail = () => {
   const c = CHAMPIONSHIPS.find(x => x.id === id);
   const [selectedCategory, setSelectedCategory] = useState<'professional' | 'intermediate' | 'beginner'>('professional');
   const [selectedTeamCount, setSelectedTeamCount] = useState<TeamCount>(32);
+  const [selectedFormat, setSelectedFormat] = useState<BracketFormat>('dupla-fechada');
   const [winnersOpen, setWinnersOpen] = useState(true);
   const [losersOpen, setLosersOpen] = useState(false);
   const [finalsOpen, setFinalsOpen] = useState(false);
 
+  const isReiDaPraia = selectedFormat === 'rei-da-praia';
+
   if (!c) return <div>{t('championshipNotFound')}</div>;
   const sport = SPORTS.find(s => s.id === c.sport);
-  const architecture = useMemo(() => buildDoubleEliminationArchitecture(selectedTeamCount), [selectedTeamCount]);
+
+  const architecture = useMemo(
+    () => (isReiDaPraia ? null : buildDoubleEliminationArchitecture(selectedTeamCount)),
+    [selectedTeamCount, isReiDaPraia],
+  );
+
+  const reiDaPraiaData = useMemo(() => {
+    if (!isReiDaPraia) return null;
+    const halfSize = Math.max(4, Math.floor(selectedTeamCount / 2));
+    const ouroArch = buildDoubleEliminationArchitecture(halfSize, FOOTVOLLEY_TEAM_POOL);
+    const prataArch = buildDoubleEliminationArchitecture(halfSize, rotatePool(FOOTVOLLEY_TEAM_POOL, halfSize));
+    return {
+      groups: buildGroupStage(selectedTeamCount),
+      ouro: ouroArch,
+      prata: prataArch,
+    };
+  }, [isReiDaPraia, selectedTeamCount]);
 
   return (
     <div className="mx-auto w-full max-w-[min(110rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(118rem,calc(100vw-3rem))]">
@@ -121,7 +145,29 @@ const ChampionshipDetail = () => {
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 xl:w-[32rem]">
+            <div className="grid gap-4 sm:grid-cols-3 xl:w-[48rem]">
+              <div>
+                <div className="mb-2 text-[10px] font-display font-bold uppercase tracking-[0.25em] text-muted-foreground">
+                  {t('bracketFormat')}
+                </div>
+                <Select value={selectedFormat} onValueChange={(v) => setSelectedFormat(v as BracketFormat)}>
+                  <SelectTrigger className="h-10 rounded-xl border-border bg-secondary/60 text-sm font-semibold text-foreground shadow-none ring-0 ring-offset-0 focus:ring-0 focus:ring-offset-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border bg-gradient-card p-1.5 text-foreground shadow-card backdrop-blur-xl">
+                    <SelectItem value="dupla-fechada" className="rounded-lg py-2 pl-8 pr-3 text-sm font-semibold focus:bg-primary/15 focus:text-primary-glow">
+                      {t('doublesFormat')}
+                    </SelectItem>
+                    <SelectItem value="cumbuca" className="rounded-lg py-2 pl-8 pr-3 text-sm font-semibold focus:bg-primary/15 focus:text-primary-glow">
+                      {t('cumbucaFormat')}
+                    </SelectItem>
+                    <SelectItem value="rei-da-praia" className="rounded-lg py-2 pl-8 pr-3 text-sm font-semibold focus:bg-primary/15 focus:text-primary-glow">
+                      {t('reiDaPraia')}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div>
                 <div className="mb-2 text-[10px] font-display font-bold uppercase tracking-[0.25em] text-muted-foreground">
                   {t('category')}
@@ -168,24 +214,134 @@ const ChampionshipDetail = () => {
             </div>
           </div>
 
-          <div className="mt-6 space-y-4">
-            <BracketPanel title={t('winnerBracket')} isOpen={winnersOpen} onToggle={() => setWinnersOpen((current) => !current)}>
-              <Bracket rounds={architecture.winners} />
-            </BracketPanel>
+          {isReiDaPraia && reiDaPraiaData ? (
+            <ReiDaPraiaView data={reiDaPraiaData} t={t} />
+          ) : architecture ? (
+            <div className="mt-6 space-y-4">
+              <BracketPanel title={t('winnerBracket')} isOpen={winnersOpen} onToggle={() => setWinnersOpen((current) => !current)}>
+                <Bracket rounds={architecture.winners} />
+              </BracketPanel>
 
-            <BracketPanel title={t('loserBracket')} isOpen={losersOpen} onToggle={() => setLosersOpen((current) => !current)}>
-              <Bracket rounds={architecture.losers} />
-            </BracketPanel>
+              <BracketPanel title={t('loserBracket')} isOpen={losersOpen} onToggle={() => setLosersOpen((current) => !current)}>
+                <Bracket rounds={architecture.losers} />
+              </BracketPanel>
 
-            <BracketPanel title={t('finalsBracket')} isOpen={finalsOpen} onToggle={() => setFinalsOpen((current) => !current)}>
-              <FinalsBracket rounds={architecture.finals} />
-            </BracketPanel>
-          </div>
+              <BracketPanel title={t('finalsBracket')} isOpen={finalsOpen} onToggle={() => setFinalsOpen((current) => !current)}>
+                <FinalsBracket rounds={architecture.finals} />
+              </BracketPanel>
+            </div>
+          ) : null}
         </div>
       </section>
     </div>
   );
 };
+
+// ─── Rei da Praia View ───────────────────────────────────────────────────────
+
+type ReiDaPraiaData = {
+  groups: GroupData[];
+  ouro: ReturnType<typeof buildDoubleEliminationArchitecture>;
+  prata: ReturnType<typeof buildDoubleEliminationArchitecture>;
+};
+
+const ReiDaPraiaView = ({ data, t }: { data: ReiDaPraiaData; t: (k: string) => string }) => {
+  const [groupOpen, setGroupOpen] = useState(true);
+  const [ouroWinnersOpen, setOuroWinnersOpen] = useState(false);
+  const [ouroLosersOpen, setOuroLosersOpen] = useState(false);
+  const [ouroFinalsOpen, setOuroFinalsOpen] = useState(false);
+  const [prataWinnersOpen, setPrataWinnersOpen] = useState(false);
+  const [prataLosersOpen, setPrataLosersOpen] = useState(false);
+  const [prataFinalsOpen, setPrataFinalsOpen] = useState(false);
+
+  return (
+    <div className="mt-6 space-y-4">
+      {/* Group Stage */}
+      <BracketPanel title={t('groupStage')} isOpen={groupOpen} onToggle={() => setGroupOpen(v => !v)}>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {data.groups.map((group) => <GroupCard key={group.name} group={group} t={t} />)}
+        </div>
+      </BracketPanel>
+
+      {/* Divider: OURO */}
+      <div className="flex items-center gap-3 pt-2">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-yellow-500/40 to-transparent" />
+        <span className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-1 text-[10px] font-bold uppercase tracking-[0.3em] text-yellow-400">
+          {t('goldBracket')}
+        </span>
+        <div className="h-px flex-1 bg-gradient-to-l from-transparent via-yellow-500/40 to-transparent" />
+      </div>
+
+      <BracketPanel title={t('winnerBracket')} isOpen={ouroWinnersOpen} onToggle={() => setOuroWinnersOpen(v => !v)}>
+        <Bracket rounds={data.ouro.winners} />
+      </BracketPanel>
+      <BracketPanel title={t('loserBracket')} isOpen={ouroLosersOpen} onToggle={() => setOuroLosersOpen(v => !v)}>
+        <Bracket rounds={data.ouro.losers} />
+      </BracketPanel>
+      <BracketPanel title={t('finalsGold')} isOpen={ouroFinalsOpen} onToggle={() => setOuroFinalsOpen(v => !v)}>
+        <FinalsBracket rounds={data.ouro.finals} />
+      </BracketPanel>
+
+      {/* Divider: PRATA */}
+      <div className="flex items-center gap-3 pt-2">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-400/40 to-transparent" />
+        <span className="rounded-full border border-slate-400/30 bg-slate-400/10 px-4 py-1 text-[10px] font-bold uppercase tracking-[0.3em] text-slate-300">
+          {t('silverBracket')}
+        </span>
+        <div className="h-px flex-1 bg-gradient-to-l from-transparent via-slate-400/40 to-transparent" />
+      </div>
+
+      <BracketPanel title={t('winnerBracket')} isOpen={prataWinnersOpen} onToggle={() => setPrataWinnersOpen(v => !v)}>
+        <Bracket rounds={data.prata.winners} />
+      </BracketPanel>
+      <BracketPanel title={t('loserBracket')} isOpen={prataLosersOpen} onToggle={() => setPrataLosersOpen(v => !v)}>
+        <Bracket rounds={data.prata.losers} />
+      </BracketPanel>
+      <BracketPanel title={t('finalsSilver')} isOpen={prataFinalsOpen} onToggle={() => setPrataFinalsOpen(v => !v)}>
+        <FinalsBracket rounds={data.prata.finals} />
+      </BracketPanel>
+    </div>
+  );
+};
+
+const GroupCard = ({ group, t }: { group: GroupData; t: (k: string) => string }) => (
+  <div className="rounded-2xl border border-border bg-background/30 p-4">
+    <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-neon-cyan">{group.name}</div>
+    <table className="w-full">
+      <thead>
+        <tr className="border-b border-border/50">
+          <th className="pb-1.5 text-left text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Equipe</th>
+          <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">V</th>
+          <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">D</th>
+          <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Pts</th>
+        </tr>
+      </thead>
+      <tbody>
+        {group.standings.map((row, i) => (
+          <tr key={row.team.id} className={i < 2 ? '' : 'opacity-50'}>
+            <td className="py-1.5 pr-2">
+              <div className="flex items-center gap-1.5">
+                {i < 2 && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-neon-cyan shadow-[0_0_6px_hsl(var(--neon-cyan))]" />}
+                <span className={`text-xs leading-tight ${i < 2 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                  {row.team.name.replace(/^\d+ - /, '')}
+                </span>
+              </div>
+            </td>
+            <td className="py-1.5 text-center text-xs text-muted-foreground">{row.wins}</td>
+            <td className="py-1.5 text-center text-xs text-muted-foreground">{row.losses}</td>
+            <td className="py-1.5 text-center text-xs font-bold text-foreground">{row.points}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    <div className="mt-2.5 flex items-center gap-1.5 text-[9px] text-muted-foreground">
+      <span className="h-1.5 w-1.5 rounded-full bg-neon-cyan shadow-[0_0_6px_hsl(var(--neon-cyan))]" />
+      avançam para fase seguinte
+    </div>
+  </div>
+);
+
+// ─── Shared UI ───────────────────────────────────────────────────────────────
 
 const BracketPanel = ({
   title,
@@ -289,10 +445,29 @@ const FinalsBracket = ({ rounds }: { rounds: FinalsRounds }) => {
   );
 };
 
-const buildDoubleEliminationArchitecture = (size: TeamCount) => {
-  const winnerSeeds = buildSeededTeams(size, FOOTVOLLEY_TEAM_POOL);
+// ─── Data builders ───────────────────────────────────────────────────────────
+
+const buildGroupStage = (teamCount: number): GroupData[] => {
+  const groupCount = Math.max(1, Math.ceil(teamCount / 4));
+  const teams = buildSeededTeams(Math.min(teamCount, FOOTVOLLEY_TEAM_POOL.length), FOOTVOLLEY_TEAM_POOL);
+  return Array.from({ length: groupCount }, (_, i) => {
+    const groupTeams = teams.slice(i * 4, Math.min((i + 1) * 4, teams.length));
+    return {
+      name: `Grupo ${String.fromCharCode(65 + (i % 26))}`,
+      standings: groupTeams.map((team, j) => ({
+        team,
+        wins: Math.max(0, groupTeams.length - 1 - j),
+        losses: j,
+        points: Math.max(0, groupTeams.length - 1 - j) * 3,
+      })),
+    };
+  });
+};
+
+const buildDoubleEliminationArchitecture = (size: TeamCount, teamPool = FOOTVOLLEY_TEAM_POOL) => {
+  const winnerSeeds = buildSeededTeams(size, teamPool);
   const loserSize = Math.max(4, Math.floor(size / 4) * 2);
-  const loserSeeds = buildSeededTeams(loserSize, rotatePool(FOOTVOLLEY_TEAM_POOL, size / 2));
+  const loserSeeds = buildSeededTeams(loserSize, rotatePool(teamPool, size / 2));
 
   const winners = buildProgressiveBracket(winnerSeeds, 'cv');
   const losers = buildProgressiveBracket(loserSeeds, 'cp');
@@ -308,7 +483,7 @@ const buildDoubleEliminationArchitecture = (size: TeamCount) => {
 };
 
 const rotatePool = (pool: string[], amount: number) => {
-  const offset = amount % pool.length;
+  const offset = Math.floor(amount) % pool.length;
   return [...pool.slice(offset), ...pool.slice(0, offset)];
 };
 
@@ -384,14 +559,7 @@ const resolveMatch = (round: string, id: string, teamA: Team | null, teamB: Team
 
   if (!teamA || !teamB) {
     return {
-      match: {
-        id,
-        round,
-        teamA,
-        teamB,
-        time,
-        status: 'scheduled' as const,
-      },
+      match: { id, round, teamA, teamB, time, status: 'scheduled' as const },
       winner: teamA ?? teamB,
       loser: teamA ? teamB : teamA,
     };
@@ -404,18 +572,7 @@ const resolveMatch = (round: string, id: string, teamA: Team | null, teamB: Team
   const setScoreB = teamAWins ? 1 : 2;
 
   return {
-    match: {
-      id,
-      round,
-      teamA,
-      teamB,
-      setScoreA,
-      setScoreB,
-      scoreA,
-      scoreB,
-      time,
-      status: 'finished' as const,
-    },
+    match: { id, round, teamA, teamB, setScoreA, setScoreB, scoreA, scoreB, time, status: 'finished' as const },
     winner: (teamAWins ? teamA : teamB) as Team,
     loser: (teamAWins ? teamB : teamA) as Team,
   };
@@ -472,18 +629,9 @@ const buildFinalsBracket = (winnerQualified: Team[], loserQualified: Team[]): Fi
   };
 
   return [
-    {
-      name: 'Semi',
-      matches: [semifinalOne.match, semifinalTwo.match],
-    },
-    {
-      name: 'Disputa de 3º Lugar',
-      matches: [thirdPlaceMatch],
-    },
-    {
-      name: 'Final',
-      matches: [finalMatch],
-    },
+    { name: 'Semi', matches: [semifinalOne.match, semifinalTwo.match] },
+    { name: 'Disputa de 3º Lugar', matches: [thirdPlaceMatch] },
+    { name: 'Final', matches: [finalMatch] },
   ];
 };
 

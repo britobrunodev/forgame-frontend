@@ -13,7 +13,7 @@ export const AuthShell = ({ mode, title, subtitle, children }: AuthShellProps) =
   const { t } = useLanguage();
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
+    <div className="relative flex min-h-screen items-start justify-center overflow-hidden p-4 pt-20 sm:items-center sm:pt-4">
       <div className="absolute inset-0 hex-grid opacity-40" />
       <div className="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
       <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-neon-cyan/5 blur-3xl" />

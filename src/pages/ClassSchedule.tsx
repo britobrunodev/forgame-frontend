@@ -63,10 +63,11 @@ const ClassSchedule = ({ embedded = false }: { embedded?: boolean }) => {
               key={date}
               type="button"
               onClick={() => setSelectedDate(date)}
-              className={`flex min-w-[68px] shrink-0 flex-col items-center rounded-2xl border px-3 py-3 transition-smooth ${isSelected
+              className={`flex min-w-[64px] shrink-0 flex-col items-center rounded-2xl border px-3 py-2.5 transition-smooth ${
+                isSelected
                   ? 'border-primary/35 bg-primary/10 text-primary-glow shadow-[0_0_14px_hsl(var(--primary)/0.18)]'
                   : 'border-border bg-background/35 text-muted-foreground hover:border-primary/25 hover:text-foreground'
-                }`}
+              }`}
             >
               <span className="text-[9px] font-bold uppercase tracking-wider">{formatDayLabel(date)}</span>
               <span className="mt-0.5 font-display text-xl font-black">{formatDayNum(date)}</span>
@@ -80,7 +81,7 @@ const ClassSchedule = ({ embedded = false }: { embedded?: boolean }) => {
 
       {/* Filters */}
       <div className="grid gap-3 sm:grid-cols-2 md:max-w-xl">
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('sport')}</div>
           <Select value={selectedSport} onValueChange={(v) => setSelectedSport(v as 'all' | SportId)}>
             <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
@@ -94,7 +95,7 @@ const ClassSchedule = ({ embedded = false }: { embedded?: boolean }) => {
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('sportComplex')}</div>
           <Select value={selectedComplexId} onValueChange={setSelectedComplexId}>
             <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
@@ -110,100 +111,195 @@ const ClassSchedule = ({ embedded = false }: { embedded?: boolean }) => {
         </div>
       </div>
 
-      {/* Classes */}
+      {/* Empty state */}
       {visibleClasses.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-gradient-card p-10 text-center shadow-card">
+        <div className="rounded-[2rem] border border-border bg-gradient-card p-10 text-center shadow-card">
           <CalendarDays className="mx-auto h-10 w-10 text-muted-foreground/30" />
           <p className="mt-3 text-sm text-muted-foreground">{t('noClassesAvailable')}</p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {visibleClasses.map((slot) => {
-            const isEnrolled = enrolled.includes(slot.id);
-            const isFull = slot.bookedSpots >= slot.maxSpots;
-            const available = slot.maxSpots - slot.bookedSpots;
+        <>
+          {/* Mobile cards — visible below sm */}
+          <div className="space-y-3 sm:hidden">
+            {visibleClasses.map((slot) => {
+              const isEnrolled = enrolled.includes(slot.id);
+              const isFull = slot.bookedSpots >= slot.maxSpots;
+              const available = slot.maxSpots - slot.bookedSpots;
 
-            return (
-              <div
-                key={slot.id}
-                className={`flex flex-col rounded-2xl border bg-gradient-card p-4 shadow-card transition-smooth ${isEnrolled
-                    ? 'border-neon-cyan/30'
-                    : 'border-border hover:-translate-y-0.5 hover:shadow-neon'
+              return (
+                <div
+                  key={slot.id}
+                  className={`rounded-2xl border bg-gradient-card p-4 shadow-card transition-smooth ${
+                    isEnrolled ? 'border-neon-cyan/30' : 'border-border'
                   }`}
-              >
-                {/* Sport + level */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neon-cyan/20 bg-neon-cyan/10">
-                      <SportIcon sportId={slot.sport} className="h-4 w-4 text-neon-cyan" />
+                >
+                  {/* Header row */}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-neon-cyan/20 bg-neon-cyan/10">
+                        <SportIcon sportId={slot.sport} className="h-4 w-4 text-neon-cyan" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-foreground">{sportName(slot.sport)}</div>
+                        {slot.level && (
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{t(slot.level)}</div>
+                        )}
+                      </div>
                     </div>
-                    <span className="font-display text-sm font-bold leading-tight">{sportName(slot.sport)}</span>
+                    <div className="text-right">
+                      <div className="font-display text-lg font-black text-foreground">{slot.startTime}</div>
+                      <div className="text-[11px] text-muted-foreground">– {slot.endTime}</div>
+                    </div>
                   </div>
-                  {slot.level && (
-                    <span className="shrink-0 rounded-full border border-border bg-background/40 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                      {t(slot.level)}
-                    </span>
-                  )}
-                </div>
 
-                {/* Time */}
-                <div className="mt-3 font-display text-2xl font-medium leading-none tracking-tight text-foreground">
-                  {slot.startTime}
-                  <span className="mx-1 text-base font-normal text-muted-foreground">–</span>
-                  {slot.endTime}
-                </div>
+                  {/* Details */}
+                  <div className="mt-3 space-y-1.5 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-3.5 w-3.5 shrink-0" />
+                      <span>Prof. {slot.professorName}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{slot.complexName}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-3.5 w-3.5 shrink-0" />
+                      {isFull ? (
+                        <span className="font-semibold text-live">{t('full')}</span>
+                      ) : (
+                        <span>
+                          <span className="font-bold text-neon-cyan">{available}</span>
+                          <span> / {slot.maxSpots} {t('spotsLeft')}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-                {/* Details */}
-                <div className="mt-3 flex-1 space-y-1.5 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="h-3 w-3 shrink-0" />
-                    <span className="truncate">{slot.complexName}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-3 w-3 shrink-0" />
-                    <span>Prof. {slot.professorName}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Users className="h-3 w-3 shrink-0" />
-                    {isFull ? (
-                      <span className="font-semibold text-live">{t('full')}</span>
+                  {/* CTA */}
+                  <div className="mt-3">
+                    {isEnrolled ? (
+                      <div className="flex items-center justify-center gap-2 rounded-xl border border-neon-cyan/30 bg-neon-cyan/10 py-2.5 text-[11px] font-bold uppercase tracking-[0.15em] text-neon-cyan">
+                        <Check className="h-3.5 w-3.5" />
+                        {t('classBooked')}
+                      </div>
                     ) : (
-                      <span>
-                        <span className="font-semibold text-neon-cyan">{available}</span>{' '}
-                        {t('spotsLeft')}
-                      </span>
+                      <button
+                        type="button"
+                        disabled={isFull}
+                        onClick={() => {
+                          setEnrolled((prev) => [...prev, slot.id]);
+                          toast({
+                            title: t('classBooked'),
+                            description: `${sportName(slot.sport)} · ${slot.startTime} – ${slot.endTime} · ${slot.complexName}`,
+                          });
+                        }}
+                        className="w-full rounded-xl bg-gradient-primary py-2.5 font-display text-[11px] font-bold uppercase tracking-[0.15em] shadow-neon transition-smooth hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {t('bookClass')}
+                      </button>
                     )}
                   </div>
                 </div>
+              );
+            })}
+          </div>
 
-                {/* CTA */}
-                <div className="mt-4">
-                  {isEnrolled ? (
-                    <div className="flex items-center justify-center gap-2 rounded-xl border border-neon-cyan/30 bg-neon-cyan/10 px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.15em] text-neon-cyan">
-                      <Check className="h-3.5 w-3.5" />
-                      {t('classBooked')}
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={isFull}
-                      onClick={() => {
-                        setEnrolled((prev) => [...prev, slot.id]);
-                        toast({
-                          title: t('classBooked'),
-                          description: `${sportName(slot.sport)} · ${slot.startTime} – ${slot.endTime} · ${slot.complexName}`,
-                        });
-                      }}
-                      className="w-full rounded-xl bg-gradient-primary px-4 py-2.5 font-display text-[11px] font-bold uppercase tracking-[0.15em] shadow-neon transition-smooth hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      {t('bookClass')}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+          {/* Desktop table — visible from sm up */}
+          <div className="hidden rounded-[2rem] border border-border bg-gradient-card shadow-card sm:block">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                    <th className="px-5 py-3">{t('sport')}</th>
+                    <th className="px-5 py-3">{t('startTime')}</th>
+                    <th className="px-5 py-3">{t('professor')}</th>
+                    <th className="hidden px-5 py-3 md:table-cell">{t('sportComplex')}</th>
+                    <th className="px-5 py-3">{t('spots')}</th>
+                    <th className="px-5 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {visibleClasses.map((slot) => {
+                    const isEnrolled = enrolled.includes(slot.id);
+                    const isFull = slot.bookedSpots >= slot.maxSpots;
+                    const available = slot.maxSpots - slot.bookedSpots;
+
+                    return (
+                      <tr key={slot.id} className="transition-smooth hover:bg-primary/5">
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neon-cyan/20 bg-neon-cyan/10">
+                              <SportIcon sportId={slot.sport} className="h-4 w-4 text-neon-cyan" />
+                            </div>
+                            <div>
+                              <div className="font-semibold text-foreground">{sportName(slot.sport)}</div>
+                              {slot.level && (
+                                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{t(slot.level)}</div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-1.5 text-foreground">
+                            <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="font-semibold">{slot.startTime}</span>
+                            <span className="text-muted-foreground">–</span>
+                            <span className="text-muted-foreground">{slot.endTime}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="text-sm text-foreground">{slot.professorName}</div>
+                        </td>
+                        <td className="hidden px-5 py-4 md:table-cell">
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <MapPin className="h-3.5 w-3.5 shrink-0" />
+                            <span>{slot.complexName}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-1.5">
+                            <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            {isFull ? (
+                              <span className="text-xs font-semibold text-live">{t('full')}</span>
+                            ) : (
+                              <span className="text-xs">
+                                <span className="font-bold text-neon-cyan">{available}</span>
+                                <span className="text-muted-foreground"> / {slot.maxSpots}</span>
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          {isEnrolled ? (
+                            <div className="inline-flex items-center gap-1.5 rounded-lg border border-neon-cyan/30 bg-neon-cyan/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-neon-cyan">
+                              <Check className="h-3 w-3" />
+                              {t('classBooked')}
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={isFull}
+                              onClick={() => {
+                                setEnrolled((prev) => [...prev, slot.id]);
+                                toast({
+                                  title: t('classBooked'),
+                                  description: `${sportName(slot.sport)} · ${slot.startTime} – ${slot.endTime} · ${slot.complexName}`,
+                                });
+                              }}
+                              className="rounded-lg bg-gradient-primary px-3 py-1.5 font-display text-[11px] font-bold uppercase tracking-[0.15em] shadow-neon transition-smooth hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              {t('bookClass')}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

@@ -34,21 +34,21 @@ const Login = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         {profileOptions.length > 1 && (
           <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('accessProfile')}</label>
-            <p className="mb-3 text-xs text-muted-foreground">{t('accessProfileHint')}</p>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('accessProfile')}</label>
+            <div className="flex gap-2">
               {profileOptions.map(({ id, icon: Icon }) => (
                 <button
                   key={id}
                   type="button"
                   onClick={() => setActiveProfile(id)}
-                  className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-smooth ${activeProfile === id
-                      ? 'border-primary/50 bg-primary/12 text-foreground shadow-glow'
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold uppercase tracking-[0.15em] transition-smooth ${
+                    activeProfile === id
+                      ? 'border-primary/50 bg-primary/12 text-neon-cyan shadow-glow'
                       : 'border-border bg-background/40 text-muted-foreground hover:border-primary/30 hover:text-foreground'
-                    }`}
+                  }`}
                 >
-                  <Icon className={`h-4 w-4 ${activeProfile === id ? 'text-neon-cyan' : 'text-muted-foreground'}`} />
-                  <span className="font-semibold">{userTypeLabel(id)}</span>
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span>{userTypeLabel(id)}</span>
                 </button>
               ))}
             </div>
