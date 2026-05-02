@@ -48,9 +48,9 @@ const ChampionshipRegistration = () => {
 
   const formattedFee = selectedCategory
     ? new Intl.NumberFormat(language === 'pt-BR' ? 'pt-BR' : 'en-US', {
-        style: 'currency',
-        currency: 'BRL',
-      }).format(selectedCategory.entryFee)
+      style: 'currency',
+      currency: 'BRL',
+    }).format(selectedCategory.entryFee)
     : null;
 
   const canProceed = selectedCategory !== null && (isSingles || partner !== null);
@@ -88,15 +88,22 @@ const ChampionshipRegistration = () => {
           <ArrowLeft className="h-4 w-4" />
         </button>
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <SportIcon sportId={championship.sport} className="h-3.5 w-3.5 text-neon-cyan" />
-            <span className="font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">
-              {sportName(championship.sport)}
-            </span>
-          </div>
-          <h1 className="mt-0.5 truncate font-display text-lg font-black sm:text-xl">{championship.name}</h1>
+          <p className="font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('championshipRegistrations')}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{t('registerForChampionship')}</p>
         </div>
       </header>
+
+      <section className="rounded-[2rem] border border-border bg-gradient-card p-5 shadow-card sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-background/70">
+            <SportIcon sportId={championship.sport} className="h-7 w-7 text-neon-cyan" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-muted-foreground">{sportName(championship.sport)}</p>
+            <h1 className="mt-1 font-display text-2xl font-black text-foreground sm:text-3xl">{championship.name}</h1>
+          </div>
+        </div>
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-6">
@@ -124,11 +131,10 @@ const ChampionshipRegistration = () => {
                         setPartner(null);
                         setSearch('');
                       }}
-                      className={`rounded-2xl border p-4 text-left transition-smooth ${
-                        isActive
+                      className={`rounded-2xl border p-4 text-left transition-smooth ${isActive
                           ? 'border-primary/35 bg-primary/10 shadow-[0_0_14px_hsl(var(--primary)/0.18)]'
                           : 'border-border bg-background/35 hover:border-primary/25'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <span className="font-display text-base font-bold">{category.name}</span>

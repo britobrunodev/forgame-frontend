@@ -18,7 +18,7 @@ type Category = 'professional' | 'gold' | 'silver' | 'advanced' | 'intermediate'
 type BracketSize = '8' | '16' | '32';
 type Audience = 'mixed' | 'male' | 'female';
 type ChampFormat = 'dupla-fechada' | 'cumbuca' | 'rei-da-praia';
-type CategoryEntry = { id: string; format: ChampFormat; category: Category; audience: Audience; date: string; time: string };
+type CategoryEntry = { id: string; format: ChampFormat; category: Category; audience: Audience; date: string; time: string; entryFee: string };
 
 const CATEGORY_ORDER: Category[] = ['beginner', 'intermediate', 'advanced', 'silver', 'gold', 'professional'];
 const AUDIENCE_OPTIONS: Audience[] = ['mixed', 'male', 'female'];
@@ -79,7 +79,7 @@ const TournamentSettings = () => {
   const [sport, setSport] = useState<'footvolley'>('footvolley');
   const [tournamentType, setTournamentType] = useState<TournamentType>('open-pairs');
   const [categoryEntries, setCategoryEntries] = useState<CategoryEntry[]>([
-    { id: '1', format: 'dupla-fechada' as ChampFormat, category: 'professional', audience: 'mixed', date: '2026-05-20', time: '15:00' },
+    { id: '1', format: 'dupla-fechada' as ChampFormat, category: 'professional', audience: 'mixed', date: '2026-05-20', time: '15:00', entryFee: '180' },
   ]);
   const [uniformIncluded, setUniformIncluded] = useState(true);
   const [eventDateRange, setEventDateRange] = useState<DateRange | undefined>({
@@ -170,6 +170,7 @@ const TournamentSettings = () => {
         audience: 'mixed',
         date: eventDateOptions[0] ?? '',
         time: START_TIME_OPTIONS[0],
+        entryFee: '180',
       },
     ]);
   };
@@ -392,7 +393,7 @@ const TournamentSettings = () => {
               <div className="space-y-3">
                 {categoryEntries.map((entry) => (
                   <div key={entry.id} className="rounded-2xl border border-border bg-background/40 p-4">
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid gap-3 sm:grid-cols-4">
                       <Field label={t('bracketFormat')}>
                         <Select
                           value={entry.format}
@@ -439,6 +440,17 @@ const TournamentSettings = () => {
                             ))}
                           </SelectContent>
                         </Select>
+                      </Field>
+
+                      <Field label={t('entryFee')}>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={10}
+                          value={entry.entryFee}
+                          onChange={(event) => updateEntry(entry.id, 'entryFee', event.target.value)}
+                          className="border-border bg-background/60"
+                        />
                       </Field>
                     </div>
 
@@ -553,7 +565,9 @@ const TournamentSettings = () => {
               </div>
               <div className="mt-5 flex flex-wrap gap-2">
                 {categoryEntries.map((entry) => (
-                  <Tag key={entry.id}>{t(entry.format === 'dupla-fechada' ? 'duplaFechada' : entry.format === 'cumbuca' ? 'cumbucaFormat' : 'reiDaPraia')} · {t(entry.category)} · {t(entry.audience)}</Tag>
+                  <Tag key={entry.id}>
+                    {t(entry.format === 'dupla-fechada' ? 'duplaFechada' : entry.format === 'cumbuca' ? 'cumbucaFormat' : 'reiDaPraia')} · {t(entry.category)} · {t(entry.audience)} · R$ {entry.entryFee}
+                  </Tag>
                 ))}
                 <Tag>{bracketSize} {t('teams')}</Tag>
                 <Tag>{tournamentTypeLabel}</Tag>
@@ -568,10 +582,10 @@ const TournamentSettings = () => {
                         <span className="text-muted-foreground">
                           {entry.date && entry.time
                             ? `${fromDateValue(entry.date).toLocaleDateString(language === 'pt-BR' ? 'pt-BR' : 'en-US', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                              })} · ${entry.time}`
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                            })} · ${entry.time}`
                             : '-'}
                         </span>
                       </div>
