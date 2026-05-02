@@ -143,6 +143,24 @@
   }
 }
 
+.standalone-status-tint {
+  display: none;
+}
+
+@media (display-mode: standalone) {
+  .standalone-status-tint {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top);
+    background: linear-gradient(135deg, hsl(270 30% 52% / 0.35), hsl(320 35% 55% / 0.25));
+    z-index: 9999;
+    pointer-events: none;
+  }
+}
+
 @keyframes pulse-live {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.35; transform: scale(1); }

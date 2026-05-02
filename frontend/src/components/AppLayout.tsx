@@ -3,6 +3,8 @@ import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 
 export const AppLayout = () => (
+  <>
+  <div aria-hidden="true" className="standalone-status-tint" />
   <div className="flex h-screen overflow-hidden">
     <Sidebar />
     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -12,4 +14,5 @@ export const AppLayout = () => (
       </main>
     </div>
   </div>
+  </>
 );
