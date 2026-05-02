@@ -1,0 +1,24 @@
+name: Trigger Frontend Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  trigger-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger deploy repo workflow
+        run: |
+          curl --fail -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.DEPLOY_REPO_TOKEN }}" \
+            https://api.github.com/repos/britobrunodev/iscalar-deploy/dispatches \
+            -d '{
+              "event_type": "deploy-frontend",
+              "client_payload": {
+                "service": "iscalar-frontend"
+              }
+            }'
