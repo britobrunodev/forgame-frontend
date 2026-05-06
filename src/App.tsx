@@ -41,6 +41,10 @@ import { SessionProvider } from "./session.tsx";
 const queryClient = new QueryClient();
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
 
+if (!GOOGLE_CLIENT_ID) {
+  console.warn('VITE_GOOGLE_CLIENT_ID is not configured. Google login will be unavailable until this is set.');
+}
+
 const App = () => (
   <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <QueryClientProvider client={queryClient}>
