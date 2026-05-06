@@ -21,7 +21,7 @@ const SportComplexSettings = () => {
   const { language, t, sportName } = useLanguage();
   const { isGestorMode } = useSession();
   const { toast } = useToast();
-  const [complexName, setComplexName] = useState('Arena Joga Junto Copacabana');
+  const [complexName, setComplexName] = useState('Arena Forgame Copacabana');
   const [country, setCountry] = useState('BR');
   const [city, setCity] = useState('Rio de Janeiro');
   const [zipCode, setZipCode] = useState('');

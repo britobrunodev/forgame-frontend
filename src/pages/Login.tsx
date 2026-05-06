@@ -11,10 +11,12 @@ import type { UserProfile } from '@/types';
 const Login = () => {
   const navigate = useNavigate();
   const { t, userTypeLabel } = useLanguage();
-  const { activeProfile, setActiveProfile, setAvailableProfiles, setAvailableGestorRoles, updateCurrentUser, login } = useSession();
+  const { activeProfile, setActiveProfile, setAvailableProfiles, login } = useSession();
   const googleClientIdConfigured = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
 
@@ -37,9 +39,21 @@ const Login = () => {
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    updateCurrentUser({ type: activeProfile === 'gestor' ? 'gestor' : 'player' });
-    if (activeProfile === 'gestor') setAvailableGestorRoles(['owner', 'manager', 'professor']);
-    navigate('/dashboard');
+    setEmailLoading(true);
+    setEmailError(null);
+
+    authApi
+      .emailLogin(email, password)
+      .then((result) => {
+        login(result.access_token, result.user, result.pending_approval);
+        navigate(result.pending_approval ? '/pending-approval' : '/dashboard');
+      })
+      .catch((err) => {
+        setEmailError(err instanceof Error ? err.message : t('googleAuthError'));
+      })
+      .finally(() => {
+        setEmailLoading(false);
+      });
   };
 
   const profileOptions: Array<{ id: UserProfile; icon: typeof User }> = [
@@ -48,7 +62,7 @@ const Login = () => {
   ];
 
   return (
-    <AuthShell mode="login" title={t('login')} subtitle={t('loginIntro')}>
+    <AuthShell mode="login" title={t('login')} subtitle="">
       <form onSubmit={handleSubmit} className="space-y-3.5">
         <div>
           <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('accessProfile')}</label>
@@ -57,7 +71,9 @@ const Login = () => {
               <button
                 key={id}
                 type="button"
-                onClick={() => {
+              onClick={() => {
+                  setEmailError(null);
+                  setGoogleError(null);
                   setAvailableProfiles(['player', 'gestor']);
                   setActiveProfile(id);
                 }}
@@ -83,7 +99,7 @@ const Login = () => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="player@jogajunto360.com"
+              placeholder="player@forgame.com.br"
               className="w-full rounded-lg border border-border bg-background/60 py-2.5 pl-10 pr-3 text-sm transition-smooth focus:border-primary focus:shadow-glow focus:outline-none"
             />
           </div>
@@ -106,10 +122,15 @@ const Login = () => {
 
         <button
           type="submit"
+          disabled={emailLoading}
           className="w-full rounded-lg bg-gradient-primary py-2.5 font-display text-sm font-bold uppercase tracking-widest shadow-neon transition-smooth hover:brightness-110 hover:shadow-glow"
         >
-          {t('login')}
+          {emailLoading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : t('login')}
         </button>
+
+        {emailError && (
+          <p className="text-center text-xs text-destructive">{emailError}</p>
+        )}
       </form>
 
       <div className="my-4 flex items-center gap-3">

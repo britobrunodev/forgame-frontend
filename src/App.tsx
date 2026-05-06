@@ -28,6 +28,7 @@ import ManagementClassEdit from "./pages/ManagementClassEdit.tsx";
 import ManagementCourtEdit from "./pages/ManagementCourtEdit.tsx";
 import ManagementChampionshipEdit from "./pages/ManagementChampionshipEdit.tsx";
 import ManagementUsers from "./pages/ManagementUsers.tsx";
+import ManagementAdminAccess from "./pages/ManagementAdminAccess.tsx";
 import TournamentSettings from "./pages/TournamentSettings.tsx";
 import SportComplexesManagement from "./pages/SportComplexesManagement.tsx";
 import SportComplexSettings from "./pages/SportComplexSettings.tsx";
@@ -86,6 +87,7 @@ const App = () => (
                 <Route path="/management/courts/:id/edit" element={<ManagementCourtEdit />} />
                 <Route path="/management/championships/:id/edit" element={<ManagementChampionshipEdit />} />
                 <Route path="/management/users" element={<ManagementUsers />} />
+                <Route path="/management/admin/access" element={<ManagementAdminAccess />} />
                 <Route path="/management/payments" element={<ManagementPayments />} />
                 <Route path="/management/preferences" element={<ComplexPreferences />} />
                 <Route path="/management/students" element={<StudentsManagement />} />

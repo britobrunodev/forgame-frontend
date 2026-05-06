@@ -119,6 +119,20 @@ export const Sidebar = () => {
                   <Users className="h-4 w-4 text-neon-cyan" />
                   {t('users')}
                 </NavLink>
+                {currentUser.isAdmin ? (
+                  <NavLink
+                    to="/management/admin/access"
+                    className={({ isActive }) =>
+                      `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
+                        ? 'bg-sidebar-accent text-foreground'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                      }`
+                    }
+                  >
+                    <ShieldCheck className="h-4 w-4 text-violet-300" />
+                    {t('admin')}
+                  </NavLink>
+                ) : null}
                 <NavLink
                   to="/management/approvals"
                   className={({ isActive }) =>

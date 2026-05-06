@@ -1,0 +1,357 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Building2, ChevronLeft, ChevronRight, GraduationCap, MapPin, Save, Search, ShieldCheck, Target, Users } from 'lucide-react';
+import { useLanguage } from '@/i18n';
+import { useSession } from '@/session';
+import { useToast } from '@/components/ui/use-toast';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { accessControlApi, type AccessControlSnapshot, type ComplexRoleAssignment } from '@/lib/api';
+import { RoleChipToggle, RoleIconToggle } from './RoleToggle';
+import { StatusBadge } from './StatusBadge';
+
+type AssignableRole = 'owner' | 'manager' | 'professor' | 'scorer';
+type AssignedRoles = Record<AssignableRole, boolean>;
+
+const EMPTY_ROLES: AssignedRoles = {
+  owner: false,
+  manager: false,
+  professor: false,
+  scorer: false,
+};
+
+const ROLE_ORDER: AssignableRole[] = ['owner', 'manager', 'professor', 'scorer'];
+
+export const StaffAccessManager = ({
+  adminOnly = false,
+  title,
+  intro,
+}: {
+  adminOnly?: boolean;
+  title: string;
+  intro: string;
+}) => {
+  const { t } = useLanguage();
+  const { currentUser, token } = useSession();
+  const { toast } = useToast();
+  const [selectedComplexId, setSelectedComplexId] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [snapshot, setSnapshot] = useState<AccessControlSnapshot | null>(null);
+  const [assignmentsByComplex, setAssignmentsByComplex] = useState<Record<string, Record<string, AssignedRoles>>>({});
+
+  const canView = adminOnly ? currentUser.isAdmin : (currentUser.isAdmin || currentUser.roles?.includes('owner'));
+
+  useEffect(() => {
+    if (!token || !canView) return;
+
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const data = await accessControlApi.getSnapshot(token);
+        if (cancelled) return;
+
+        setSnapshot(data);
+        setAssignmentsByComplex(buildAssignmentsIndex(data.assignments));
+        setSelectedComplexId((current) => current || data.complexes[0]?.id || '');
+      } catch (err) {
+        if (cancelled) return;
+        toast({
+          title: t('profileLoadError'),
+          description: err instanceof Error ? err.message : undefined,
+          variant: 'destructive',
+        });
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, canView]);
+
+  const allowedRoles = useMemo(
+    () => (snapshot?.assignable_roles ?? []).filter((role): role is AssignableRole => ROLE_ORDER.includes(role as AssignableRole)),
+    [snapshot],
+  );
+
+  const users = snapshot?.users ?? [];
+  const complexes = snapshot?.complexes ?? [];
+
+  const filteredUsers = useMemo(
+    () => users.filter((user) => {
+      const query = searchQuery.trim().toLowerCase();
+      if (!query) return true;
+      return user.name.toLowerCase().includes(query) || user.email.toLowerCase().includes(query);
+    }),
+    [users, searchQuery],
+  );
+
+  const PAGE_SIZE = 12;
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const pagedUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedComplexId]);
+
+  const toggleRole = (userId: string, role: AssignableRole) => {
+    if (!selectedComplexId) return;
+
+    setAssignmentsByComplex((current) => {
+      const currentComplexRoles = current[selectedComplexId] ?? {};
+      const existing = currentComplexRoles[userId] ?? EMPTY_ROLES;
+      const nextValue = !existing[role];
+      const nextRoles: AssignedRoles = { ...EMPTY_ROLES, ...existing, [role]: nextValue };
+
+      if (role === 'owner' && nextValue) {
+        nextRoles.manager = false;
+        nextRoles.professor = false;
+        nextRoles.scorer = false;
+      } else if (role !== 'owner' && nextValue) {
+        nextRoles.owner = false;
+      }
+
+      return {
+        ...current,
+        [selectedComplexId]: {
+          ...currentComplexRoles,
+          [userId]: nextRoles,
+        },
+      };
+    });
+  };
+
+  const handleSave = async () => {
+    if (!token || !selectedComplexId) return;
+
+    const assignments = Object.entries(assignmentsByComplex[selectedComplexId] ?? {}).flatMap(([userId, roles]) =>
+      Object.entries(roles)
+        .filter(([role, active]) => active && allowedRoles.includes(role as AssignableRole))
+        .map(([role]) => ({ user_id: userId, role })),
+    );
+
+    setSaving(true);
+    try {
+      const updated = await accessControlApi.updateAssignments(token, {
+        sport_complex_id: selectedComplexId,
+        assignments,
+      });
+
+      setAssignmentsByComplex((current) => ({
+        ...current,
+        [selectedComplexId]: buildAssignmentsIndex(updated)[selectedComplexId] ?? {},
+      }));
+
+      toast({ title: t('rolesSaved'), description: t('usersSavedDescription') });
+    } catch (err) {
+      toast({
+        title: t('profileSaveError'),
+        description: err instanceof Error ? err.message : undefined,
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!canView) {
+    return (
+      <div className="mx-auto w-full max-w-3xl">
+        <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
+          <div className="inline-flex items-center gap-2 rounded-full border border-live/30 bg-live/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-live">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            {t('ownerOnlyTitle')}
+          </div>
+          <h1 className="mt-5 font-display text-4xl font-black"><span className="neon-text">{title}</span></h1>
+          <p className="mt-3 max-w-xl text-sm text-muted-foreground">{t('ownerOnlyDescription')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
+      <header>
+        <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{title}</p>
+        <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{intro}</p>
+      </header>
+
+      <div className="rounded-[2rem] border border-border bg-gradient-card p-4 shadow-card sm:p-6">
+        <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-[280px_minmax(0,1fr)]">
+          <div className="space-y-1.5">
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('sportComplex')}</div>
+            <Select value={selectedComplexId} onValueChange={setSelectedComplexId}>
+              <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
+                <SelectValue placeholder="—" />
+              </SelectTrigger>
+              <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                {complexes.map((complex) => (
+                  <SelectItem key={complex.id} value={complex.id}>
+                    {complex.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('searchPlayers')}</div>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('searchPlayers')}
+                className="border-border bg-background/60 pl-9 text-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        {!selectedComplexId ? (
+          <div className="rounded-2xl border border-border bg-background/25 p-10 text-center">
+            <Building2 className="mx-auto h-10 w-10 text-muted-foreground/30" />
+            <p className="mt-3 text-sm text-muted-foreground">{t('noSportComplexesDescription')}</p>
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="rounded-2xl border border-border bg-background/25 p-10 text-center">
+            <Users className="mx-auto h-10 w-10 text-muted-foreground/30" />
+            <p className="mt-3 text-sm text-muted-foreground">{t('noUsersFound')}</p>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3 md:hidden">
+              {pagedUsers.map((user) => {
+                const complexName = complexes.find((complex) => complex.id === selectedComplexId)?.name ?? '-';
+                const assignment = assignmentsByComplex[selectedComplexId]?.[user.id] ?? EMPTY_ROLES;
+                const activeRoles = ROLE_ORDER.filter((role) => assignment[role]);
+                return (
+                  <div key={user.id} className="rounded-2xl border border-border bg-background/40 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate font-semibold text-foreground">{user.name}</div>
+                        <div className="mt-0.5 truncate text-xs text-muted-foreground">{user.email}</div>
+                      </div>
+                      <StatusBadge activeRoles={activeRoles} t={t} />
+                    </div>
+                    <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{complexName}</span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2 border-t border-border/60 pt-3">
+                      {allowedRoles.includes('owner') ? (
+                        <RoleChipToggle active={assignment.owner} icon={<Building2 className="h-3.5 w-3.5" />} label={t('courtOwner')} tone="violet" onClick={() => toggleRole(user.id, 'owner')} />
+                      ) : null}
+                      {allowedRoles.includes('professor') ? (
+                        <RoleChipToggle active={assignment.professor} icon={<GraduationCap className="h-3.5 w-3.5" />} label={t('professor')} tone="cyan" onClick={() => toggleRole(user.id, 'professor')} />
+                      ) : null}
+                      {allowedRoles.includes('manager') ? (
+                        <RoleChipToggle active={assignment.manager} icon={<ShieldCheck className="h-3.5 w-3.5" />} label={t('manager')} tone="pink" onClick={() => toggleRole(user.id, 'manager')} />
+                      ) : null}
+                      {allowedRoles.includes('scorer') ? (
+                        <RoleChipToggle active={assignment.scorer} icon={<Target className="h-3.5 w-3.5" />} label={t('scorer')} tone="amber" onClick={() => toggleRole(user.id, 'scorer')} />
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
+              <table className="w-full table-fixed text-sm">
+                <colgroup>
+                  <col className="w-[36%]" />
+                  <col className="w-[28%]" />
+                  <col className="w-[16%]" />
+                  <col className="w-[20%]" />
+                </colgroup>
+                <thead>
+                  <tr className="border-b border-border bg-background/30 text-left text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                    <th className="px-5 py-3">{t('fullName')}</th>
+                    <th className="px-5 py-3">{t('sportComplex')}</th>
+                    <th className="px-5 py-3">{t('role')}</th>
+                    <th className="px-5 py-3">{t('actions')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {pagedUsers.map((user) => {
+                    const assignment = assignmentsByComplex[selectedComplexId]?.[user.id] ?? EMPTY_ROLES;
+                    const activeRoles = ROLE_ORDER.filter((role) => assignment[role]);
+                    const complexName = complexes.find((complex) => complex.id === selectedComplexId)?.name ?? '-';
+                    return (
+                      <tr key={user.id} className="transition-smooth hover:bg-primary/5">
+                        <td className="px-5 py-4">
+                          <div className="truncate font-semibold text-foreground">{user.name}</div>
+                          <div className="mt-0.5 truncate text-xs text-muted-foreground">{user.email}</div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="block truncate text-sm text-muted-foreground">{complexName}</span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-2">
+                            {allowedRoles.includes('owner') ? (
+                              <RoleIconToggle active={assignment.owner} icon={<Building2 className="h-4 w-4" />} tone="violet" title={t('courtOwner')} onClick={() => toggleRole(user.id, 'owner')} />
+                            ) : null}
+                            {allowedRoles.includes('professor') ? (
+                              <RoleIconToggle active={assignment.professor} icon={<GraduationCap className="h-4 w-4" />} tone="cyan" title={t('professor')} onClick={() => toggleRole(user.id, 'professor')} />
+                            ) : null}
+                            {allowedRoles.includes('manager') ? (
+                              <RoleIconToggle active={assignment.manager} icon={<ShieldCheck className="h-4 w-4" />} tone="pink" title={t('manager')} onClick={() => toggleRole(user.id, 'manager')} />
+                            ) : null}
+                            {allowedRoles.includes('scorer') ? (
+                              <RoleIconToggle active={assignment.scorer} icon={<Target className="h-4 w-4" />} tone="amber" title={t('scorer')} onClick={() => toggleRole(user.id, 'scorer')} />
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <StatusBadge activeRoles={activeRoles} t={t} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {filteredUsers.length > 0 && selectedComplexId ? (
+          <div className="mt-5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <button type="button" disabled={page === 1} onClick={() => setPage((current) => current - 1)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary">
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
+              <button type="button" disabled={page === totalPages} onClick={() => setPage((current) => current + 1)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary">
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+            <button type="button" onClick={handleSave} disabled={saving} title={t('saveChanges')} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110 disabled:opacity-60">
+              <Save className="h-4 w-4" />
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+};
+
+const buildAssignmentsIndex = (assignments: ComplexRoleAssignment[]) =>
+  assignments.reduce<Record<string, Record<string, AssignedRoles>>>((acc, assignment) => {
+    const role = assignment.role as AssignableRole;
+    if (!ROLE_ORDER.includes(role)) return acc;
+
+    const byComplex = acc[assignment.sport_complex_id] ?? {};
+    const userRoles = byComplex[assignment.user_id] ?? { ...EMPTY_ROLES };
+    userRoles[role] = true;
+
+    return {
+      ...acc,
+      [assignment.sport_complex_id]: {
+        ...byComplex,
+        [assignment.user_id]: userRoles,
+      },
+    };
+  }, {});

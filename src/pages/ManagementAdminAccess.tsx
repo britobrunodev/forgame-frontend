@@ -1,15 +1,16 @@
 import { StaffAccessManager } from '@/components/staff-access/StaffAccessManager';
 import { useLanguage } from '@/i18n';
 
-const ManagementUsers = () => {
+const ManagementAdminAccess = () => {
   const { t } = useLanguage();
 
   return (
     <StaffAccessManager
-      title={t('users')}
-      intro={t('managementUsersIntro')}
+      adminOnly
+      title={t('admin')}
+      intro={t('adminAccessIntro')}
     />
   );
 };
 
-export default ManagementUsers;
+export default ManagementAdminAccess;

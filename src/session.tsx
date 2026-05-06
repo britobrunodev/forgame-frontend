@@ -2,7 +2,7 @@ import { createContext, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { CURRENT_USER } from '@/data/mock';
 import type { AuthUser } from '@/lib/api';
-import type { GestorRole, User, UserProfile } from '@/types';
+import type { GestorRole, User, UserProfile, UserRole } from '@/types';
 
 type SessionContextValue = {
   currentUser: User;
@@ -30,7 +30,7 @@ const gestorRolesStorageKey = 'joga-junto-available-gestor-roles';
 const tokenStorageKey = 'joga-junto-token';
 const pendingApprovalStorageKey = 'joga-junto-pending-approval';
 
-const GESTOR_ROLES: GestorRole[] = ['owner', 'manager', 'professor'];
+const GESTOR_ROLES: GestorRole[] = ['owner', 'manager', 'professor', 'scorer'];
 
 const getAvailableProfiles = (user: User): UserProfile[] => {
   if (user.profiles && user.profiles.length > 0) return user.profiles;
@@ -98,7 +98,7 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
 
   const [activeGestorRole, setActiveGestorRoleState] = useState<GestorRole>(() => {
     const stored = window.localStorage.getItem(gestorRoleStorageKey);
-    if ((stored === 'owner' || stored === 'manager' || stored === 'professor') && availableGestorRoles.includes(stored)) {
+    if ((stored === 'owner' || stored === 'manager' || stored === 'professor' || stored === 'scorer') && availableGestorRoles.includes(stored)) {
       return stored;
     }
     return availableGestorRoles[0] ?? 'owner';
@@ -168,15 +168,17 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
       pendingApproval,
       login: (newToken, authUser, pending = false) => {
         const backendRoles = new Set(authUser.roles);
-        const isGestor = GESTOR_ROLES.some((r) => backendRoles.has(r));
+        const isGestor = authUser.is_admin || GESTOR_ROLES.some((r) => backendRoles.has(r));
         const profiles: UserProfile[] = isGestor ? ['player', 'gestor'] : ['player'];
-        const gestorRoles = GESTOR_ROLES.filter((r) => backendRoles.has(r));
+        const gestorRoles = authUser.is_admin ? [...GESTOR_ROLES] : GESTOR_ROLES.filter((r) => backendRoles.has(r));
 
         const nextUser: User = {
           ...CURRENT_USER,
           id: authUser.id,
           email: authUser.email,
           name: authUser.name,
+          isAdmin: authUser.is_admin,
+          roles: authUser.roles as UserRole[],
           avatarUrl: authUser.picture_url ?? undefined,
           type: isGestor ? 'gestor' : 'player',
           profiles,

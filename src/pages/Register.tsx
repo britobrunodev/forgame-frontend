@@ -1,38 +1,40 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Building2, Lock, Mail, User } from 'lucide-react';
+import { Building2, Loader2, Lock, Mail, User } from 'lucide-react';
 import { AuthShell } from '@/components/AuthShell';
 import { useLanguage } from '@/i18n';
+import { authApi } from '@/lib/api';
 import { useSession } from '@/session';
 import type { UserProfile } from '@/types';
 
 const Register = () => {
   const navigate = useNavigate();
   const { t, userTypeLabel } = useLanguage();
-  const { setAvailableProfiles, setActiveProfile, setAvailableGestorRoles, updateCurrentUser } = useSession();
+  const { login } = useSession();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [selectedProfile, setSelectedProfile] = useState<UserProfile>('player');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    const profiles: UserProfile[] = selectedProfile === 'gestor' ? ['player', 'gestor'] : ['player'];
-    const gestorRoles = selectedProfile === 'gestor' ? ['owner', 'manager', 'professor'] : [];
+    setSubmitting(true);
+    setSubmitError(null);
 
-    updateCurrentUser({
-      name,
-      email,
-      type: selectedProfile,
-      profiles,
-      gestorRoles,
-    });
-    setAvailableProfiles(profiles);
-    if (selectedProfile === 'gestor') {
-      setAvailableGestorRoles(['owner', 'manager', 'professor']);
-    }
-    setActiveProfile(selectedProfile);
-    navigate('/dashboard');
+    authApi
+      .register(name, email, password, selectedProfile)
+      .then((result) => {
+        login(result.access_token, result.user, result.pending_approval);
+        navigate(result.pending_approval ? '/pending-approval' : '/dashboard');
+      })
+      .catch((err) => {
+        setSubmitError(err instanceof Error ? err.message : t('googleAuthError'));
+      })
+      .finally(() => {
+        setSubmitting(false);
+      });
   };
 
   const profileOptions: Array<{ id: UserProfile; icon: typeof User }> = [
@@ -53,7 +55,10 @@ const Register = () => {
                 <button
                   key={id}
                   type="button"
-                  onClick={() => setSelectedProfile(id)}
+                  onClick={() => {
+                    setSubmitError(null);
+                    setSelectedProfile(id);
+                  }}
                   className={`flex h-10 items-center justify-center gap-2 rounded-lg border px-3 text-center text-[11px] transition-smooth ${
                     selected
                       ? 'border-primary/50 bg-primary/12 text-foreground shadow-glow'
@@ -92,7 +97,7 @@ const Register = () => {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="player@jogajunto360.com"
+              placeholder="player@forgame.com.br"
               className="w-full rounded-lg border border-border bg-background/60 py-2.5 pl-10 pr-3 text-sm transition-smooth focus:border-primary focus:shadow-glow focus:outline-none"
             />
           </div>
@@ -115,10 +120,15 @@ const Register = () => {
 
         <button
           type="submit"
+          disabled={submitting}
           className="w-full rounded-lg bg-gradient-primary py-3 font-display text-sm font-bold uppercase tracking-widest shadow-neon transition-smooth hover:brightness-110 hover:shadow-glow"
         >
-          {t('createAccount')}
+          {submitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : t('createAccount')}
         </button>
+
+        {submitError && (
+          <p className="text-center text-xs text-destructive">{submitError}</p>
+        )}
       </form>
 
       <p className="mt-5 text-center text-sm text-muted-foreground">

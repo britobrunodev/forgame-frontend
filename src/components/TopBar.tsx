@@ -1,6 +1,22 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Search, Menu, LayoutDashboard, Trophy, MapPin, Calendar, Building2, ChevronDown, LogOut, Receipt, Settings, GraduationCap, Users } from 'lucide-react';
+import {
+  Bell,
+  Search,
+  Menu,
+  LayoutDashboard,
+  Trophy,
+  MapPin,
+  Calendar,
+  Building2,
+  ChevronDown,
+  LogOut,
+  Receipt,
+  Settings,
+  GraduationCap,
+  Users,
+  ShieldCheck,
+} from 'lucide-react';
 import { SPORTS } from '@/data/mock';
 import { LanguageSelector } from './LanguageSelector';
 import { Logo } from './Logo';
@@ -14,13 +30,41 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 export const TopBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { t, userTypeLabel, sportName, gestorRoleLabel } = useLanguage();
-  const { activeProfile, activeGestorRole, currentUser, isGestorMode, availableGestorRoles, setActiveGestorRole } = useSession();
+  const { t, sportName, gestorRoleLabel } = useLanguage();
+
+  const {
+    activeGestorRole,
+    currentUser,
+    isGestorMode,
+    availableGestorRoles,
+    setActiveGestorRole,
+  } = useSession();
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [managementOpen, setManagementOpen] = useState(
     location.pathname.startsWith('/management') || location.pathname.startsWith('/settings'),
   );
+
+  const accessLabels = currentUser.isAdmin
+    ? [
+      gestorRoleLabel('owner'),
+      t('admin'),
+      t('player'),
+      t('scorer'),
+      gestorRoleLabel('manager'),
+      gestorRoleLabel('professor'),
+    ]
+    : [
+      currentUser.roles?.includes('owner') ? gestorRoleLabel('owner') : null,
+      currentUser.isAdmin ? t('admin') : null,
+      currentUser.roles?.includes('player') || currentUser.profiles?.includes('player') ? t('player') : null,
+      currentUser.roles?.includes('scorer') ? t('scorer') : null,
+      currentUser.roles?.includes('manager') ? gestorRoleLabel('manager') : null,
+      currentUser.roles?.includes('professor') ? gestorRoleLabel('professor') : null,
+    ].filter((label): label is string => Boolean(label));
+
   const closeMobileMenu = () => setMobileMenuOpen(false);
+
   const navItems = [
     { to: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
     { to: '/championships', label: t('championships'), icon: Trophy },
@@ -37,15 +81,19 @@ export const TopBar = () => {
             <span className="sr-only">{t('menu')}</span>
           </button>
         </SheetTrigger>
+
         <SheetContent side="left" className="w-[88vw] max-w-sm border-r border-border bg-sidebar/95 p-0 backdrop-blur-xl">
           <div className="flex h-full flex-col">
-            <div className="border-b border-border px-5 pb-5 pt-14">
-              <SheetTitle className="sr-only">Joga Junto 360</SheetTitle>
+            <div className="border-b border-border px-5 pb-3 pt-12">
+              <SheetTitle className="sr-only">Forgame</SheetTitle>
               <Logo />
             </div>
 
-            <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
-              <div className="px-3 mb-2 text-[10px] font-display font-bold tracking-[0.25em] text-muted-foreground">{t('menu')}</div>
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3">
+              <div className="px-3 mb-2 text-[10px] font-display font-bold tracking-[0.25em] text-muted-foreground">
+                {t('menu')}
+              </div>
+
               <div className="space-y-1">
                 {navItems.map(({ to, label, icon: Icon }) => (
                   <NavLink
@@ -70,8 +118,8 @@ export const TopBar = () => {
                       type="button"
                       onClick={() => setManagementOpen((current) => !current)}
                       className={`w-full flex items-center rounded-lg px-3 py-2.5 text-sm transition-smooth ${managementOpen || location.pathname.startsWith('/management')
-                        ? 'bg-sidebar-accent text-foreground border border-primary/30'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground'
+                          ? 'bg-sidebar-accent text-foreground border border-primary/30'
+                          : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground'
                         }`}
                     >
                       <div className="grid min-w-0 flex-1 grid-cols-[16px_minmax(0,1fr)] items-center gap-3 text-left">
@@ -80,6 +128,7 @@ export const TopBar = () => {
                       </div>
                       <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${managementOpen ? 'rotate-180' : ''}`} />
                     </button>
+
                     {managementOpen && (
                       <div className="ml-3 space-y-1 border-l border-border pl-3">
                         <NavLink
@@ -93,6 +142,7 @@ export const TopBar = () => {
                           <Building2 className="h-4 w-4 shrink-0 text-neon-pink" />
                           <span className="truncate">{t('courtManagement')}</span>
                         </NavLink>
+
                         <NavLink
                           to="/management/championships"
                           onClick={closeMobileMenu}
@@ -104,6 +154,7 @@ export const TopBar = () => {
                           <Trophy className="h-4 w-4 shrink-0 text-neon-cyan" />
                           <span className="truncate">{t('championships')}</span>
                         </NavLink>
+
                         <NavLink
                           to="/management/classes"
                           onClick={closeMobileMenu}
@@ -115,6 +166,7 @@ export const TopBar = () => {
                           <Calendar className="h-4 w-4 shrink-0 text-neon-cyan" />
                           <span className="truncate">{t('managementClasses')}</span>
                         </NavLink>
+
                         <NavLink
                           to="/management/students"
                           onClick={closeMobileMenu}
@@ -126,6 +178,7 @@ export const TopBar = () => {
                           <GraduationCap className="h-4 w-4 shrink-0 text-neon-cyan" />
                           <span className="truncate">{t('students')}</span>
                         </NavLink>
+
                         <NavLink
                           to="/management/users"
                           onClick={closeMobileMenu}
@@ -137,6 +190,21 @@ export const TopBar = () => {
                           <Users className="h-4 w-4 shrink-0 text-neon-cyan" />
                           <span className="truncate">{t('users')}</span>
                         </NavLink>
+
+                        {currentUser.isAdmin ? (
+                          <NavLink
+                            to="/management/admin/access"
+                            onClick={closeMobileMenu}
+                            className={({ isActive }) =>
+                              `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                              }`
+                            }
+                          >
+                            <ShieldCheck className="h-4 w-4 shrink-0 text-violet-300" />
+                            <span className="truncate">{t('admin')}</span>
+                          </NavLink>
+                        ) : null}
+
                         <NavLink
                           to="/settings/complex"
                           onClick={closeMobileMenu}
@@ -148,6 +216,7 @@ export const TopBar = () => {
                           <Building2 className="h-4 w-4 shrink-0 text-neon-pink" />
                           <span className="truncate">{t('sportComplexes')}</span>
                         </NavLink>
+
                         <NavLink
                           to="/management/payments"
                           onClick={closeMobileMenu}
@@ -159,12 +228,20 @@ export const TopBar = () => {
                           <Receipt className="h-4 w-4 shrink-0 text-neon-pink" />
                           <span className="truncate">{t('managementPayments')}</span>
                         </NavLink>
+
                         <div className="rounded-lg border border-border bg-background/30 p-3">
-                          <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{t('gestorRole')}</div>
-                          <Select value={activeGestorRole} onValueChange={(value) => setActiveGestorRole(value as typeof activeGestorRole)}>
+                          <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+                            {t('gestorRole')}
+                          </div>
+
+                          <Select
+                            value={activeGestorRole}
+                            onValueChange={(value) => setActiveGestorRole(value as typeof activeGestorRole)}
+                          >
                             <SelectTrigger className="h-9 border-border bg-background/60 text-xs font-semibold">
                               <SelectValue />
                             </SelectTrigger>
+
                             <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
                               {availableGestorRoles.map((role) => (
                                 <SelectItem key={role} value={role}>
@@ -180,7 +257,10 @@ export const TopBar = () => {
                 )}
               </div>
 
-              <div className="px-3 pt-6 pb-2 text-[10px] font-display font-bold tracking-[0.25em] text-muted-foreground">{t('sports')}</div>
+              <div className="px-3 pt-6 pb-2 text-[10px] font-display font-bold tracking-[0.25em] text-muted-foreground">
+                {t('sports')}
+              </div>
+
               <div className="space-y-1">
                 {SPORTS.map((sport) => (
                   <NavLink
@@ -188,7 +268,9 @@ export const TopBar = () => {
                     to={`/sports/${sport.id}`}
                     onClick={closeMobileMenu}
                     className={({ isActive }) =>
-                      `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-3 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground border-l-2 border-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent/60'
+                      `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-3 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
+                        ? 'bg-sidebar-accent text-foreground border-l-2 border-primary'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent/60'
                       } ${currentUser.preferences.includes(sport.id) ? 'font-bold' : 'font-medium'}`
                     }
                   >
@@ -202,13 +284,20 @@ export const TopBar = () => {
             <div className="border-t border-border">
               <button
                 type="button"
+                onClick={() => {
+                  closeMobileMenu();
+                  navigate('/settings');
+                }}
                 className="flex w-full items-center gap-3 px-4 py-3 text-sm text-sidebar-foreground transition-smooth hover:bg-sidebar-accent"
               >
                 <Settings className="h-4 w-4" /> {t('settings')}
               </button>
+
               <div className="h-px bg-border/80" />
+
               <SheetClose asChild>
                 <button
+                  type="button"
                   onClick={() => navigate('/login')}
                   className="flex w-full items-center gap-3 px-4 py-3 text-sm text-sidebar-foreground transition-smooth hover:bg-sidebar-accent"
                 >
@@ -227,11 +316,14 @@ export const TopBar = () => {
           className="w-full pl-10 pr-4 py-2 rounded-lg bg-secondary/60 border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:shadow-glow transition-smooth"
         />
       </div>
+
       <LanguageSelector />
+
       <button className="relative p-2 rounded-lg hover:bg-secondary/60 transition-smooth">
         <Bell className="w-5 h-5 text-muted-foreground" />
         <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-neon-pink rounded-full shadow-[0_0_8px_hsl(var(--neon-pink))]" />
       </button>
+
       <button
         type="button"
         onClick={() => navigate('/profile')}
@@ -240,10 +332,14 @@ export const TopBar = () => {
         <Avatar className="h-9 w-9">
           <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
           <AvatarFallback className="bg-gradient-primary font-display text-xs font-bold text-primary-foreground">
-            {currentUser.name.split(' ').map((name) => name[0]).join('')}
+            {currentUser.name
+              .split(' ')
+              .map((name) => name[0])
+              .join('')}
           </AvatarFallback>
         </Avatar>
       </button>
+
       <button
         type="button"
         onClick={() => navigate('/profile')}
@@ -252,13 +348,17 @@ export const TopBar = () => {
         <div className="text-right hidden sm:block">
           <div className="text-sm font-bold leading-tight">{currentUser.name}</div>
           <div className="text-[10px] uppercase tracking-wider text-neon-cyan font-semibold">
-            {activeProfile === 'gestor' ? `${userTypeLabel(activeProfile)} · ${gestorRoleLabel(activeGestorRole)}` : userTypeLabel(activeProfile)}
+            {accessLabels.join(' · ')}
           </div>
         </div>
+
         <Avatar className="h-10 w-10 border border-primary/20 shadow-neon">
           <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
           <AvatarFallback className="bg-gradient-primary font-display text-sm font-bold text-primary-foreground">
-            {currentUser.name.split(' ').map((name) => name[0]).join('')}
+            {currentUser.name
+              .split(' ')
+              .map((name) => name[0])
+              .join('')}
           </AvatarFallback>
         </Avatar>
       </button>

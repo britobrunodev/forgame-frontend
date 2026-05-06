@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Camera, Phone, Save, ShieldCheck, Sparkles, Trophy } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Camera, Phone, Save, ShieldCheck, Trophy } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CountrySelect } from '@/components/CountrySelect';
 import { DragSelectField } from '@/components/DragSelectField';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { COUNTRY_OPTIONS, formatPhoneNumber, getCountryLabel } from '@/data/countries';
@@ -13,13 +15,15 @@ import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { useToast } from '@/components/ui/use-toast';
 import { usersApi } from '@/lib/api';
-import type { DocumentType, PaymentMethod, PlayerCharacteristic, SportId } from '@/types';
+import type { DocumentType, PaymentMethod, PlayerCharacteristic, SportId, UniformSize } from '@/types';
 
 const CHARACTERISTICS_BY_SPORT: Partial<Record<SportId, PlayerCharacteristic[]>> = {
   footvolley: ['right', 'left'],
   'beach-tennis': ['right', 'left'],
   'beach-soccer': ['goalkeeper', 'midfielder'],
 };
+
+const _MIN_SAVING_FEEDBACK_MS = 800;
 
 const ProfileSettings = () => {
   const { currentUser, updateCurrentUser, token } = useSession();
@@ -38,7 +42,10 @@ const ProfileSettings = () => {
     currentUser.sportCharacteristics ?? {},
   );
   const [documentType, setDocumentType] = useState<DocumentType>(currentUser.documentType ?? 'cpf');
-  const [documentNumber, setDocumentNumber] = useState(currentUser.documentNumber ?? '');
+  const [documentNumber, setDocumentNumber] = useState(
+    currentUser.documentType === 'cpf' ? formatCpf(currentUser.documentNumber ?? '') : (currentUser.documentNumber ?? ''),
+  );
+  const [uniformSize, setUniformSize] = useState<UniformSize | ''>(currentUser.uniformSize ?? '');
   const [preferredClassPaymentMethod, setPreferredClassPaymentMethod] = useState<PaymentMethod | ''>(
     currentUser.preferredClassPaymentMethod ?? '',
   );
@@ -49,6 +56,18 @@ const ProfileSettings = () => {
   const [cropZoom, setCropZoom] = useState(1);
   const [cropX, setCropX] = useState(0);
   const [cropY, setCropY] = useState(0);
+  const [lastSavedState, setLastSavedState] = useState<string>(() => serializeProfileState({
+    name: currentUser.name,
+    nationality: currentUser.country ?? 'BR',
+    phoneCountry: currentUser.phoneCountry ?? currentUser.country ?? 'BR',
+    phoneNumber: currentUser.phoneNumber ?? '',
+    documentType: currentUser.documentType ?? 'cpf',
+    documentNumber: currentUser.documentNumber ?? '',
+    uniformSize: currentUser.uniformSize ?? '',
+    preferredClassPaymentMethod: currentUser.preferredClassPaymentMethod ?? '',
+    selectedSports: currentUser.preferences,
+    sportCharacteristics: currentUser.sportCharacteristics ?? {},
+  }));
 
   const availableSports = useMemo(
     () => SPORTS.map((sport) => sport.id).filter((sportId) => !selectedSports.includes(sportId)),
@@ -107,6 +126,30 @@ const ProfileSettings = () => {
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const currentProfileState = useMemo(() => serializeProfileState({
+    name,
+    nationality,
+    phoneCountry,
+    phoneNumber,
+    documentType,
+    documentNumber,
+    uniformSize,
+    preferredClassPaymentMethod,
+    selectedSports,
+    sportCharacteristics,
+  }), [
+    name,
+    nationality,
+    phoneCountry,
+    phoneNumber,
+    documentType,
+    documentNumber,
+    uniformSize,
+    preferredClassPaymentMethod,
+    selectedSports,
+    sportCharacteristics,
+  ]);
+  const hasUnsavedChanges = currentProfileState !== lastSavedState;
 
   useEffect(() => {
     if (!token) return;
@@ -123,10 +166,25 @@ const ProfileSettings = () => {
         setNationality(profile.country ?? currentUser.country ?? 'BR');
         setPhoneCountry(profile.phone_country ?? profile.country ?? currentUser.phoneCountry ?? currentUser.country ?? 'BR');
         setPhoneNumber(profile.phone_number ?? '');
-        setDocumentType((profile.document_type as DocumentType | null) ?? 'cpf');
-        setDocumentNumber(profile.document_number ?? '');
+        const nextDocumentType = (profile.document_type as DocumentType | null) ?? 'cpf';
+        setDocumentType(nextDocumentType);
+        setDocumentNumber(nextDocumentType === 'cpf' ? formatCpf(profile.document_number ?? '') : (profile.document_number ?? ''));
+        setUniformSize((profile.uniform_size as UniformSize | null) ?? '');
         setPreferredClassPaymentMethod((profile.preferred_class_payment_method as PaymentMethod | null) ?? '');
-        setSportCharacteristics((profile.sport_characteristics ?? {}) as Partial<Record<SportId, PlayerCharacteristic[]>>);
+        const nextSportCharacteristics = (profile.sport_characteristics ?? {}) as Partial<Record<SportId, PlayerCharacteristic[]>>;
+        setSportCharacteristics(nextSportCharacteristics);
+        setLastSavedState(serializeProfileState({
+          name: profile.name,
+          nationality: profile.country ?? currentUser.country ?? 'BR',
+          phoneCountry: profile.phone_country ?? profile.country ?? currentUser.phoneCountry ?? currentUser.country ?? 'BR',
+          phoneNumber: profile.phone_number ?? '',
+          documentType: nextDocumentType,
+          documentNumber: profile.document_number ?? '',
+          uniformSize: (profile.uniform_size as UniformSize | null) ?? '',
+          preferredClassPaymentMethod: (profile.preferred_class_payment_method as PaymentMethod | null) ?? '',
+          selectedSports,
+          sportCharacteristics: nextSportCharacteristics,
+        }));
 
         updateCurrentUser({
           name: profile.name,
@@ -136,6 +194,7 @@ const ProfileSettings = () => {
           phoneNumber: profile.phone_number ?? undefined,
           documentType: (profile.document_type as DocumentType | null) ?? undefined,
           documentNumber: profile.document_number ?? undefined,
+          uniformSize: (profile.uniform_size as UniformSize | null) ?? undefined,
           sportCharacteristics: (profile.sport_characteristics ?? {}) as Partial<Record<SportId, PlayerCharacteristic[]>>,
           preferredClassPaymentMethod: (profile.preferred_class_payment_method as PaymentMethod | null) ?? undefined,
           wins: profile.wins,
@@ -193,6 +252,9 @@ const ProfileSettings = () => {
   };
 
   const handleSave = async () => {
+    if (savingProfile || !hasUnsavedChanges) return;
+
+    const startedAt = Date.now();
     setSavingProfile(true);
     try {
       let profile = null;
@@ -204,7 +266,7 @@ const ProfileSettings = () => {
           phone_country: phoneCountry || null,
           phone_number: phoneNumber || null,
           country: nationality || null,
-          uniform_size: null,
+          uniform_size: uniformSize || null,
           level: null,
           sport_characteristics: Object.keys(sportCharacteristics).length > 0
             ? (sportCharacteristics as Record<string, string[]>)
@@ -215,26 +277,47 @@ const ProfileSettings = () => {
       const nextName = profile?.name ?? name;
       const nextCountry = profile?.country ?? nationality;
       const nextAvatarUrl = profile?.picture_url ?? profile?.google_picture_url ?? avatarUrl;
-      const countryLabel = getCountryLabel(nextCountry || 'BR', language);
+      const nextDocumentType = (profile?.document_type as DocumentType | null) ?? documentType;
+      const nextDocumentNumber = profile?.document_number ?? documentNumber;
+      const nextUniformSize = (profile?.uniform_size as UniformSize | null) ?? uniformSize;
+      const nextPhoneCountry = profile?.phone_country ?? phoneCountry;
+      const nextPhoneNumber = profile?.phone_number ?? phoneNumber;
+      const nextSportCharacteristics = (profile?.sport_characteristics as Partial<Record<SportId, PlayerCharacteristic[]>> | null)
+        ?? sportCharacteristics;
 
       setName(nextName);
       setAvatarUrl(nextAvatarUrl);
+      setDocumentType(nextDocumentType);
+      setDocumentNumber(nextDocumentType === 'cpf' ? formatCpf(nextDocumentNumber) : nextDocumentNumber);
+      setUniformSize(nextUniformSize);
+      setLastSavedState(serializeProfileState({
+        name: nextName,
+        nationality: nextCountry ?? 'BR',
+        phoneCountry: nextPhoneCountry ?? nextCountry ?? 'BR',
+        phoneNumber: nextPhoneNumber,
+        documentType: nextDocumentType,
+        documentNumber: nextDocumentNumber,
+        uniformSize: nextUniformSize,
+        preferredClassPaymentMethod: (profile?.preferred_class_payment_method as PaymentMethod | null) ?? preferredClassPaymentMethod,
+        selectedSports,
+        sportCharacteristics: nextSportCharacteristics,
+      }));
       updateCurrentUser({
         name: nextName,
         country: nextCountry ?? undefined,
-        phoneCountry: profile?.phone_country ?? phoneCountry,
-        phoneNumber: profile?.phone_number ?? phoneNumber,
+        phoneCountry: nextPhoneCountry,
+        phoneNumber: nextPhoneNumber,
         avatarUrl: nextAvatarUrl || undefined,
         preferences: selectedSports,
-        sportCharacteristics,
-        documentType,
-        documentNumber,
+        sportCharacteristics: nextSportCharacteristics,
+        documentType: nextDocumentType,
+        documentNumber: nextDocumentNumber,
+        uniformSize: nextUniformSize || undefined,
         preferredClassPaymentMethod: preferredClassPaymentMethod || undefined,
         wins: profile?.wins ?? currentUser.wins,
         losses: profile?.losses ?? currentUser.losses,
         draws: profile?.draws ?? currentUser.draws,
       });
-      toast({ title: t('profileSaved'), description: `${nextName} · ${countryLabel}` });
     } catch (err) {
       toast({
         title: t('profileSaveError'),
@@ -242,6 +325,10 @@ const ProfileSettings = () => {
         variant: 'destructive',
       });
     } finally {
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < _MIN_SAVING_FEEDBACK_MS) {
+        await new Promise((resolve) => window.setTimeout(resolve, _MIN_SAVING_FEEDBACK_MS - elapsed));
+      }
       setSavingProfile(false);
     }
   };
@@ -297,11 +384,19 @@ const ProfileSettings = () => {
         </div>
       </header>
 
+      {savingProfile
+        ? createPortal(
+          <div className="fixed inset-x-0 top-0 z-[100]">
+            <Progress value={92} className="h-0.5 rounded-none bg-transparent [&>div]:bg-gradient-primary" />
+          </div>,
+          document.body,
+        )
+        : null}
+
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_360px]">
         <aside className="order-1 space-y-5 xl:order-2">
           <div className="rounded-2xl border border-border bg-gradient-card p-5 shadow-card">
-            <div className="mb-4 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-neon-cyan" />
+            <div className="mb-4">
               <h2 className="font-display text-sm font-bold uppercase tracking-[0.2em]">{t('quickPreview')}</h2>
             </div>
             <div className="rounded-2xl border border-primary/20 bg-background/40 p-4">
@@ -347,6 +442,13 @@ const ProfileSettings = () => {
                       value={(sportCharacteristics[sportId] ?? []).map((item) => characteristicLabel(item)).join(' · ')}
                     />
                   ))}
+                {uniformSize ? (
+                  <PreviewRow
+                    icon={<ShieldCheck className="h-4 w-4 text-neon-cyan" />}
+                    label={t('uniformSize')}
+                    value={getUniformSizeLabel(uniformSize, language)}
+                  />
+                ) : null}
               </div>
             </div>
           </div>
@@ -373,7 +475,14 @@ const ProfileSettings = () => {
             </Field>
 
             <Field label={t('documentType')}>
-              <Select value={documentType} onValueChange={(value) => setDocumentType(value as DocumentType)}>
+              <Select
+                value={documentType}
+                onValueChange={(value) => {
+                  const nextType = value as DocumentType;
+                  setDocumentType(nextType);
+                  setDocumentNumber((current) => nextType === 'cpf' ? formatCpf(current) : current);
+                }}
+              >
                 <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
                   <SelectValue />
                 </SelectTrigger>
@@ -390,10 +499,29 @@ const ProfileSettings = () => {
             <Field label={t('documentNumber')}>
               <Input
                 value={documentNumber}
-                onChange={(event) => setDocumentNumber(event.target.value)}
+                onChange={(event) => setDocumentNumber(
+                  documentType === 'cpf' ? formatCpf(event.target.value) : event.target.value,
+                )}
                 placeholder={t('documentNumberPlaceholder')}
+                inputMode={documentType === 'cpf' ? 'numeric' : undefined}
+                maxLength={documentType === 'cpf' ? 14 : undefined}
                 className="border-border bg-background/60"
               />
+            </Field>
+
+            <Field label={t('uniformSize')}>
+              <Select value={uniformSize} onValueChange={(value) => setUniformSize(value as UniformSize)}>
+                <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                  {getUniformSizeOptions().map((size) => (
+                    <SelectItem key={size} value={size}>
+                      {getUniformSizeLabel(size, language)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
 
             <Field label={t('preferredClassPaymentMethod')}>
@@ -477,7 +605,7 @@ const ProfileSettings = () => {
             <button
               type="button"
               onClick={handleSave}
-              disabled={savingProfile}
+              disabled={savingProfile || !hasUnsavedChanges}
               className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110 disabled:opacity-60"
             >
               {savingProfile
@@ -691,6 +819,70 @@ const getDocumentOptions = (nationality: string): { value: DocumentType; label: 
     { value: 'rg', label: 'RG / ID Card' },
     { value: 'cc', label: 'CC / Citizen Card' },
   ];
+};
+
+const getUniformSizeOptions = (): UniformSize[] => ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
+const getUniformSizeLabel = (size: UniformSize, language: string) => {
+  if (language !== 'pt-BR') return size;
+
+  const labels: Record<UniformSize, string> = {
+    XS: 'PP',
+    S: 'P',
+    M: 'M',
+    L: 'G',
+    XL: 'GG',
+    XXL: 'XGG',
+  };
+
+  return labels[size];
+};
+
+const serializeProfileState = ({
+  name,
+  nationality,
+  phoneCountry,
+  phoneNumber,
+  documentType,
+  documentNumber,
+  uniformSize,
+  preferredClassPaymentMethod,
+  selectedSports,
+  sportCharacteristics,
+}: {
+  name: string;
+  nationality: string;
+  phoneCountry: string;
+  phoneNumber: string;
+  documentType: DocumentType;
+  documentNumber: string;
+  uniformSize: UniformSize | '';
+  preferredClassPaymentMethod: PaymentMethod | '';
+  selectedSports: SportId[];
+  sportCharacteristics: Partial<Record<SportId, PlayerCharacteristic[]>>;
+}) => JSON.stringify({
+  name: name.trim(),
+  nationality,
+  phoneCountry,
+  phoneNumber,
+  documentType,
+  documentNumber: documentType === 'cpf' ? documentNumber.replace(/\D/g, '') : documentNumber.trim(),
+  uniformSize,
+  preferredClassPaymentMethod,
+  selectedSports,
+  sportCharacteristics: Object.fromEntries(
+    Object.entries(sportCharacteristics)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([sportId, values]) => [sportId, [...(values ?? [])]]),
+  ),
+});
+
+const formatCpf = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
 };
 
 export default ProfileSettings;

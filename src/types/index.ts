@@ -4,7 +4,8 @@ export type SportId =
   | "beach-soccer"
   | "volleyball";
 export type UserProfile = "player" | "gestor";
-export type GestorRole = "owner" | "manager" | "professor";
+export type GestorRole = "owner" | "manager" | "professor" | "scorer";
+export type UserRole = "player" | "owner" | "manager" | "professor" | "scorer";
 export type PlayerCharacteristic =
   | "right"
   | "left"
@@ -202,7 +203,9 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  isAdmin?: boolean;
   type: "player" | "gestor";
+  roles?: UserRole[];
   profiles?: UserProfile[];
   gestorRoles?: GestorRole[];
   preferences: SportId[];

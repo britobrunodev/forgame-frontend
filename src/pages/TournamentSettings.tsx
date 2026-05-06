@@ -75,7 +75,7 @@ const TournamentSettings = () => {
     [currentUser.applications],
   );
 
-  const [tournamentName, setTournamentName] = useState('Copa Joga Junto Footvolley');
+  const [tournamentName, setTournamentName] = useState('Copa Forgame Footvolley');
   const [sport, setSport] = useState<'footvolley'>('footvolley');
   const [tournamentType, setTournamentType] = useState<TournamentType>('open-pairs');
   const [categoryEntries, setCategoryEntries] = useState<CategoryEntry[]>([

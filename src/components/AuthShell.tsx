@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { LanguageSelector } from '@/components/LanguageSelector';
+import { Logo } from '@/components/Logo';
 import { useLanguage } from '@/i18n';
 
 type AuthShellProps = {
@@ -22,16 +23,13 @@ export const AuthShell = ({ mode, title, subtitle, children }: AuthShellProps) =
       </div>
 
       <div className="relative w-full max-w-[26rem]">
-        <div className="mb-6 text-center">
-          <div className="inline-flex flex-col items-center justify-center">
-            <h1 className="font-display text-[1.75rem] font-black tracking-wider neon-text sm:text-3xl">JOGA JUNTO</h1>
-            <div className="mt-1 font-display text-xs font-bold tracking-[0.5em] text-neon-cyan">— 360 —</div>
-          </div>
-          <p className="mt-2 text-sm font-medium text-muted-foreground">{subtitle}</p>
+        <div className="mb-5 text-center">
+          <Logo className="mx-auto" />
+          {subtitle ? <p className="mt-2 text-sm font-medium text-muted-foreground">{subtitle}</p> : null}
         </div>
 
         <div className="auth-card-shell perspective-[1600px]">
-          <div className={`auth-card-flip-${mode} flex flex-col rounded-2xl border border-border bg-gradient-card p-5 shadow-card backdrop-blur-xl neon-border sm:p-6`}>
+          <div className={`auth-card-flip-${mode} flex min-h-[34rem] flex-col rounded-2xl border border-border bg-gradient-card p-5 shadow-card backdrop-blur-xl neon-border sm:min-h-[35rem] sm:p-6`}>
             <div className="mb-4 text-center">
               <h2 className="font-display text-2xl font-black uppercase tracking-[0.2em] text-foreground">{title}</h2>
             </div>

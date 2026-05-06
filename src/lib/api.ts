@@ -4,6 +4,7 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  is_admin: boolean;
   picture_url: string | null;
   roles: string[];
 }
@@ -23,6 +24,33 @@ export interface ApprovalRequest {
   requested_role: string;
   status: string;
   created_at: string;
+}
+
+export interface ManagedComplex {
+  id: string;
+  name: string;
+  city: string | null;
+  address: string | null;
+}
+
+export interface AccessControlUser {
+  id: string;
+  name: string;
+  email: string;
+  is_admin: boolean;
+}
+
+export interface ComplexRoleAssignment {
+  sport_complex_id: string;
+  user_id: string;
+  role: string;
+}
+
+export interface AccessControlSnapshot {
+  complexes: ManagedComplex[];
+  users: AccessControlUser[];
+  assignments: ComplexRoleAssignment[];
+  assignable_roles: string[];
 }
 
 const json = (token?: string) => ({
@@ -100,7 +128,38 @@ export const usersApi = {
     }).then((r) => handle<PlayerProfile>(r)),
 };
 
+export const accessControlApi = {
+  getSnapshot: (token: string) =>
+    fetch(`${API_BASE}/access-control`, { headers: json(token) }).then((r) =>
+      handle<AccessControlSnapshot>(r),
+    ),
+
+  updateAssignments: (
+    token: string,
+    payload: { sport_complex_id: string; assignments: Array<{ user_id: string; role: string }> },
+  ) =>
+    fetch(`${API_BASE}/access-control`, {
+      method: 'PUT',
+      headers: json(token),
+      body: JSON.stringify(payload),
+    }).then((r) => handle<ComplexRoleAssignment[]>(r)),
+};
+
 export const authApi = {
+  register: (name: string, email: string, password: string, requested_profile: 'player' | 'gestor') =>
+    fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: json(),
+      body: JSON.stringify({ name, email, password, requested_profile }),
+    }).then((r) => handle<AuthResponse>(r)),
+
+  emailLogin: (email: string, password: string) =>
+    fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: json(),
+      body: JSON.stringify({ email, password }),
+    }).then((r) => handle<AuthResponse>(r)),
+
   googleLogin: (access_token: string, requested_profile: 'player' | 'gestor') =>
     fetch(`${API_BASE}/auth/google`, {
       method: 'POST',
