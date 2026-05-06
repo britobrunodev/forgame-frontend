@@ -12,9 +12,9 @@ jobs:
     env:
       DEPLOY_REPO: britobrunodev/forgame-deploy
       FRONTEND_DEPLOY_EVENT: deploy-frontend
-      FRONTEND_DEPLOY_SERVICE: ${{ github.ref_name == 'develop' && 'forgame-frontend-dev' || 'forgame-frontend' }}
+      FRONTEND_DEPLOY_SERVICE: forgame-frontend
       BACKEND_DEPLOY_EVENT: deploy-backend
-      BACKEND_DEPLOY_SERVICE: ${{ github.ref_name == 'develop' && 'forgame-backend-dev' || 'forgame-backend' }}
+      BACKEND_DEPLOY_SERVICE: forgame-backend
 
     steps:
       - name: Trigger frontend deploy repo workflow
@@ -26,7 +26,8 @@ jobs:
             -d '{
               "event_type": "${{ env.FRONTEND_DEPLOY_EVENT }}",
               "client_payload": {
-                "service": "${{ env.FRONTEND_DEPLOY_SERVICE }}"
+                "service": "${{ env.FRONTEND_DEPLOY_SERVICE }}",
+                "branch": "${{ github.ref_name }}"
               }
             }'
 
@@ -39,6 +40,7 @@ jobs:
             -d '{
               "event_type": "${{ env.BACKEND_DEPLOY_EVENT }}",
               "client_payload": {
-                "service": "${{ env.BACKEND_DEPLOY_SERVICE }}"
+                "service": "${{ env.BACKEND_DEPLOY_SERVICE }}",
+                "branch": "${{ github.ref_name }}"
               }
             }'
