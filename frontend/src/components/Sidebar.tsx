@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Trophy, MapPin, LogOut, Building2, ChevronDown, Receipt, Settings, GraduationCap, Users } from 'lucide-react';
+import { LayoutDashboard, Calendar, Trophy, MapPin, LogOut, Building2, ChevronDown, Receipt, Settings, GraduationCap, Users, ShieldCheck } from 'lucide-react';
 import { Logo } from './Logo';
 import { SportIcon } from './SportIcon';
 import { SPORTS } from '@/data/mock';
@@ -12,7 +12,7 @@ export const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t, sportName, gestorRoleLabel } = useLanguage();
-  const { isGestorMode, currentUser, activeGestorRole, setActiveGestorRole, availableGestorRoles } = useSession();
+  const { isGestorMode, currentUser, activeGestorRole, setActiveGestorRole, availableGestorRoles, logout } = useSession();
   const [managementOpen, setManagementOpen] = useState(
     location.pathname.startsWith('/management') || location.pathname.startsWith('/settings'),
   );
@@ -120,6 +120,18 @@ export const Sidebar = () => {
                   {t('users')}
                 </NavLink>
                 <NavLink
+                  to="/management/approvals"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
+                      ? 'bg-sidebar-accent text-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                    }`
+                  }
+                >
+                  <ShieldCheck className="h-4 w-4 text-neon-cyan" />
+                  {t('approvals')}
+                </NavLink>
+                <NavLink
                   to="/settings/complex"
                   className={({ isActive }) =>
                     `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
@@ -187,7 +199,10 @@ export const Sidebar = () => {
           <Settings className="w-4 h-4" /> {t('settings')}
         </button>
         <div className="h-px bg-border/80" />
-        <button onClick={() => navigate('/login')} className="flex w-full items-center gap-3 px-4 py-3 text-sm text-sidebar-foreground transition-smooth hover:bg-sidebar-accent">
+        <button
+          onClick={() => { logout(); navigate('/login'); }}
+          className="flex w-full items-center gap-3 px-4 py-3 text-sm text-sidebar-foreground transition-smooth hover:bg-sidebar-accent"
+        >
           <LogOut className="w-4 h-4" /> {t('logout')}
         </button>
       </div>

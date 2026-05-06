@@ -12,6 +12,7 @@ import { SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { useToast } from '@/components/ui/use-toast';
+import { usersApi } from '@/lib/api';
 import type { DocumentType, PaymentMethod, PlayerCharacteristic, SportId } from '@/types';
 
 const CHARACTERISTICS_BY_SPORT: Partial<Record<SportId, PlayerCharacteristic[]>> = {
@@ -21,7 +22,7 @@ const CHARACTERISTICS_BY_SPORT: Partial<Record<SportId, PlayerCharacteristic[]>>
 };
 
 const ProfileSettings = () => {
-  const { currentUser, updateCurrentUser } = useSession();
+  const { currentUser, updateCurrentUser, token } = useSession();
   const { language, t, sportName } = useLanguage();
   const { toast } = useToast();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -104,6 +105,60 @@ const ProfileSettings = () => {
     });
   };
 
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      try {
+        const profile = await usersApi.getProfile(token);
+        if (cancelled) return;
+
+        setName(profile.name);
+        setAvatarUrl(profile.picture_url ?? profile.google_picture_url ?? '');
+        setNationality(profile.country ?? currentUser.country ?? 'BR');
+        setPhoneCountry(profile.phone_country ?? profile.country ?? currentUser.phoneCountry ?? currentUser.country ?? 'BR');
+        setPhoneNumber(profile.phone_number ?? '');
+        setDocumentType((profile.document_type as DocumentType | null) ?? 'cpf');
+        setDocumentNumber(profile.document_number ?? '');
+        setPreferredClassPaymentMethod((profile.preferred_class_payment_method as PaymentMethod | null) ?? '');
+        setSportCharacteristics((profile.sport_characteristics ?? {}) as Partial<Record<SportId, PlayerCharacteristic[]>>);
+
+        updateCurrentUser({
+          name: profile.name,
+          avatarUrl: profile.picture_url ?? profile.google_picture_url ?? undefined,
+          country: profile.country ?? undefined,
+          phoneCountry: profile.phone_country ?? undefined,
+          phoneNumber: profile.phone_number ?? undefined,
+          documentType: (profile.document_type as DocumentType | null) ?? undefined,
+          documentNumber: profile.document_number ?? undefined,
+          sportCharacteristics: (profile.sport_characteristics ?? {}) as Partial<Record<SportId, PlayerCharacteristic[]>>,
+          preferredClassPaymentMethod: (profile.preferred_class_payment_method as PaymentMethod | null) ?? undefined,
+          wins: profile.wins,
+          losses: profile.losses,
+          draws: profile.draws,
+        });
+      } catch (err) {
+        if (cancelled) return;
+        toast({
+          title: t('profileLoadError'),
+          description: err instanceof Error ? err.message : undefined,
+          variant: 'destructive',
+        });
+      }
+    };
+
+    void loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
   const handleCropSave = async () => {
     if (!cropSource || !cropFrameRef.current) return;
     const frameSize = cropFrameRef.current.getBoundingClientRect().width;
@@ -114,27 +169,81 @@ const ProfileSettings = () => {
       offsetX: cropX,
       offsetY: cropY,
     });
-    setAvatarUrl(cropped);
     setCropOpen(false);
+
+    if (token) {
+      setUploadingAvatar(true);
+      try {
+        const { url } = await usersApi.uploadAvatar(token, cropped);
+        setAvatarUrl(url);
+        updateCurrentUser({ avatarUrl: url });
+      } catch (err) {
+        toast({
+          title: t('avatarSaveError'),
+          description: err instanceof Error ? err.message : undefined,
+          variant: 'destructive',
+        });
+        setAvatarUrl(cropped);
+      } finally {
+        setUploadingAvatar(false);
+      }
+    } else {
+      setAvatarUrl(cropped);
+    }
   };
 
-  const handleSave = () => {
-    updateCurrentUser({
-      name,
-      country: nationality,
-      phoneCountry,
-      phoneNumber,
-      avatarUrl,
-      preferences: selectedSports,
-      sportCharacteristics,
-      documentType,
-      documentNumber,
-      preferredClassPaymentMethod: preferredClassPaymentMethod || undefined,
-    });
-    toast({
-      title: t('profileSaved'),
-      description: `${name} · ${getCountryLabel(nationality, language)}`,
-    });
+  const handleSave = async () => {
+    setSavingProfile(true);
+    try {
+      let profile = null;
+      if (token) {
+        profile = await usersApi.updateProfile(token, {
+          name,
+          document_type: documentType || null,
+          document_number: documentNumber || null,
+          phone_country: phoneCountry || null,
+          phone_number: phoneNumber || null,
+          country: nationality || null,
+          uniform_size: null,
+          level: null,
+          sport_characteristics: Object.keys(sportCharacteristics).length > 0
+            ? (sportCharacteristics as Record<string, string[]>)
+            : null,
+          preferred_class_payment_method: preferredClassPaymentMethod || null,
+        });
+      }
+      const nextName = profile?.name ?? name;
+      const nextCountry = profile?.country ?? nationality;
+      const nextAvatarUrl = profile?.picture_url ?? profile?.google_picture_url ?? avatarUrl;
+      const countryLabel = getCountryLabel(nextCountry || 'BR', language);
+
+      setName(nextName);
+      setAvatarUrl(nextAvatarUrl);
+      updateCurrentUser({
+        name: nextName,
+        country: nextCountry ?? undefined,
+        phoneCountry: profile?.phone_country ?? phoneCountry,
+        phoneNumber: profile?.phone_number ?? phoneNumber,
+        avatarUrl: nextAvatarUrl || undefined,
+        preferences: selectedSports,
+        sportCharacteristics,
+        documentType,
+        documentNumber,
+        preferredClassPaymentMethod: preferredClassPaymentMethod || undefined,
+        wins: profile?.wins ?? currentUser.wins,
+        losses: profile?.losses ?? currentUser.losses,
+        draws: profile?.draws ?? currentUser.draws,
+      });
+      toast({ title: t('profileSaved'), description: `${nextName} · ${countryLabel}` });
+    } catch (err) {
+      toast({
+        title: t('profileSaveError'),
+        description: err instanceof Error ? err.message : undefined,
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   const initials = name
@@ -368,9 +477,12 @@ const ProfileSettings = () => {
             <button
               type="button"
               onClick={handleSave}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110"
+              disabled={savingProfile}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110 disabled:opacity-60"
             >
-              <Save className="h-4 w-4" />
+              {savingProfile
+                ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                : <Save className="h-4 w-4" />}
             </button>
           </div>
         </section>
@@ -432,8 +544,10 @@ const ProfileSettings = () => {
             <button
               type="button"
               onClick={handleCropSave}
-              className="inline-flex items-center justify-center rounded-lg bg-gradient-primary px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] shadow-neon transition-smooth hover:brightness-110"
+              disabled={uploadingAvatar}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-primary px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] shadow-neon transition-smooth hover:brightness-110 disabled:opacity-60"
             >
+              {uploadingAvatar && <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
               {t('saveAvatar')}
             </button>
           </DialogFooter>
