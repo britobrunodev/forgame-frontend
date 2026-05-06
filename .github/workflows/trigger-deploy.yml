@@ -13,8 +13,6 @@ jobs:
       DEPLOY_REPO: britobrunodev/forgame-deploy
       FRONTEND_DEPLOY_EVENT: deploy-frontend
       FRONTEND_DEPLOY_SERVICE: forgame-frontend
-      BACKEND_DEPLOY_EVENT: deploy-backend
-      BACKEND_DEPLOY_SERVICE: forgame-backend
 
     steps:
       - name: Trigger frontend deploy repo workflow
@@ -27,20 +25,6 @@ jobs:
               "event_type": "${{ env.FRONTEND_DEPLOY_EVENT }}",
               "client_payload": {
                 "service": "${{ env.FRONTEND_DEPLOY_SERVICE }}",
-                "branch": "${{ github.ref_name }}"
-              }
-            }'
-
-      - name: Trigger backend deploy repo workflow
-        run: |
-          curl --fail -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.DEPLOY_REPO_TOKEN }}" \
-            https://api.github.com/repos/${{ env.DEPLOY_REPO }}/dispatches \
-            -d '{
-              "event_type": "${{ env.BACKEND_DEPLOY_EVENT }}",
-              "client_payload": {
-                "service": "${{ env.BACKEND_DEPLOY_SERVICE }}",
                 "branch": "${{ github.ref_name }}"
               }
             }'
