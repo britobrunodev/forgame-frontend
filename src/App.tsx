@@ -45,13 +45,11 @@ if (!GOOGLE_CLIENT_ID) {
   console.warn('VITE_GOOGLE_CLIENT_ID is not configured. Google login will be unavailable until this is set.');
 }
 
-const AppProviders = ({ children }: { children: React.ReactNode }) => {
-  if (!GOOGLE_CLIENT_ID) {
-    return <>{children}</>;
-  }
-
-  return <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>{children}</GoogleOAuthProvider>;
-};
+const AppProviders = ({ children }: { children: React.ReactNode }) => (
+  <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID || 'not-configured'}>
+    {children}
+  </GoogleOAuthProvider>
+);
 
 const App = () => (
   <AppProviders>
