@@ -45,8 +45,16 @@ if (!GOOGLE_CLIENT_ID) {
   console.warn('VITE_GOOGLE_CLIENT_ID is not configured. Google login will be unavailable until this is set.');
 }
 
+const AppProviders = ({ children }: { children: React.ReactNode }) => {
+  if (!GOOGLE_CLIENT_ID) {
+    return <>{children}</>;
+  }
+
+  return <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>{children}</GoogleOAuthProvider>;
+};
+
 const App = () => (
-  <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+  <AppProviders>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
@@ -93,7 +101,7 @@ const App = () => (
         </SessionProvider>
       </TooltipProvider>
     </QueryClientProvider>
-  </GoogleOAuthProvider>
+  </AppProviders>
 );
 
 export default App;
