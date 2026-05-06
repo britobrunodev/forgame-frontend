@@ -13,31 +13,25 @@ const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedProfiles, setSelectedProfiles] = useState<UserProfile[]>(['player']);
-
-  const toggleProfile = (profile: UserProfile) => {
-    setSelectedProfiles((current) => {
-      if (current.includes(profile)) {
-        return current.length === 1 ? current : current.filter((item) => item !== profile);
-      }
-      return [...current, profile];
-    });
-  };
+  const [selectedProfile, setSelectedProfile] = useState<UserProfile>('player');
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    const profiles: UserProfile[] = selectedProfile === 'gestor' ? ['player', 'gestor'] : ['player'];
+    const gestorRoles = selectedProfile === 'gestor' ? ['owner', 'manager', 'professor'] : [];
+
     updateCurrentUser({
       name,
       email,
-      type: selectedProfiles.includes('gestor') ? 'gestor' : 'player',
-      profiles: selectedProfiles,
-      gestorRoles: selectedProfiles.includes('gestor') ? ['owner', 'manager', 'professor'] : [],
+      type: selectedProfile,
+      profiles,
+      gestorRoles,
     });
-    setAvailableProfiles(selectedProfiles);
-    if (selectedProfiles.includes('gestor')) {
+    setAvailableProfiles(profiles);
+    if (selectedProfile === 'gestor') {
       setAvailableGestorRoles(['owner', 'manager', 'professor']);
     }
-    setActiveProfile(selectedProfiles[0] ?? 'player');
+    setActiveProfile(selectedProfile);
     navigate('/dashboard');
   };
 
@@ -51,24 +45,23 @@ const Register = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('accessProfile')}</label>
-          <p className="mb-3 text-xs text-muted-foreground">{t('accessProfileHint')}</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {profileOptions.map(({ id, icon: Icon }) => {
-              const selected = selectedProfiles.includes(id);
+              const selected = selectedProfile === id;
 
               return (
                 <button
                   key={id}
                   type="button"
-                  onClick={() => toggleProfile(id)}
-                  className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-smooth ${
+                  onClick={() => setSelectedProfile(id)}
+                  className={`flex h-10 items-center justify-center gap-2 rounded-lg border px-3 text-center text-[11px] transition-smooth ${
                     selected
                       ? 'border-primary/50 bg-primary/12 text-foreground shadow-glow'
                       : 'border-border bg-background/40 text-muted-foreground hover:border-primary/30 hover:text-foreground'
                   }`}
                 >
                   <Icon className={`h-4 w-4 ${selected ? 'text-neon-cyan' : 'text-muted-foreground'}`} />
-                  <span className="font-semibold">{userTypeLabel(id)}</span>
+                  <span className="font-semibold uppercase tracking-[0.12em]">{userTypeLabel(id)}</span>
                 </button>
               );
             })}
