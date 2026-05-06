@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 @dataclass(frozen=True, slots=True)
 class ProjectSettings:
-    app_title: str = "iScalar Joga Junto 360"
+    app_title: str = "Forgame Joga Junto 360"
     log_level: str = "INFO"
     api_version: str = "v1"
     api_prefix: str = "api"

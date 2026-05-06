@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "iscalar-joga-junto-360"
+name = "forgame-joga-junto-360"
 version = "0.1.0"
 description = ""
 authors = ["Bruno Brito <britobrunodev@gmail.com>"]
