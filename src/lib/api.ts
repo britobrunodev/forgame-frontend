@@ -1,5 +1,15 @@
 const API_BASE = import.meta.env.API_URL ?? "/api/v1";
 
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 export interface AuthUser {
   id: number;
   email: string;
@@ -71,7 +81,7 @@ const json = (token?: string) => ({
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error((body as { detail?: string }).detail ?? res.statusText);
+    throw new ApiError((body as { detail?: string }).detail ?? res.statusText, res.status);
   }
   return res.json() as Promise<T>;
 }

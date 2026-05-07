@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { CURRENT_USER } from '@/data/mock';
-import { authApi, type AuthUser } from '@/lib/api';
+import { ApiError, authApi, type AuthUser } from '@/lib/api';
 import type { GestorRole, User, UserProfile, UserRole } from '@/types';
 
 type SessionContextValue = {
@@ -74,6 +74,12 @@ const buildUserFromAuth = (authUser: AuthUser): User => {
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
+const clearStoredSession = () => {
+  [tokenStorageKey, pendingApprovalStorageKey, userStorageKey, profilesStorageKey, storageKey, gestorRolesStorageKey, gestorRoleStorageKey].forEach(
+    (key) => window.localStorage.removeItem(key),
+  );
+};
+
 export const SessionProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User>(() => {
     const stored = window.localStorage.getItem(userStorageKey);
@@ -139,6 +145,19 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
     return window.localStorage.getItem(pendingApprovalStorageKey) === 'true';
   });
 
+  const resetSession = () => {
+    clearStoredSession();
+    setToken(null);
+    setPendingApproval(false);
+    setCurrentUser(CURRENT_USER);
+    const defaultProfiles = getAvailableProfiles(CURRENT_USER);
+    setAvailableProfilesState(defaultProfiles);
+    setActiveProfileState(defaultProfiles[0] ?? 'player');
+    const defaultGestorRoles = getAvailableGestorRoles(CURRENT_USER);
+    setAvailableGestorRolesState(defaultGestorRoles);
+    setActiveGestorRoleState(defaultGestorRoles[0] ?? 'owner');
+  };
+
   useEffect(() => {
     if (!token) return;
 
@@ -172,8 +191,11 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
           }
         }
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (cancelled) return;
+        if (err instanceof ApiError && err.status === 401) {
+          resetSession();
+        }
       });
 
     return () => {
@@ -263,18 +285,7 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
         setActiveProfileState(profiles[profiles.length - 1]);
       },
       logout: () => {
-        [tokenStorageKey, pendingApprovalStorageKey, userStorageKey, profilesStorageKey, storageKey, gestorRolesStorageKey, gestorRoleStorageKey].forEach(
-          (key) => window.localStorage.removeItem(key),
-        );
-        setToken(null);
-        setPendingApproval(false);
-        setCurrentUser(CURRENT_USER);
-        const defaultProfiles = getAvailableProfiles(CURRENT_USER);
-        setAvailableProfilesState(defaultProfiles);
-        setActiveProfileState(defaultProfiles[0] ?? 'player');
-        const defaultGestorRoles = getAvailableGestorRoles(CURRENT_USER);
-        setAvailableGestorRolesState(defaultGestorRoles);
-        setActiveGestorRoleState(defaultGestorRoles[0] ?? 'owner');
+        resetSession();
       },
     }),
     [activeGestorRole, activeProfile, availableGestorRoles, availableProfiles, currentUser, token, pendingApproval],
