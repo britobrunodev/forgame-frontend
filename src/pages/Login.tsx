@@ -159,7 +159,7 @@ const Login = () => {
 
         {!googleClientIdConfigured && (
           <p className="text-center text-xs text-muted-foreground">
-            Google login is not configured yet. Set `GOOGLE_CLIENT_ID` in the frontend environment.
+            {t('googleLoginNotConfigured')}
           </p>
         )}
 
