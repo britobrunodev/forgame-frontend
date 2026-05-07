@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? '/api/v1';
+const API_BASE = import.meta.env.API_URL ?? "/api/v1";
 
 export interface AuthUser {
   id: number;
@@ -64,7 +64,7 @@ export interface AccessControlSnapshot {
 }
 
 const json = (token?: string) => ({
-  'Content-Type': 'application/json',
+  "Content-Type": "application/json",
   ...(token ? { Authorization: `Bearer ${token}` } : {}),
 });
 
@@ -140,44 +140,52 @@ export interface CreateSportComplexInput {
 
 export const sportComplexApi = {
   listAll: (token: string, page = 1, perPage = 12) =>
-    fetch(`${API_BASE}/sport-complexes/all?page=${page}&per_page=${perPage}`, { headers: json(token) }).then((r) =>
-      handle<PaginatedResponse<SportComplexData>>(r),
-    ),
+    fetch(`${API_BASE}/sport-complexes/all?page=${page}&per_page=${perPage}`, {
+      headers: json(token),
+    }).then((r) => handle<PaginatedResponse<SportComplexData>>(r)),
 
   list: (token: string, page = 1, perPage = 12) =>
-    fetch(`${API_BASE}/sport-complexes?page=${page}&per_page=${perPage}`, { headers: json(token) }).then((r) =>
-      handle<PaginatedResponse<SportComplexData>>(r),
-    ),
+    fetch(`${API_BASE}/sport-complexes?page=${page}&per_page=${perPage}`, {
+      headers: json(token),
+    }).then((r) => handle<PaginatedResponse<SportComplexData>>(r)),
 
   get: (token: string, complexId: number | string) =>
-    fetch(`${API_BASE}/sport-complexes/${complexId}`, { headers: json(token) }).then((r) =>
-      handle<SportComplexData>(r),
-    ),
+    fetch(`${API_BASE}/sport-complexes/${complexId}`, {
+      headers: json(token),
+    }).then((r) => handle<SportComplexData>(r)),
 
   create: (token: string, body: CreateSportComplexInput) =>
     fetch(`${API_BASE}/sport-complexes`, {
-      method: 'POST',
+      method: "POST",
       headers: json(token),
       body: JSON.stringify(body),
     }).then((r) => handle<SportComplexData>(r)),
 
-  update: (token: string, complexId: number | string, body: CreateSportComplexInput) =>
+  update: (
+    token: string,
+    complexId: number | string,
+    body: CreateSportComplexInput,
+  ) =>
     fetch(`${API_BASE}/sport-complexes/${complexId}`, {
-      method: 'PUT',
+      method: "PUT",
       headers: json(token),
       body: JSON.stringify(body),
     }).then((r) => handle<SportComplexData>(r)),
 
-  uploadImage: async (token: string, complexId: number | string, dataUrl: string): Promise<{ url: string }> => {
-    const [, base64] = dataUrl.split(',');
+  uploadImage: async (
+    token: string,
+    complexId: number | string,
+    dataUrl: string,
+  ): Promise<{ url: string }> => {
+    const [, base64] = dataUrl.split(",");
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    const blob = new Blob([bytes], { type: 'image/jpeg' });
+    const blob = new Blob([bytes], { type: "image/jpeg" });
     const form = new FormData();
-    form.append('file', blob, 'complex.jpg');
+    form.append("file", blob, "complex.jpg");
     const res = await fetch(`${API_BASE}/sport-complexes/${complexId}/image`, {
-      method: 'POST',
+      method: "POST",
       headers: { Authorization: `Bearer ${token}` },
       body: form,
     });
@@ -186,16 +194,19 @@ export const sportComplexApi = {
 };
 
 export const usersApi = {
-  uploadAvatar: async (token: string, dataUrl: string): Promise<{ url: string }> => {
-    const [, base64] = dataUrl.split(',');
+  uploadAvatar: async (
+    token: string,
+    dataUrl: string,
+  ): Promise<{ url: string }> => {
+    const [, base64] = dataUrl.split(",");
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    const blob = new Blob([bytes], { type: 'image/jpeg' });
+    const blob = new Blob([bytes], { type: "image/jpeg" });
     const form = new FormData();
-    form.append('file', blob, 'avatar.jpg');
+    form.append("file", blob, "avatar.jpg");
     const res = await fetch(`${API_BASE}/users/me/avatar`, {
-      method: 'POST',
+      method: "POST",
       headers: { Authorization: `Bearer ${token}` },
       body: form,
     });
@@ -209,7 +220,7 @@ export const usersApi = {
 
   updateProfile: (token: string, profile: PlayerProfileUpdateInput) =>
     fetch(`${API_BASE}/users/me/profile`, {
-      method: 'PUT',
+      method: "PUT",
       headers: json(token),
       body: JSON.stringify(profile),
     }).then((r) => handle<PlayerProfile>(r)),
@@ -223,10 +234,13 @@ export const accessControlApi = {
 
   updateAssignments: (
     token: string,
-    payload: { sport_complex_id: number; assignments: Array<{ user_id: number; role: string }> },
+    payload: {
+      sport_complex_id: number;
+      assignments: Array<{ user_id: number; role: string }>;
+    },
   ) =>
     fetch(`${API_BASE}/access-control`, {
-      method: 'PUT',
+      method: "PUT",
       headers: json(token),
       body: JSON.stringify(payload),
     }).then((r) => handle<ComplexRoleAssignment[]>(r)),
@@ -238,52 +252,58 @@ export const authApi = {
       handle<AuthUser>(r),
     ),
 
-  register: (name: string, email: string, password: string, requested_profile: 'player' | 'gestor') =>
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    requested_profile: "player" | "gestor",
+  ) =>
     fetch(`${API_BASE}/auth/register`, {
-      method: 'POST',
+      method: "POST",
       headers: json(),
       body: JSON.stringify({ name, email, password, requested_profile }),
     }).then((r) => handle<AuthResponse>(r)),
 
   emailLogin: (email: string, password: string) =>
     fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
+      method: "POST",
       headers: json(),
       body: JSON.stringify({ email, password }),
     }).then((r) => handle<AuthResponse>(r)),
 
-  googleLogin: (access_token: string, requested_profile: 'player' | 'gestor') =>
+  googleLogin: (access_token: string, requested_profile: "player" | "gestor") =>
     fetch(`${API_BASE}/auth/google`, {
-      method: 'POST',
+      method: "POST",
       headers: json(),
       body: JSON.stringify({ access_token, requested_profile }),
     }).then((r) => handle<AuthResponse>(r)),
 
   getApprovals: (token: string, page = 1, perPage = 12) =>
-    fetch(`${API_BASE}/auth/approvals?page=${page}&per_page=${perPage}`, { headers: json(token) }).then((r) =>
-      handle<PaginatedResponse<ApprovalRequest>>(r),
-    ),
+    fetch(`${API_BASE}/auth/approvals?page=${page}&per_page=${perPage}`, {
+      headers: json(token),
+    }).then((r) => handle<PaginatedResponse<ApprovalRequest>>(r)),
 
   getAllApprovals: (token: string, page = 1, perPage = 12) =>
-    fetch(`${API_BASE}/auth/approvals/history?page=${page}&per_page=${perPage}`, { headers: json(token) }).then((r) =>
-      handle<PaginatedResponse<ApprovalRequest>>(r),
-    ),
+    fetch(
+      `${API_BASE}/auth/approvals/history?page=${page}&per_page=${perPage}`,
+      { headers: json(token) },
+    ).then((r) => handle<PaginatedResponse<ApprovalRequest>>(r)),
 
   approveRequest: (token: string, requestId: number | string) =>
     fetch(`${API_BASE}/auth/approvals/${requestId}/approve`, {
-      method: 'POST',
+      method: "POST",
       headers: json(token),
     }).then((r) => handle<{ message: string }>(r)),
 
   rejectRequest: (token: string, requestId: number | string) =>
     fetch(`${API_BASE}/auth/approvals/${requestId}/reject`, {
-      method: 'POST',
+      method: "POST",
       headers: json(token),
     }).then((r) => handle<{ message: string }>(r)),
 
   revokeApproval: (token: string, requestId: number | string) =>
     fetch(`${API_BASE}/auth/approvals/${requestId}/revoke`, {
-      method: 'POST',
+      method: "POST",
       headers: json(token),
     }).then((r) => handle<{ message: string }>(r)),
 };
