@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Calendar, Clock3, MapPin, Star, Trophy } from 'lucide-react';
-import { RESERVATION_PLACES } from '@/data/mock';
-import { SportIcon } from '@/components/SportIcon';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Calendar, Clock3, Loader2, MapPin, Star, Trophy } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { sportComplexApi } from '@/lib/api';
+import { useSession } from '@/session';
 import { useLanguage } from '@/i18n';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -43,9 +43,16 @@ const getSlotPrice = (baseRate: number, slot: { start: string; end: string }) =>
 
 const ReservationDetail = () => {
   const navigate = useNavigate();
-  const { placeId } = useParams();
-  const { language, t, sportName } = useLanguage();
-  const place = RESERVATION_PLACES.find((item) => item.id === placeId);
+  const { complexId } = useParams<{ complexId: string }>();
+  const { language, t } = useLanguage();
+  const { token } = useSession();
+
+  const { data: complex, isLoading, isError } = useQuery({
+    queryKey: ['sport-complex', complexId],
+    queryFn: () => sportComplexApi.get(token!, complexId!),
+    enabled: !!token && !!complexId,
+  });
+
   const today = useMemo(() => {
     const value = new Date();
     value.setHours(0, 0, 0, 0);
@@ -62,11 +69,26 @@ const ReservationDetail = () => {
   const [selectedRange, setSelectedRange] = useState<{ courtId: string; startIndex: number; endIndex: number } | null>(null);
   const [isMonthlyRate, setIsMonthlyRate] = useState(false);
 
-  if (!place) {
-    return <div>{t('sportNotFound')}</div>;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
-  const courts = getAllCourts().filter((court) => court.complexId === place.id);
+  if (isError || !complex) {
+    return (
+      <div className="mx-auto w-full max-w-3xl space-y-4 py-16 text-center">
+        <p className="text-sm font-semibold text-muted-foreground">{t('sportNotFound')}</p>
+        <Link to="/reservations" className="inline-flex items-center gap-2 text-sm text-neon-cyan hover:underline">
+          <ArrowLeft className="h-4 w-4" /> {t('reservations')}
+        </Link>
+      </div>
+    );
+  }
+
+  const courts = getAllCourts().filter((court) => court.complexId === String(complexId));
   const selectedCourt = courts.find((court) => court.id === selectedRange?.courtId) ?? null;
   const selectedRangeSlots = selectedRange && selectedCourt
     ? selectedCourt.slotOptions.slice(selectedRange.startIndex, selectedRange.endIndex + 1)
@@ -76,7 +98,7 @@ const ReservationDetail = () => {
   const selectedDuration = selectedRange
     ? `${selectedRangeSlots.reduce((sum, slot) => sum + Math.max((timeToMinutes(slot.end) - timeToMinutes(slot.start)) / 60, 0), 0)}h`
     : '-';
-  const pricingRules = getComplexPreference(place.id).pricingRules;
+  const pricingRules = getComplexPreference(String(complexId)).pricingRules;
   const overrideRateByCourtId = Object.fromEntries(
     courts.map((court) => {
       const matchingRule = pricingRules.find((rule) => (
@@ -105,52 +127,35 @@ const ReservationDetail = () => {
       <section className="overflow-hidden rounded-[2rem] border border-border bg-gradient-card shadow-card">
         <div className="grid gap-0 lg:h-[320px] lg:grid-cols-[1.2fr_0.8fr]">
           <div className="relative h-64 overflow-hidden bg-secondary lg:h-full">
-            {place.image ? (
-              <img src={place.image} alt={place.name} className="absolute inset-0 h-full w-full object-cover" />
+            {complex.image_url ? (
+              <img
+                src={complex.image_url}
+                alt={complex.name}
+                className="absolute inset-0 h-full w-full object-cover"
+                style={{ objectPosition: `center calc(50% + ${complex.image_offset_y ?? 0}px)` }}
+              />
             ) : (
               <div className="absolute inset-0 hex-grid opacity-30" />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/35 to-background/10" />
-            <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
-              {place.sports.map((sportId) => (
-                <span key={sportId} className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-background/60 px-2 py-1 text-xs font-bold uppercase tracking-wider backdrop-blur-md">
-                  <SportIcon sportId={sportId} className="h-3.5 w-3.5" />
-                  {sportName(sportId)}
-                </span>
-              ))}
-            </div>
           </div>
 
           <div className="flex h-full min-h-[260px] flex-col justify-center overflow-hidden p-5 sm:min-h-[280px] sm:p-6 lg:min-h-0">
+            <Link
+              to="/reservations"
+              className="mb-3 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground transition-smooth hover:text-foreground"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              {t('reservations')}
+            </Link>
             <p className="font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('reservationFlow')}</p>
-            <h1 className="font-display text-2xl font-black leading-tight sm:text-3xl">{place.name}</h1>
+            <h1 className="font-display text-2xl font-black leading-tight sm:text-3xl">{complex.name}</h1>
             <p className="text-sm text-muted-foreground">{t('reserveCourtDescription')}</p>
 
-            <div className="mt-2 mb-5">
-              <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{t('changeArena')}</div>
-              <Select
-                value={place.id}
-                onValueChange={(value) => {
-                  setSelectedRange(null);
-                  navigate(`/reservations/${value}`);
-                }}
-              >
-                <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                  {RESERVATION_PLACES.map((reservationPlace) => (
-                    <SelectItem key={reservationPlace.id} value={reservationPlace.id}>
-                      {reservationPlace.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3 text-sm">
-              <InfoRow icon={<MapPin className="h-4 w-4 text-neon-cyan" />} value={`${place.city} · ${place.courts} ${t('courts')}`} />
-              <InfoRow icon={<Star className="h-4 w-4 text-neon-cyan" />} value={`${place.rating} / 5.0`} />
+            <div className="mt-4 space-y-3 text-sm">
+              {complex.city && (
+                <InfoRow icon={<MapPin className="h-4 w-4 text-neon-cyan" />} value={complex.city} />
+              )}
               <InfoRow icon={<Calendar className="h-4 w-4 text-neon-cyan" />} value={formattedDate} />
             </div>
           </div>
@@ -280,18 +285,16 @@ const ReservationDetail = () => {
                                 return { courtId: court.id, startIndex: slotIndex, endIndex: slotIndex };
                               }
 
-                              const [fromIndex, toIndex] = current.startIndex <= slotIndex ? [current.startIndex, slotIndex] : [slotIndex, current.startIndex];
+                              const [fromIndex, toIndex] = current.startIndex <= slotIndex
+                                ? [current.startIndex, slotIndex]
+                                : [slotIndex, current.startIndex];
                               const rangeSlots = court.slotOptions.slice(fromIndex, toIndex + 1);
 
                               if (rangeSlots.some((time) => reservedTimes.has(time.start))) {
                                 return { courtId: court.id, startIndex: slotIndex, endIndex: slotIndex };
                               }
 
-                              return {
-                                courtId: court.id,
-                                startIndex: fromIndex,
-                                endIndex: toIndex,
-                              };
+                              return { courtId: court.id, startIndex: fromIndex, endIndex: toIndex };
                             });
                           }}
                           className={`rounded-xl px-3 py-3 text-sm font-semibold transition-smooth ${
@@ -313,12 +316,19 @@ const ReservationDetail = () => {
                     })}
                   </div>
 
-                  {reservedTimes.size === court.slotOptions.length ? (
+                  {reservedTimes.size === court.slotOptions.length && (
                     <p className="mt-4 text-sm text-muted-foreground">{t('noAvailableSlots')}</p>
-                  ) : null}
+                  )}
                 </article>
               );
             })}
+
+            {courts.length === 0 && (
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card/40 py-16 text-center">
+                <Star className="mb-3 h-8 w-8 text-muted-foreground/40" />
+                <p className="text-sm font-semibold text-muted-foreground">{t('noAvailableSlots')}</p>
+              </div>
+            )}
           </div>
         </section>
 
@@ -329,7 +339,7 @@ const ReservationDetail = () => {
               <h2 className="font-display text-sm font-bold uppercase tracking-[0.2em]">{t('bookingSummary')}</h2>
             </div>
             <div className="space-y-3 text-sm">
-              <SummaryRow label={t('sportComplex')} value={place.name} />
+              <SummaryRow label={t('sportComplex')} value={complex.name} />
               <SummaryRow label={t('selectedCourt')} value={selectedCourt?.name ?? '-'} />
               <SummaryRow label={t('dimensions')} value={selectedCourt?.dimensions ?? '-'} />
               <SummaryRow label={t('selectDateLabel')} value={formattedDate} />
@@ -354,10 +364,10 @@ const ReservationDetail = () => {
                     title: t('paymentTitle'),
                     description: t('paymentDescription'),
                     amount: formattedTotal,
-                    complexId: place.id,
-                    backTo: `/reservations/${place.id}`,
+                    complexId,
+                    backTo: `/reservations/complexes/${complexId}`,
                     summary: [
-                      { label: t('sportComplex'), value: place.name },
+                      { label: t('sportComplex'), value: complex.name },
                       { label: t('selectedCourt'), value: selectedCourt.name },
                       { label: t('dimensions'), value: selectedCourt.dimensions },
                       { label: t('selectDateLabel'), value: formattedDate },

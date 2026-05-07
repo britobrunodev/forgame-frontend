@@ -20,6 +20,7 @@ const EMPTY_ROLES: AssignedRoles = {
 };
 
 const ROLE_ORDER: AssignableRole[] = ['owner', 'manager', 'professor', 'scorer'];
+const EXCLUSIVE_ROLES: AssignableRole[] = ['manager', 'professor', 'scorer'];
 
 export const StaffAccessManager = ({
   adminOnly = false,
@@ -39,6 +40,7 @@ export const StaffAccessManager = ({
   const [saving, setSaving] = useState(false);
   const [snapshot, setSnapshot] = useState<AccessControlSnapshot | null>(null);
   const [assignmentsByComplex, setAssignmentsByComplex] = useState<Record<string, Record<string, AssignedRoles>>>({});
+  const PAGE_SIZE = 12;
 
   const canView = adminOnly ? currentUser.isAdmin : (currentUser.isAdmin || currentUser.roles?.includes('owner'));
 
@@ -49,11 +51,16 @@ export const StaffAccessManager = ({
 
     const load = async () => {
       try {
-        const data = await accessControlApi.getSnapshot(token);
+        const data = await accessControlApi.getSnapshot(token, page, PAGE_SIZE, searchQuery);
         if (cancelled) return;
 
         setSnapshot(data);
-        setAssignmentsByComplex(buildAssignmentsIndex(data.assignments));
+        setAssignmentsByComplex((current) => {
+          const nextAssignments = buildAssignmentsIndex(data.assignments);
+          return Object.keys(current).length > 0
+            ? { ...nextAssignments, ...current }
+            : nextAssignments;
+        });
         setSelectedComplexId((current) => current || String(data.complexes[0]?.id ?? ''));
       } catch (err) {
         if (cancelled) return;
@@ -69,7 +76,7 @@ export const StaffAccessManager = ({
     return () => {
       cancelled = true;
     };
-  }, [token, canView]);
+  }, [token, canView, page, searchQuery]);
 
   const allowedRoles = useMemo(
     () => (snapshot?.assignable_roles ?? []).filter((role): role is AssignableRole => ROLE_ORDER.includes(role as AssignableRole)),
@@ -78,23 +85,12 @@ export const StaffAccessManager = ({
 
   const users = snapshot?.users ?? [];
   const complexes = snapshot?.complexes ?? [];
-
-  const filteredUsers = useMemo(
-    () => users.filter((user) => {
-      const query = searchQuery.trim().toLowerCase();
-      if (!query) return true;
-      return user.name.toLowerCase().includes(query) || user.email.toLowerCase().includes(query);
-    }),
-    [users, searchQuery],
-  );
-
-  const PAGE_SIZE = 12;
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
-  const pagedUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = snapshot?.total_pages ?? 1;
+  const totalUsers = snapshot?.total ?? 0;
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, selectedComplexId]);
+  }, [searchQuery]);
 
   const toggleRole = (userId: string, role: AssignableRole) => {
     if (!selectedComplexId) return;
@@ -105,12 +101,10 @@ export const StaffAccessManager = ({
       const nextValue = !existing[role];
       const nextRoles: AssignedRoles = { ...EMPTY_ROLES, ...existing, [role]: nextValue };
 
-      if (role === 'owner' && nextValue) {
-        nextRoles.manager = false;
-        nextRoles.professor = false;
-        nextRoles.scorer = false;
-      } else if (role !== 'owner' && nextValue) {
-        nextRoles.owner = false;
+      if (nextValue && EXCLUSIVE_ROLES.includes(role)) {
+        for (const other of EXCLUSIVE_ROLES) {
+          if (other !== role) nextRoles[other] = false;
+        }
       }
 
       return {
@@ -215,7 +209,7 @@ export const StaffAccessManager = ({
             <Building2 className="mx-auto h-10 w-10 text-muted-foreground/30" />
             <p className="mt-3 text-sm text-muted-foreground">{t('noSportComplexesDescription')}</p>
           </div>
-        ) : filteredUsers.length === 0 ? (
+        ) : users.length === 0 ? (
           <div className="rounded-2xl border border-border bg-background/25 p-10 text-center">
             <Users className="mx-auto h-10 w-10 text-muted-foreground/30" />
             <p className="mt-3 text-sm text-muted-foreground">{t('noUsersFound')}</p>
@@ -223,7 +217,7 @@ export const StaffAccessManager = ({
         ) : (
           <>
             <div className="space-y-3 md:hidden">
-              {pagedUsers.map((user) => {
+              {users.map((user) => {
                 const complexName = complexes.find((complex) => String(complex.id) === selectedComplexId)?.name ?? '-';
                 const assignment = assignmentsByComplex[selectedComplexId]?.[user.id] ?? EMPTY_ROLES;
                 const activeRoles = ROLE_ORDER.filter((role) => assignment[role]);
@@ -241,9 +235,6 @@ export const StaffAccessManager = ({
                       <span className="truncate">{complexName}</span>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2 border-t border-border/60 pt-3">
-                      {allowedRoles.includes('owner') ? (
-                        <RoleChipToggle active={assignment.owner} icon={<Building2 className="h-3.5 w-3.5" />} label={t('courtOwner')} tone="violet" onClick={() => toggleRole(user.id, 'owner')} />
-                      ) : null}
                       {allowedRoles.includes('professor') ? (
                         <RoleChipToggle active={assignment.professor} icon={<GraduationCap className="h-3.5 w-3.5" />} label={t('professor')} tone="cyan" onClick={() => toggleRole(user.id, 'professor')} />
                       ) : null}
@@ -276,7 +267,7 @@ export const StaffAccessManager = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {pagedUsers.map((user) => {
+                  {users.map((user) => {
                     const assignment = assignmentsByComplex[selectedComplexId]?.[user.id] ?? EMPTY_ROLES;
                     const activeRoles = ROLE_ORDER.filter((role) => assignment[role]);
                     const complexName = complexes.find((complex) => String(complex.id) === selectedComplexId)?.name ?? '-';
@@ -291,9 +282,6 @@ export const StaffAccessManager = ({
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2">
-                            {allowedRoles.includes('owner') ? (
-                              <RoleIconToggle active={assignment.owner} icon={<Building2 className="h-4 w-4" />} tone="violet" title={t('courtOwner')} onClick={() => toggleRole(user.id, 'owner')} />
-                            ) : null}
                             {allowedRoles.includes('professor') ? (
                               <RoleIconToggle active={assignment.professor} icon={<GraduationCap className="h-4 w-4" />} tone="cyan" title={t('professor')} onClick={() => toggleRole(user.id, 'professor')} />
                             ) : null}
@@ -317,16 +305,29 @@ export const StaffAccessManager = ({
           </>
         )}
 
-        {filteredUsers.length > 0 && selectedComplexId ? (
+        {users.length > 0 && selectedComplexId ? (
           <div className="mt-5 flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <button type="button" disabled={page === 1} onClick={() => setPage((current) => current - 1)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary">
+              <button
+                type="button"
+                onClick={() => setPage((current) => current - 1)}
+                disabled={page <= 1}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+                aria-label="Página anterior"
+              >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
-              <button type="button" disabled={page === totalPages} onClick={() => setPage((current) => current + 1)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary">
+              <button
+                type="button"
+                onClick={() => setPage((current) => current + 1)}
+                disabled={page >= totalPages}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+                aria-label="Próxima página"
+              >
                 <ChevronRight className="h-4 w-4" />
               </button>
+              <span className="ml-2 text-xs text-muted-foreground">{totalUsers} {t('users').toLowerCase()}</span>
             </div>
             <button type="button" onClick={handleSave} disabled={saving} title={t('saveChanges')} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110 disabled:opacity-60">
               <Save className="h-4 w-4" />

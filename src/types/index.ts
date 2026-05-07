@@ -227,6 +227,7 @@ export interface User {
   documentNumber?: string;
   uniformSize?: UniformSize;
   preferredClassPaymentMethod?: PaymentMethod;
+  preferredComplexes?: number[];
 }
 
 export interface ManagedPlayer {

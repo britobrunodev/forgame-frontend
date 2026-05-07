@@ -90,7 +90,7 @@ export const BackgroundUploadField = ({
           }
         }}
         className={[
-          'group relative flex h-28 w-full items-center justify-center overflow-hidden rounded-2xl',
+          'group relative flex aspect-[3/2] w-full items-center justify-center overflow-hidden rounded-2xl',
           'border border-dashed border-primary/35 bg-background/35 transition-smooth',
           'hover:border-primary/55 hover:bg-background/50',
           image ? 'cursor-grab active:cursor-grabbing select-none' : '',
@@ -105,7 +105,7 @@ export const BackgroundUploadField = ({
               draggable={false}
               onLoad={(e) => setImgNaturalSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
               className="absolute inset-0 h-full w-full object-cover pointer-events-none"
-              style={{ objectPosition: `center calc(50% + ${offsetY}px)` }}
+              style={{ objectPosition: `center calc(50% + ${clampedOffsetY(offsetY, imgNaturalSize, containerRef.current)}px)` }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent pointer-events-none" />
             <div className="relative flex items-center gap-1.5 rounded-full border border-primary/30 bg-background/80 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-primary-glow backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity">
@@ -150,3 +150,17 @@ export const backgroundPreviewStyle = (image: string, offsetY: number) => ({
 });
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+function clampedOffsetY(
+  offsetY: number,
+  naturalSize: { w: number; h: number } | null,
+  container: HTMLElement | null,
+): number {
+  if (!naturalSize || !container) return offsetY;
+  const cW = container.clientWidth;
+  const cH = container.clientHeight;
+  if (!cW || !cH) return offsetY;
+  const scale = Math.max(cW / naturalSize.w, cH / naturalSize.h);
+  const maxOff = Math.max(0, (naturalSize.h * scale - cH) / 2);
+  return clamp(offsetY, -maxOff, maxOff);
+}

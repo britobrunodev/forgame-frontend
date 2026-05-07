@@ -49,7 +49,7 @@ const SportComplexesManagement = () => {
         </div>
         <button
           type="button"
-          onClick={() => navigate('/management/complexs/new')}
+          onClick={() => navigate('/management/complexes/new')}
           title={t('createSportComplex')}
           className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
         >
@@ -66,27 +66,40 @@ const SportComplexesManagement = () => {
           <div className="space-y-3 md:hidden">
             {complexes.map((complex) => (
               <article key={complex.id} className="rounded-2xl border border-border bg-background/40 p-4">
-                <div className="space-y-2">
-                  <div className="font-display text-base font-bold text-foreground">{complex.name}</div>
-                  <div className="text-sm text-muted-foreground">{buildComplexAddress(complex) || '-'}</div>
-                  <div className="text-sm text-muted-foreground">{complex.city || '-'}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {complex.country ? getCountryLabel(complex.country, language) : '-'}
+                <div className="mb-3 flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="truncate font-display text-sm font-bold uppercase tracking-[0.12em] text-foreground">{complex.name}</div>
+                    {buildComplexAddress(complex) && (
+                      <div className="mt-1 truncate text-xs text-muted-foreground">{buildComplexAddress(complex)}</div>
+                    )}
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] ${complex.is_active ? 'bg-live/10 text-live' : 'bg-muted/60 text-muted-foreground'}`}>
+                    {complex.is_active ? t('active') : t('inactive')}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <div>
+                    <span className="font-semibold uppercase tracking-[0.1em] text-muted-foreground/60">{t('city')}</span>
+                    <div className="mt-0.5 truncate">{complex.city || '-'}</div>
+                  </div>
+                  <div>
+                    <span className="font-semibold uppercase tracking-[0.1em] text-muted-foreground/60">{t('country')}</span>
+                    <div className="mt-0.5 truncate">{complex.country ? getCountryLabel(complex.country, language) : '-'}</div>
                   </div>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-3">
+                <div className="mt-4 flex gap-2 border-t border-border/50 pt-3">
                   <button
                     type="button"
-                    onClick={() => navigate(`/management/complexs/${complex.id}/edit`)}
-                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+                    onClick={() => navigate(`/management/complexes/${complex.id}/edit`)}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
                   >
                     <Pencil className="h-4 w-4" />
                     {t('edit')}
                   </button>
                   <button
                     type="button"
-                    onClick={() => navigate(`/management/complexs/${complex.id}/preferences`)}
-                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+                    onClick={() => navigate(`/management/complexes/${complex.id}/preferences`)}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
                   >
                     <SlidersHorizontal className="h-4 w-4" />
                     {t('preferences')}
@@ -120,7 +133,7 @@ const SportComplexesManagement = () => {
                   <div className="flex justify-end gap-3">
                     <button
                       type="button"
-                      onClick={() => navigate(`/management/complexs/${complex.id}/edit`)}
+                      onClick={() => navigate(`/management/complexes/${complex.id}/edit`)}
                       className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
                     >
                       <Pencil className="h-4 w-4" />
@@ -128,7 +141,7 @@ const SportComplexesManagement = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => navigate(`/management/complexs/${complex.id}/preferences`)}
+                      onClick={() => navigate(`/management/complexes/${complex.id}/preferences`)}
                       className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
                     >
                       <SlidersHorizontal className="h-4 w-4" />
@@ -139,8 +152,7 @@ const SportComplexesManagement = () => {
               ))}
             </div>
           </div>
-          <div className="mt-5 flex items-center justify-end gap-2">
-            <span className="mr-2 text-xs text-muted-foreground">{totalItems} itens</span>
+          <div className="mt-5 flex items-center justify-start gap-2">
             <button
               type="button"
               onClick={() => setPage(page - 1)}
@@ -160,6 +172,7 @@ const SportComplexesManagement = () => {
             >
               <ChevronRight className="h-4 w-4" />
             </button>
+            <span className="ml-2 text-xs text-muted-foreground">{totalItems} itens</span>
           </div>
         </div>
       ) : (

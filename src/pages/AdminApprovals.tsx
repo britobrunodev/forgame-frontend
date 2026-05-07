@@ -196,31 +196,27 @@ const AdminApprovals = () => {
           ))}
         </div>
       )}
-      {totalPages > 1 ? (
-        <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => setPage(page - 1)}
-            disabled={page <= 1}
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-background/40 px-3 py-2 text-sm font-semibold text-muted-foreground transition-smooth hover:border-primary/30 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Anterior
-          </button>
-          <span className="text-sm text-muted-foreground">
-            {page} / {totalPages}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPage(page + 1)}
-            disabled={page >= totalPages}
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-background/40 px-3 py-2 text-sm font-semibold text-muted-foreground transition-smooth hover:border-primary/30 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Próxima
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      ) : null}
+      <div className="flex items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => setPage(page - 1)}
+          disabled={page <= 1}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+          aria-label="Página anterior"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
+        <button
+          type="button"
+          onClick={() => setPage(page + 1)}
+          disabled={page >= totalPages}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+          aria-label="Próxima página"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   );
 };

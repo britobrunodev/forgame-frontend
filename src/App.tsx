@@ -73,7 +73,7 @@ const App = () => (
                 <Route path="/championships/:id/register" element={<ChampionshipRegistration />} />
                 <Route path="/reservations" element={<Reservations />} />
                 <Route path="/reservations/classes" element={<ClassSchedule />} />
-                <Route path="/reservations/:placeId" element={<ReservationDetail />} />
+                <Route path="/reservations/complexes/:complexId" element={<ReservationDetail />} />
                 <Route path="/payment" element={<Payment />} />
                 <Route path="/sports/:sportId" element={<SportPage />} />
                 <Route path="/schedule" element={<Schedule />} />
@@ -92,10 +92,10 @@ const App = () => (
                 <Route path="/admin/access" element={<ManagementAdminAccess />} />
                 <Route path="/admin/approvals" element={<AdminApprovals />} />
                 <Route path="/management/payments" element={<ManagementPayments />} />
-                <Route path="/management/complexs" element={<SportComplexesManagement />} />
-                <Route path="/management/complexs/new" element={<SportComplexSettings />} />
-                <Route path="/management/complexs/:complexId/edit" element={<SportComplexSettings />} />
-                <Route path="/management/complexs/:complexId/preferences" element={<ComplexPreferences />} />
+                <Route path="/management/complexes" element={<SportComplexesManagement />} />
+                <Route path="/management/complexes/new" element={<SportComplexSettings />} />
+                <Route path="/management/complexes/:complexId/edit" element={<SportComplexSettings />} />
+                <Route path="/management/complexes/:complexId/preferences" element={<ComplexPreferences />} />
                 <Route path="/management/students" element={<StudentsManagement />} />
                 <Route path="/settings" element={<TournamentSettings />} />
               </Route>

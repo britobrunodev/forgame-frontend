@@ -179,34 +179,21 @@ export const TopBar = () => {
                         </NavLink>
 
                         {currentUser.isAdmin ? (
-                          <>
-                            <NavLink
-                              to="/admin/access"
-                              onClick={closeMobileMenu}
-                              className={({ isActive }) =>
-                                `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                                }`
-                              }
-                            >
-                              <ShieldCheck className="h-4 w-4 shrink-0 text-violet-300" />
-                              <span className="truncate">{t('admin')}</span>
-                            </NavLink>
-                            <NavLink
-                              to="/admin/approvals"
-                              onClick={closeMobileMenu}
-                              className={({ isActive }) =>
-                                `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                                }`
-                              }
-                            >
-                              <ClipboardList className="h-4 w-4 shrink-0 text-violet-300" />
-                              <span className="truncate">{t('approvals')}</span>
-                            </NavLink>
-                          </>
+                          <NavLink
+                            to="/admin/approvals"
+                            onClick={closeMobileMenu}
+                            className={({ isActive }) =>
+                              `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                              }`
+                            }
+                          >
+                            <ClipboardList className="h-4 w-4 shrink-0 text-violet-300" />
+                            <span className="truncate">{t('approvals')}</span>
+                          </NavLink>
                         ) : null}
 
                         <NavLink
-                          to="/management/complexs"
+                          to="/management/complexes"
                           onClick={closeMobileMenu}
                           className={({ isActive }) =>
                             `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
@@ -234,19 +221,6 @@ export const TopBar = () => {
                   </>
                 )}
 
-                {currentUser.isAdmin && !isGestorMode ? (
-                  <NavLink
-                    to="/admin/access"
-                    onClick={closeMobileMenu}
-                    className={({ isActive }) =>
-                      `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                      }`
-                    }
-                  >
-                    <ShieldCheck className="h-4 w-4 shrink-0 text-violet-300" />
-                    <span className="truncate">{t('admin')}</span>
-                  </NavLink>
-                ) : null}
               </div>
 
               <div className="px-3 pt-6 pb-2 text-[10px] font-display font-bold tracking-[0.25em] text-muted-foreground">

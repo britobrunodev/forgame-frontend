@@ -71,6 +71,10 @@ export interface AccessControlSnapshot {
   users: AccessControlUser[];
   assignments: ComplexRoleAssignment[];
   assignable_roles: string[];
+  page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
 }
 
 const json = (token?: string) => ({
@@ -100,6 +104,7 @@ export interface PlayerProfile {
   uniform_size: string | null;
   level: string | null;
   preferred_sports: string[] | null;
+  preferred_complexes: number[] | null;
   wins: number;
   losses: number;
   draws: number;
@@ -119,6 +124,7 @@ export interface PlayerProfileUpdateInput {
   uniform_size: string | null;
   level: string | null;
   preferred_sports: string[] | null;
+  preferred_complexes: number[] | null;
   sport_characteristics: Record<string, string[]> | null;
   preferred_class_payment_method: string | null;
 }
@@ -129,6 +135,7 @@ export interface SportComplexData {
   name: string;
   city: string | null;
   country: string | null;
+  neighborhood: string | null;
   zip_code: string | null;
   street: string | null;
   address_number: string | null;
@@ -141,6 +148,7 @@ export interface CreateSportComplexInput {
   name: string;
   city?: string | null;
   country?: string | null;
+  neighborhood?: string | null;
   zip_code?: string | null;
   street?: string | null;
   address_number?: string | null;
@@ -150,22 +158,22 @@ export interface CreateSportComplexInput {
 
 export const sportComplexApi = {
   listAll: (token: string, page = 1, perPage = 12) =>
-    fetch(`${API_BASE}/sport-complexes/all?page=${page}&per_page=${perPage}`, {
+    fetch(`${API_BASE}/complexes/all?page=${page}&per_page=${perPage}`, {
       headers: json(token),
     }).then((r) => handle<PaginatedResponse<SportComplexData>>(r)),
 
   list: (token: string, page = 1, perPage = 12) =>
-    fetch(`${API_BASE}/sport-complexes?page=${page}&per_page=${perPage}`, {
+    fetch(`${API_BASE}/complexes?page=${page}&per_page=${perPage}`, {
       headers: json(token),
     }).then((r) => handle<PaginatedResponse<SportComplexData>>(r)),
 
   get: (token: string, complexId: number | string) =>
-    fetch(`${API_BASE}/sport-complexes/${complexId}`, {
+    fetch(`${API_BASE}/complexes/${complexId}`, {
       headers: json(token),
     }).then((r) => handle<SportComplexData>(r)),
 
   create: (token: string, body: CreateSportComplexInput) =>
-    fetch(`${API_BASE}/sport-complexes`, {
+    fetch(`${API_BASE}/complexes`, {
       method: "POST",
       headers: json(token),
       body: JSON.stringify(body),
@@ -176,11 +184,16 @@ export const sportComplexApi = {
     complexId: number | string,
     body: CreateSportComplexInput,
   ) =>
-    fetch(`${API_BASE}/sport-complexes/${complexId}`, {
+    fetch(`${API_BASE}/complexes/${complexId}`, {
       method: "PUT",
       headers: json(token),
       body: JSON.stringify(body),
     }).then((r) => handle<SportComplexData>(r)),
+
+  search: (token: string, q = '', limit = 20) =>
+    fetch(`${API_BASE}/complexes/search?q=${encodeURIComponent(q)}&limit=${limit}`, {
+      headers: json(token),
+    }).then((r) => handle<Array<{ id: number; name: string; city: string | null }>>(r)),
 
   uploadImage: async (
     token: string,
@@ -194,7 +207,7 @@ export const sportComplexApi = {
     const blob = new Blob([bytes], { type: "image/jpeg" });
     const form = new FormData();
     form.append("file", blob, "complex.jpg");
-    const res = await fetch(`${API_BASE}/sport-complexes/${complexId}/image`, {
+    const res = await fetch(`${API_BASE}/complexes/${complexId}/image`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
       body: form,
@@ -237,8 +250,16 @@ export const usersApi = {
 };
 
 export const accessControlApi = {
-  getSnapshot: (token: string) =>
-    fetch(`${API_BASE}/access-control`, { headers: json(token) }).then((r) =>
+  getSnapshot: (
+    token: string,
+    page = 1,
+    perPage = 12,
+    search = '',
+  ) =>
+    fetch(
+      `${API_BASE}/access-control?page=${page}&per_page=${perPage}&search=${encodeURIComponent(search)}`,
+      { headers: json(token) },
+    ).then((r) =>
       handle<AccessControlSnapshot>(r),
     ),
 

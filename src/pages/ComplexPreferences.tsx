@@ -142,7 +142,7 @@ const ComplexPreferences = () => {
       <header className="flex items-center gap-4">
         <button
           type="button"
-          onClick={() => navigate('/management/complexs')}
+          onClick={() => navigate('/management/complexes')}
           className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />

@@ -120,18 +120,6 @@ export const Sidebar = () => {
                   {t('users')}
                 </NavLink>
                 <NavLink
-                  to="/management/approvals"
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
-                      ? 'bg-sidebar-accent text-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                    }`
-                  }
-                >
-                  <ShieldCheck className="h-4 w-4 text-neon-cyan" />
-                  {t('approvals')}
-                </NavLink>
-                <NavLink
                   to="/management/payments"
                   className={({ isActive }) =>
                     `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
@@ -144,7 +132,7 @@ export const Sidebar = () => {
                   {t('managementPayments')}
                 </NavLink>
                 <NavLink
-                  to="/management/complexs"
+                  to="/management/complexes"
                   className={({ isActive }) =>
                     `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
                       ? 'bg-sidebar-accent text-foreground'
@@ -175,18 +163,6 @@ export const Sidebar = () => {
             </button>
             {adminOpen && (
               <div className="ml-3 space-y-1 border-l border-border pl-3">
-                <NavLink
-                  to="/admin/access"
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
-                      ? 'bg-sidebar-accent text-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                    }`
-                  }
-                >
-                  <Users className="h-4 w-4 text-violet-300" />
-                  {t('users')}
-                </NavLink>
                 <NavLink
                   to="/admin/approvals"
                   className={({ isActive }) =>

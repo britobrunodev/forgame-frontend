@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Camera, Phone, Save, ShieldCheck, Trophy } from 'lucide-react';
+import { Camera, ChevronDown, MapPin, Phone, Save, ShieldCheck, Trophy } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CountrySelect } from '@/components/CountrySelect';
 import { DragSelectField } from '@/components/DragSelectField';
@@ -13,7 +16,7 @@ import { SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { useToast } from '@/components/ui/use-toast';
-import { usersApi } from '@/lib/api';
+import { sportComplexApi, usersApi } from '@/lib/api';
 import type { DocumentType, PaymentMethod, PlayerCharacteristic, PlayerLevel, SportId, UniformSize } from '@/types';
 
 const CHARACTERISTICS_BY_SPORT: Partial<Record<SportId, PlayerCharacteristic[]>> = {
@@ -49,6 +52,11 @@ const ProfileSettings = () => {
   const [preferredClassPaymentMethod, setPreferredClassPaymentMethod] = useState<PaymentMethod | ''>(
     currentUser.preferredClassPaymentMethod ?? '',
   );
+  const [preferredComplexIds, setPreferredComplexIds] = useState<number[]>(currentUser.preferredComplexes ?? []);
+  const [complexCache, setComplexCache] = useState<Record<number, { name: string; city: string | null }>>({});
+  const [searchResults, setSearchResults] = useState<Array<{ id: number; name: string; city: string | null }>>([]);
+  const [comboOpen, setComboOpen] = useState(false);
+  const [comboQuery, setComboQuery] = useState('');
   const [cropSource, setCropSource] = useState('');
   const [cropImageSize, setCropImageSize] = useState({ width: 1, height: 1 });
   const [cropPreviewSize, setCropPreviewSize] = useState(320);
@@ -69,12 +77,29 @@ const ProfileSettings = () => {
     preferredClassPaymentMethod: currentUser.preferredClassPaymentMethod ?? '',
     selectedSports: currentUser.preferences,
     sportCharacteristics: currentUser.sportCharacteristics ?? {},
+    preferredComplexIds: currentUser.preferredComplexes ?? [],
   }));
 
   const availableSports = useMemo(
     () => SPORTS.map((sport) => sport.id).filter((sportId) => !selectedSports.includes(sportId)),
     [selectedSports],
   );
+
+  useEffect(() => {
+    if (!token) return;
+    const delay = comboQuery ? 300 : 0;
+    const timer = setTimeout(() => {
+      sportComplexApi.search(token, comboQuery, 50).then((results) => {
+        setSearchResults(results);
+        setComplexCache((prev) => {
+          const next = { ...prev };
+          for (const r of results) next[r.id] = { name: r.name, city: r.city };
+          return next;
+        });
+      }).catch(() => {});
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [comboQuery, token]);
 
   useEffect(() => {
     setSportCharacteristics((current) => {
@@ -141,6 +166,7 @@ const ProfileSettings = () => {
     preferredClassPaymentMethod,
     selectedSports,
     sportCharacteristics,
+    preferredComplexIds,
   }), [
     name,
     nickname,
@@ -154,6 +180,7 @@ const ProfileSettings = () => {
     preferredClassPaymentMethod,
     selectedSports,
     sportCharacteristics,
+    preferredComplexIds,
   ]);
   const hasUnsavedChanges = currentProfileState !== lastSavedState;
 
@@ -182,6 +209,7 @@ const ProfileSettings = () => {
         const nextSelectedSports = (profile.preferred_sports ?? []) as SportId[];
         setSportCharacteristics(nextSportCharacteristics);
         setSelectedSports(nextSelectedSports);
+        setPreferredComplexIds(profile.preferred_complexes ?? []);
         setLastSavedState(serializeProfileState({
           name: profile.name,
           nickname: profile.nickname ?? '',
@@ -195,6 +223,7 @@ const ProfileSettings = () => {
           preferredClassPaymentMethod: (profile.preferred_class_payment_method as PaymentMethod | null) ?? '',
           selectedSports: nextSelectedSports,
           sportCharacteristics: nextSportCharacteristics,
+          preferredComplexIds: profile.preferred_complexes ?? [],
         }));
 
         updateCurrentUser({
@@ -211,6 +240,7 @@ const ProfileSettings = () => {
           preferences: nextSelectedSports,
           sportCharacteristics: nextSportCharacteristics,
           preferredClassPaymentMethod: (profile.preferred_class_payment_method as PaymentMethod | null) ?? undefined,
+          preferredComplexes: profile.preferred_complexes?.length ? profile.preferred_complexes : undefined,
           wins: profile.wins,
           losses: profile.losses,
           draws: profile.draws,
@@ -289,6 +319,7 @@ const ProfileSettings = () => {
             ? (sportCharacteristics as Record<string, string[]>)
             : null,
           preferred_class_payment_method: preferredClassPaymentMethod || null,
+          preferred_complexes: preferredComplexIds.length > 0 ? preferredComplexIds : null,
         });
       }
       const nextName = profile?.name ?? name;
@@ -324,6 +355,7 @@ const ProfileSettings = () => {
         preferredClassPaymentMethod: (profile?.preferred_class_payment_method as PaymentMethod | null) ?? preferredClassPaymentMethod,
         selectedSports,
         sportCharacteristics: nextSportCharacteristics,
+        preferredComplexIds,
       }));
       updateCurrentUser({
         name: nextName,
@@ -339,6 +371,7 @@ const ProfileSettings = () => {
         documentNumber: nextDocumentNumber,
         uniformSize: nextUniformSize || undefined,
         preferredClassPaymentMethod: preferredClassPaymentMethod || undefined,
+        preferredComplexes: preferredComplexIds.length > 0 ? preferredComplexIds : undefined,
         wins: profile?.wins ?? currentUser.wins,
         losses: profile?.losses ?? currentUser.losses,
         draws: profile?.draws ?? currentUser.draws,
@@ -630,6 +663,85 @@ const ProfileSettings = () => {
               );
             })}
 
+          {token && (
+            <div className="mt-5">
+              <span className="mb-3 block text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('preferredComplexes')}</span>
+              <Popover open={comboOpen} onOpenChange={(open) => { setComboOpen(open); if (!open) setComboQuery(''); }}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={comboOpen}
+                    className="w-full justify-between border-border bg-background/60 font-semibold text-muted-foreground shadow-none hover:bg-secondary/80 hover:text-foreground"
+                  >
+                    {t('addComplex')}
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="border-border bg-popover/95 p-0 backdrop-blur-xl"
+                  style={{ width: 'var(--radix-popover-trigger-width)' }}
+                  align="start"
+                >
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder={t('searchComplexPlaceholder')}
+                      value={comboQuery}
+                      onValueChange={setComboQuery}
+                    />
+                    <CommandList>
+                      <CommandEmpty>{t('noComplexFound')}</CommandEmpty>
+                      <CommandGroup>
+                        {searchResults
+                          .filter((r) => !preferredComplexIds.includes(r.id))
+                          .map((r) => (
+                            <CommandItem
+                              key={r.id}
+                              value={String(r.id)}
+                              onSelect={() => {
+                                setPreferredComplexIds((current) => [...current, r.id]);
+                                setComplexCache((prev) => ({ ...prev, [r.id]: { name: r.name, city: r.city } }));
+                                setComboOpen(false);
+                              }}
+                              className="rounded-lg px-3 py-2 text-sm font-semibold"
+                            >
+                              <MapPin className="mr-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate">{r.name}</div>
+                                {r.city && <div className="truncate text-xs font-normal text-muted-foreground">{r.city}</div>}
+                              </div>
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {preferredComplexIds.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {preferredComplexIds.map((id) => {
+                    const entry = complexCache[id];
+                    return (
+                      <span key={id} className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/15 px-3 py-1.5 text-xs font-semibold text-primary-glow">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        {entry?.name ?? `#${id}`}
+                        <button
+                          type="button"
+                          onClick={() => setPreferredComplexIds((current) => current.filter((cid) => cid !== id))}
+                          className="ml-0.5 rounded-full opacity-60 transition-smooth hover:opacity-100"
+                          aria-label={`Remove ${entry?.name ?? id}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
@@ -880,6 +992,7 @@ const serializeProfileState = ({
   preferredClassPaymentMethod,
   selectedSports,
   sportCharacteristics,
+  preferredComplexIds,
 }: {
   name: string;
   nickname: string;
@@ -893,6 +1006,7 @@ const serializeProfileState = ({
   preferredClassPaymentMethod: PaymentMethod | '';
   selectedSports: SportId[];
   sportCharacteristics: Partial<Record<SportId, PlayerCharacteristic[]>>;
+  preferredComplexIds: number[];
 }) => JSON.stringify({
   name: name.trim(),
   nickname: nickname.trim(),
@@ -910,6 +1024,7 @@ const serializeProfileState = ({
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([sportId, values]) => [sportId, [...(values ?? [])]]),
   ),
+  preferredComplexIds: [...preferredComplexIds].sort((a, b) => a - b),
 });
 
 const formatCpf = (value: string) => {
