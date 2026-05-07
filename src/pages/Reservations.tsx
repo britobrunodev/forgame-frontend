@@ -31,6 +31,7 @@ const Reservations = () => {
     courts: 0,
     rating: 0,
     image: c.image_url ?? undefined,
+    imageOffsetY: c.image_offset_y ?? 0,
     country: c.country ?? undefined,
     active: c.is_active,
   }));

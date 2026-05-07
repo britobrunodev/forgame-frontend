@@ -373,8 +373,9 @@ const ManagementClassCreate = () => {
             type="button"
             onClick={handleCreate}
             disabled={!selectedComplex || !selectedProfessor}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-primary px-6 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] shadow-neon transition-smooth hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/55 px-4 py-3 text-sm font-semibold text-foreground transition-smooth hover:border-neon-cyan/35 hover:text-neon-cyan disabled:cursor-not-allowed disabled:opacity-60"
           >
+            <Check className="h-4 w-4" />
             {t('createClass')}
           </button>
         </div>

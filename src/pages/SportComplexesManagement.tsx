@@ -22,6 +22,7 @@ const SportComplexesManagement = () => {
   });
   const complexes = data?.items ?? [];
   const totalPages = data?.total_pages ?? 1;
+  const totalItems = data?.total ?? 0;
 
   if (!canManageComplexes) {
     return (
@@ -49,7 +50,8 @@ const SportComplexesManagement = () => {
         <button
           type="button"
           onClick={() => navigate('/management/complexs/new')}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary/70 text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+          title={t('createSportComplex')}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
         >
           <Plus className="h-4 w-4" />
         </button>
@@ -60,12 +62,13 @@ const SportComplexesManagement = () => {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : complexes.length > 0 ? (
-        <div className="space-y-4">
+        <div className="rounded-[2rem] border border-border bg-gradient-card p-4 shadow-card sm:p-6">
           <div className="space-y-3 md:hidden">
             {complexes.map((complex) => (
-              <article key={complex.id} className="rounded-2xl border border-border bg-gradient-card p-4 shadow-card">
+              <article key={complex.id} className="rounded-2xl border border-border bg-background/40 p-4">
                 <div className="space-y-2">
                   <div className="font-display text-base font-bold text-foreground">{complex.name}</div>
+                  <div className="text-sm text-muted-foreground">{buildComplexAddress(complex) || '-'}</div>
                   <div className="text-sm text-muted-foreground">{complex.city || '-'}</div>
                   <div className="text-sm text-muted-foreground">
                     {complex.country ? getCountryLabel(complex.country, language) : '-'}
@@ -92,11 +95,11 @@ const SportComplexesManagement = () => {
               </article>
             ))}
           </div>
-          <div className="hidden overflow-hidden rounded-[2rem] border border-border bg-gradient-card shadow-card md:block">
-            <div className="overflow-x-auto">
-              <div className="min-w-[840px]">
-              <div className="grid grid-cols-[minmax(0,2fr)_minmax(120px,1fr)_120px_260px] gap-4 border-b border-border px-5 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
+          <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
+            <div className="min-w-[840px]">
+              <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.6fr)_minmax(120px,0.8fr)_120px_260px] gap-4 border-b border-border bg-background/30 px-5 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
                 <div>{t('complexName')}</div>
+                <div>{t('fullAddress')}</div>
                 <div>{t('city')}</div>
                 <div>{t('country')}</div>
                 <div className="text-right">{t('settings')}</div>
@@ -104,11 +107,12 @@ const SportComplexesManagement = () => {
               {complexes.map((complex, index) => (
                 <div
                   key={complex.id}
-                  className={`grid grid-cols-[minmax(0,2fr)_minmax(120px,1fr)_120px_260px] gap-4 px-5 py-4 sm:px-6 ${index !== complexes.length - 1 ? 'border-b border-border/70' : ''}`}
+                  className={`grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.6fr)_minmax(120px,0.8fr)_120px_260px] gap-4 px-5 py-4 transition-smooth hover:bg-primary/5 sm:px-6 ${index !== complexes.length - 1 ? 'border-b border-border/70' : ''}`}
                 >
                   <div className="min-w-0">
-                    <div className="truncate font-display text-sm font-bold text-foreground">{complex.name}</div>
+                    <div className="truncate font-display text-xs font-bold uppercase tracking-[0.14em] text-foreground">{complex.name}</div>
                   </div>
+                  <div className="min-w-0 truncate text-sm text-muted-foreground">{buildComplexAddress(complex) || '-'}</div>
                   <div className="min-w-0 truncate text-sm text-muted-foreground">{complex.city || '-'}</div>
                   <div className="min-w-0 truncate text-sm text-muted-foreground">
                     {complex.country ? getCountryLabel(complex.country, language) : '-'}
@@ -133,10 +137,30 @@ const SportComplexesManagement = () => {
                   </div>
                 </div>
               ))}
-              </div>
             </div>
           </div>
-          <PaginationBar page={page} totalPages={totalPages} onPageChange={setPage} />
+          <div className="mt-5 flex items-center justify-end gap-2">
+            <span className="mr-2 text-xs text-muted-foreground">{totalItems} itens</span>
+            <button
+              type="button"
+              onClick={() => setPage(page - 1)}
+              disabled={page <= 1}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+              aria-label="Página anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
+            <button
+              type="button"
+              onClick={() => setPage(page + 1)}
+              disabled={page >= totalPages}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+              aria-label="Próxima página"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       ) : (
         <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
@@ -149,41 +173,20 @@ const SportComplexesManagement = () => {
   );
 };
 
-const PaginationBar = ({
-  page,
-  totalPages,
-  onPageChange,
-}: {
-  page: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
+
+const buildComplexAddress = (complex: {
+  street: string | null;
+  address_number: string | null;
+  address_complement: string | null;
+  zip_code: string | null;
 }) => {
-  if (totalPages <= 1) return null;
-  return (
-    <div className="flex items-center justify-end gap-2">
-      <button
-        type="button"
-        onClick={() => onPageChange(page - 1)}
-        disabled={page <= 1}
-        className="inline-flex items-center gap-2 rounded-lg border border-border bg-background/40 px-3 py-2 text-sm font-semibold text-muted-foreground transition-smooth hover:border-primary/30 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        <ChevronLeft className="h-4 w-4" />
-        Anterior
-      </button>
-      <span className="text-sm text-muted-foreground">
-        {page} / {totalPages}
-      </span>
-      <button
-        type="button"
-        onClick={() => onPageChange(page + 1)}
-        disabled={page >= totalPages}
-        className="inline-flex items-center gap-2 rounded-lg border border-border bg-background/40 px-3 py-2 text-sm font-semibold text-muted-foreground transition-smooth hover:border-primary/30 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        Próxima
-        <ChevronRight className="h-4 w-4" />
-      </button>
-    </div>
-  );
+  const addressParts = [
+    complex.street?.trim(),
+    complex.address_number?.trim(),
+    complex.address_complement?.trim(),
+  ].filter(Boolean);
+  const mainAddress = addressParts.join(', ');
+  return [mainAddress, complex.zip_code?.trim()].filter(Boolean).join(' · ');
 };
 
 export default SportComplexesManagement;

@@ -107,7 +107,8 @@ const AdminApprovals = () => {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">Aprovações</p>
+          <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">Aprovações</p>
+          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">Gerencie as solicitações de acesso de gestores e revogue permissões quando necessário.</p>
         </div>
       </header>
 

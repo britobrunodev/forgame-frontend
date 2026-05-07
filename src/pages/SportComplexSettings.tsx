@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, Loader2, MapPin, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowLeft, Building2, Loader2, MapPin, Save, ShieldCheck, Sparkles } from 'lucide-react';
 import { BackgroundUploadField } from '@/components/BackgroundUploadField';
 import { CountrySelect } from '@/components/CountrySelect';
 import { DragSelectField } from '@/components/DragSelectField';
@@ -59,7 +59,7 @@ const SportComplexSettings = () => {
     setAddressNumber(complexData.address_number ?? '');
     setAddressComplement(complexData.address_complement ?? '');
     setSelectedBackgroundImage(complexData.image_url ?? '');
-    setSelectedBackgroundOffsetY(0);
+    setSelectedBackgroundOffsetY(complexData.image_offset_y ?? 0);
   }, [complexData]);
 
   if (!canManageComplexes) {
@@ -101,6 +101,7 @@ const SportComplexSettings = () => {
         street: street || null,
         address_number: addressNumber || null,
         address_complement: addressComplement || null,
+        image_offset_y: selectedBackgroundOffsetY,
       };
       const saved = isEditing
         ? await sportComplexApi.update(token!, complexId!, payload)
@@ -142,10 +143,17 @@ const SportComplexSettings = () => {
 
   return (
     <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
-      <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+      <header className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => navigate('/management/complexs')}
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
         <div>
-          <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('sportComplexBuilder')}</p>
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('sportComplexBuilderIntro')}</p>
+          <p className="font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('sportComplexBuilder')}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{t('sportComplexBuilderIntro')}</p>
         </div>
       </header>
 
@@ -248,10 +256,23 @@ const SportComplexSettings = () => {
               type="button"
               onClick={handleSubmit}
               disabled={submitting || !complexName.trim()}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-primary px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] shadow-neon transition-smooth hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
+              title={isEditing ? t('saveChanges') : t('createSportComplex')}
+              className={`inline-flex items-center justify-center rounded-xl border transition-smooth disabled:cursor-not-allowed disabled:opacity-60 ${
+                isEditing
+                  ? 'h-11 w-11 border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] hover:bg-primary/16'
+                  : 'gap-2 border-border bg-background/55 px-4 py-3 text-sm font-semibold text-foreground hover:border-neon-cyan/35 hover:text-neon-cyan'
+              }`}
             >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
-              {isEditing ? t('saveChanges') : t('createSportComplex')}
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isEditing ? (
+                <Save className="h-4 w-4" />
+              ) : (
+                <>
+                  <Building2 className="h-4 w-4" />
+                  <span>{t('createSportComplex')}</span>
+                </>
+              )}
             </button>
           </div>
         </section>

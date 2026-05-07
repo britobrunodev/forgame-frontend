@@ -535,7 +535,7 @@ const TournamentSettings = () => {
             <button
               type="button"
               onClick={handlePublish}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-primary px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] shadow-neon transition-smooth hover:brightness-110"
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/55 px-4 py-3 text-sm font-semibold text-foreground transition-smooth hover:border-neon-cyan/35 hover:text-neon-cyan disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Trophy className="h-4 w-4" />
               {t('publishTournament')}

@@ -245,12 +245,9 @@ const CourtCreate = () => {
                 navigate('/management');
               }}
               disabled={!selectedPlace || !courtName.trim() || slotOptions.length === 0}
-              className={`inline-flex items-center justify-center rounded-lg px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.18em] transition-smooth ${
-                selectedPlace && courtName.trim() && slotOptions.length > 0
-                  ? 'bg-gradient-primary shadow-neon hover:brightness-110'
-                  : 'cursor-not-allowed border border-border bg-secondary text-muted-foreground'
-              }`}
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/55 px-4 py-3 text-sm font-semibold text-foreground transition-smooth hover:border-neon-cyan/35 hover:text-neon-cyan disabled:cursor-not-allowed disabled:opacity-60"
             >
+              <Plus className="h-4 w-4" />
               {t('addCourt')}
             </button>
           </div>

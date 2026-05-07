@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { MapPin, Star, Lock } from 'lucide-react';
 import { SportIcon } from '@/components/SportIcon';
+import { backgroundObjectPosition } from '@/components/BackgroundUploadField';
 import { SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import type { ReservationPlace } from '@/types';
@@ -21,7 +22,13 @@ export const PlaceCard = ({ p }: { p: ReservationPlace }) => {
       <Link to={href} className="block">
         <div className="h-32 relative bg-secondary overflow-hidden">
           {p.image ? (
-            <img src={p.image} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
+            <img
+              src={p.image}
+              alt={p.name}
+              loading="lazy"
+              className="w-full h-full object-cover"
+              style={backgroundObjectPosition(p.imageOffsetY ?? 0)}
+            />
           ) : (
             <div className="absolute inset-0 hex-grid opacity-30" />
           )}

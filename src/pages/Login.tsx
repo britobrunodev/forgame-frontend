@@ -12,7 +12,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { t, userTypeLabel } = useLanguage();
   const { activeProfile, setActiveProfile, setAvailableProfiles, login } = useSession();
-  const googleClientIdConfigured = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+  const googleClientIdConfigured = Boolean(import.meta.env.GOOGLE_CLIENT_ID);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailLoading, setEmailLoading] = useState(false);
@@ -71,17 +71,16 @@ const Login = () => {
               <button
                 key={id}
                 type="button"
-              onClick={() => {
+                onClick={() => {
                   setEmailError(null);
                   setGoogleError(null);
                   setAvailableProfiles(['player', 'gestor']);
                   setActiveProfile(id);
                 }}
-                className={`flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border px-3 text-[11px] font-bold uppercase tracking-[0.15em] transition-smooth ${
-                  activeProfile === id
+                className={`flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border px-3 text-[11px] font-bold uppercase tracking-[0.15em] transition-smooth ${activeProfile === id
                     ? 'border-primary/50 bg-primary/12 text-neon-cyan shadow-glow'
                     : 'border-border bg-background/40 text-muted-foreground hover:border-primary/30 hover:text-foreground'
-                }`}
+                  }`}
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span>{userTypeLabel(id)}</span>
@@ -160,7 +159,7 @@ const Login = () => {
 
         {!googleClientIdConfigured && (
           <p className="text-center text-xs text-muted-foreground">
-            Google login is not configured yet. Set `VITE_GOOGLE_CLIENT_ID` in the frontend environment.
+            Google login is not configured yet. Set `GOOGLE_CLIENT_ID` in the frontend environment.
           </p>
         )}
 

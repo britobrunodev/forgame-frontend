@@ -124,6 +124,7 @@ export interface SportComplexData {
   address_number: string | null;
   address_complement: string | null;
   image_url: string | null;
+  image_offset_y: number;
 }
 
 export interface CreateSportComplexInput {
@@ -134,6 +135,7 @@ export interface CreateSportComplexInput {
   street?: string | null;
   address_number?: string | null;
   address_complement?: string | null;
+  image_offset_y?: number;
 }
 
 export const sportComplexApi = {

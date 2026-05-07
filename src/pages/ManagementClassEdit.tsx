@@ -410,9 +410,10 @@ const ManagementClassEdit = () => {
             type="button"
             onClick={handleSave}
             disabled={!selectedComplex || !selectedProfessor}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-primary px-6 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] shadow-neon transition-smooth hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+            title={t('saveChanges')}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {t('saveChanges')}
+            <Save className="h-4 w-4" />
           </button>
         </div>
       </div>

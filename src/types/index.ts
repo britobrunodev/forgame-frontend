@@ -182,7 +182,7 @@ export interface Court {
 }
 
 export interface ReservationPlace {
-  id: string;
+  id: string | number;
   name: string;
   city: string;
   sports: SportId[];
@@ -194,6 +194,7 @@ export interface ReservationPlace {
   street?: string;
   addressNumber?: string;
   addressComplement?: string;
+  imageOffsetY?: number;
   active?: boolean;
 }
 
