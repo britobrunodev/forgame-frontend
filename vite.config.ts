@@ -9,6 +9,9 @@ export default defineConfig(({ mode }) => {
   const backendTarget = env.VITE_BACKEND_PROXY_TARGET ?? "http://127.0.0.1:8000";
 
   return {
+    define: {
+      'import.meta.env.GOOGLE_CLIENT_ID': JSON.stringify(env.GOOGLE_CLIENT_ID ?? ''),
+    },
     server: {
       host: "::",
       port: 8080,
