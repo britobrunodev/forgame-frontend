@@ -42,7 +42,7 @@ export const CURRENT_USER: User = {
     footvolley: ["left"],
     "beach-tennis": ["right"],
   },
-  level: "intermediate",
+  level: "beginner",
   wins: 0,
   losses: 0,
   draws: 0,

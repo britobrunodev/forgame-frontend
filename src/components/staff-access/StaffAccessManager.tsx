@@ -54,7 +54,7 @@ export const StaffAccessManager = ({
 
         setSnapshot(data);
         setAssignmentsByComplex(buildAssignmentsIndex(data.assignments));
-        setSelectedComplexId((current) => current || data.complexes[0]?.id || '');
+        setSelectedComplexId((current) => current || String(data.complexes[0]?.id ?? ''));
       } catch (err) {
         if (cancelled) return;
         toast({
@@ -129,13 +129,13 @@ export const StaffAccessManager = ({
     const assignments = Object.entries(assignmentsByComplex[selectedComplexId] ?? {}).flatMap(([userId, roles]) =>
       Object.entries(roles)
         .filter(([role, active]) => active && allowedRoles.includes(role as AssignableRole))
-        .map(([role]) => ({ user_id: userId, role })),
+        .map(([role]) => ({ user_id: Number(userId), role })),
     );
 
     setSaving(true);
     try {
       const updated = await accessControlApi.updateAssignments(token, {
-        sport_complex_id: selectedComplexId,
+        sport_complex_id: Number(selectedComplexId),
         assignments,
       });
 
@@ -188,7 +188,7 @@ export const StaffAccessManager = ({
               </SelectTrigger>
               <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
                 {complexes.map((complex) => (
-                  <SelectItem key={complex.id} value={complex.id}>
+                  <SelectItem key={complex.id} value={String(complex.id)}>
                     {complex.name}
                   </SelectItem>
                 ))}
@@ -224,7 +224,7 @@ export const StaffAccessManager = ({
           <>
             <div className="space-y-3 md:hidden">
               {pagedUsers.map((user) => {
-                const complexName = complexes.find((complex) => complex.id === selectedComplexId)?.name ?? '-';
+                const complexName = complexes.find((complex) => String(complex.id) === selectedComplexId)?.name ?? '-';
                 const assignment = assignmentsByComplex[selectedComplexId]?.[user.id] ?? EMPTY_ROLES;
                 const activeRoles = ROLE_ORDER.filter((role) => assignment[role]);
                 return (
@@ -279,7 +279,7 @@ export const StaffAccessManager = ({
                   {pagedUsers.map((user) => {
                     const assignment = assignmentsByComplex[selectedComplexId]?.[user.id] ?? EMPTY_ROLES;
                     const activeRoles = ROLE_ORDER.filter((role) => assignment[role]);
-                    const complexName = complexes.find((complex) => complex.id === selectedComplexId)?.name ?? '-';
+                    const complexName = complexes.find((complex) => String(complex.id) === selectedComplexId)?.name ?? '-';
                     return (
                       <tr key={user.id} className="transition-smooth hover:bg-primary/5">
                         <td className="px-5 py-4">
@@ -343,15 +343,17 @@ const buildAssignmentsIndex = (assignments: ComplexRoleAssignment[]) =>
     const role = assignment.role as AssignableRole;
     if (!ROLE_ORDER.includes(role)) return acc;
 
-    const byComplex = acc[assignment.sport_complex_id] ?? {};
-    const userRoles = byComplex[assignment.user_id] ?? { ...EMPTY_ROLES };
+    const complexKey = String(assignment.sport_complex_id);
+    const userKey = String(assignment.user_id);
+    const byComplex = acc[complexKey] ?? {};
+    const userRoles = byComplex[userKey] ?? { ...EMPTY_ROLES };
     userRoles[role] = true;
 
     return {
       ...acc,
-      [assignment.sport_complex_id]: {
+      [complexKey]: {
         ...byComplex,
-        [assignment.user_id]: userRoles,
+        [userKey]: userRoles,
       },
     };
   }, {});

@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Building2, MapPin, ShieldCheck, Sparkles } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Building2, Loader2, MapPin, ShieldCheck, Sparkles } from 'lucide-react';
 import { BackgroundUploadField } from '@/components/BackgroundUploadField';
 import { CountrySelect } from '@/components/CountrySelect';
 import { DragSelectField } from '@/components/DragSelectField';
@@ -11,33 +12,57 @@ import { useLanguage } from '@/i18n';
 import { useToast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
 import { useSession } from '@/session';
-import { saveCustomSportComplex } from '@/lib/sport-complexes-store';
+import { sportComplexApi } from '@/lib/api';
 
 type SportOption = 'footvolley' | 'beach-tennis' | 'beach-soccer' | 'volleyball';
 const SPORT_ORDER: SportOption[] = ['footvolley', 'beach-tennis', 'beach-soccer', 'volleyball'];
 
 const SportComplexSettings = () => {
   const navigate = useNavigate();
+  const { complexId } = useParams<{ complexId: string }>();
   const { language, t, sportName } = useLanguage();
-  const { isGestorMode } = useSession();
+  const { currentUser, isGestorMode, token } = useSession();
   const { toast } = useToast();
-  const [complexName, setComplexName] = useState('Arena Forgame Copacabana');
+  const queryClient = useQueryClient();
+  const isEditing = Boolean(complexId);
+  const canManageComplexes = currentUser.isAdmin || isGestorMode;
+  const [complexName, setComplexName] = useState('');
   const [country, setCountry] = useState('BR');
-  const [city, setCity] = useState('Rio de Janeiro');
+  const [city, setCity] = useState('');
   const [zipCode, setZipCode] = useState('');
-  const [street, setStreet] = useState('Avenida Atlântica');
-  const [addressNumber, setAddressNumber] = useState('1702');
+  const [street, setStreet] = useState('');
+  const [addressNumber, setAddressNumber] = useState('');
   const [addressComplement, setAddressComplement] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [selectedBackgroundImage, setSelectedBackgroundImage] = useState('');
   const [selectedBackgroundOffsetY, setSelectedBackgroundOffsetY] = useState(0);
   const [selectedSports, setSelectedSports] = useState<SportOption[]>(['footvolley', 'beach-tennis']);
+
+  const { data: complexData, isLoading: isLoadingComplex } = useQuery({
+    queryKey: ['sport-complex', complexId],
+    queryFn: () => sportComplexApi.get(token!, complexId!),
+    enabled: !!token && !!complexId && canManageComplexes,
+  });
 
   const availableSports = useMemo(
     () => SPORT_ORDER.filter((sport) => !selectedSports.includes(sport)),
     [selectedSports],
   );
 
-  if (!isGestorMode) {
+  useEffect(() => {
+    if (!complexData) return;
+    setComplexName(complexData.name);
+    setCountry(complexData.country ?? 'BR');
+    setCity(complexData.city ?? '');
+    setZipCode(complexData.zip_code ?? '');
+    setStreet(complexData.street ?? '');
+    setAddressNumber(complexData.address_number ?? '');
+    setAddressComplement(complexData.address_complement ?? '');
+    setSelectedBackgroundImage(complexData.image_url ?? '');
+    setSelectedBackgroundOffsetY(0);
+  }, [complexData]);
+
+  if (!canManageComplexes) {
     return (
       <div className="mx-auto w-full max-w-3xl">
         <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
@@ -64,31 +89,56 @@ const SportComplexSettings = () => {
     });
   };
 
-  const handleCreate = () => {
-    saveCustomSportComplex({
-      id: `custom-complex-${Date.now()}`,
-      name: complexName,
-      city,
-      sports: selectedSports,
-      courts: 0,
-      rating: 0,
-      image: selectedBackgroundImage || undefined,
-      country,
-      zipCode,
-      street,
-      addressNumber,
-      addressComplement,
-    });
-    toast({
-      title: t('sportComplexPublished'),
-      description: `${complexName} · ${street}, ${addressNumber} · ${getCountryLabel(country, language)}`,
-    });
-    navigate('/settings/complex');
+  const handleSubmit = async () => {
+    if (!complexName.trim()) return;
+    setSubmitting(true);
+    try {
+      const payload = {
+        name: complexName.trim(),
+        city: city || null,
+        country: country || null,
+        zip_code: zipCode || null,
+        street: street || null,
+        address_number: addressNumber || null,
+        address_complement: addressComplement || null,
+      };
+      const saved = isEditing
+        ? await sportComplexApi.update(token!, complexId!, payload)
+        : await sportComplexApi.create(token!, payload);
+      if (selectedBackgroundImage && selectedBackgroundImage.startsWith('data:')) {
+        await sportComplexApi.uploadImage(token!, saved.id, selectedBackgroundImage);
+      }
+      await queryClient.invalidateQueries({ queryKey: ['sport-complexes'] });
+      if (complexId) {
+        await queryClient.invalidateQueries({ queryKey: ['sport-complex', complexId] });
+      }
+      toast({
+        title: isEditing ? t('saveChanges') : t('sportComplexPublished'),
+        description: `${complexName} · ${street}${addressNumber ? `, ${addressNumber}` : ''} · ${getCountryLabel(country, language)}`,
+      });
+      navigate('/management/complexs');
+    } catch (err) {
+      toast({
+        title: isEditing ? 'Erro ao atualizar complexo' : 'Erro ao criar complexo',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
 
   const fullAddress = `${street}${addressNumber ? `, ${addressNumber}` : ''}${addressComplement ? ` · ${addressComplement}` : ''}`;
   const postalPlaceholder = COUNTRY_OPTIONS.find((option) => option.code === country)?.postalPlaceholder ?? '';
+
+  if (isEditing && isLoadingComplex) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
@@ -196,11 +246,12 @@ const SportComplexSettings = () => {
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
-              onClick={handleCreate}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-primary px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] shadow-neon transition-smooth hover:brightness-110"
+              onClick={handleSubmit}
+              disabled={submitting || !complexName.trim()}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-primary px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] shadow-neon transition-smooth hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <Building2 className="h-4 w-4" />
-              {t('createSportComplex')}
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
+              {isEditing ? t('saveChanges') : t('createSportComplex')}
             </button>
           </div>
         </section>

@@ -6,7 +6,6 @@ import { CountrySelect } from '@/components/CountrySelect';
 import { DragSelectField } from '@/components/DragSelectField';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { COUNTRY_OPTIONS, formatPhoneNumber, getCountryLabel } from '@/data/countries';
@@ -15,7 +14,7 @@ import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { useToast } from '@/components/ui/use-toast';
 import { usersApi } from '@/lib/api';
-import type { DocumentType, PaymentMethod, PlayerCharacteristic, SportId, UniformSize } from '@/types';
+import type { DocumentType, PaymentMethod, PlayerCharacteristic, PlayerLevel, SportId, UniformSize } from '@/types';
 
 const CHARACTERISTICS_BY_SPORT: Partial<Record<SportId, PlayerCharacteristic[]>> = {
   footvolley: ['right', 'left'],
@@ -32,7 +31,8 @@ const ProfileSettings = () => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const cropFrameRef = useRef<HTMLDivElement | null>(null);
   const [name, setName] = useState(currentUser.name);
-  const [email] = useState(currentUser.email);
+  const [nickname, setNickname] = useState(currentUser.nickname ?? '');
+  const [email, setEmail] = useState(currentUser.email);
   const [nationality, setNationality] = useState(currentUser.country ?? 'BR');
   const [phoneCountry, setPhoneCountry] = useState(currentUser.phoneCountry ?? currentUser.country ?? 'BR');
   const [phoneNumber, setPhoneNumber] = useState(currentUser.phoneNumber ?? '');
@@ -58,6 +58,8 @@ const ProfileSettings = () => {
   const [cropY, setCropY] = useState(0);
   const [lastSavedState, setLastSavedState] = useState<string>(() => serializeProfileState({
     name: currentUser.name,
+    nickname: currentUser.nickname ?? '',
+    email: currentUser.email,
     nationality: currentUser.country ?? 'BR',
     phoneCountry: currentUser.phoneCountry ?? currentUser.country ?? 'BR',
     phoneNumber: currentUser.phoneNumber ?? '',
@@ -128,6 +130,8 @@ const ProfileSettings = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const currentProfileState = useMemo(() => serializeProfileState({
     name,
+    nickname,
+    email,
     nationality,
     phoneCountry,
     phoneNumber,
@@ -139,6 +143,8 @@ const ProfileSettings = () => {
     sportCharacteristics,
   }), [
     name,
+    nickname,
+    email,
     nationality,
     phoneCountry,
     phoneNumber,
@@ -162,6 +168,7 @@ const ProfileSettings = () => {
         if (cancelled) return;
 
         setName(profile.name);
+        setNickname(profile.nickname ?? '');
         setAvatarUrl(profile.picture_url ?? profile.google_picture_url ?? '');
         setNationality(profile.country ?? currentUser.country ?? 'BR');
         setPhoneCountry(profile.phone_country ?? profile.country ?? currentUser.phoneCountry ?? currentUser.country ?? 'BR');
@@ -172,9 +179,13 @@ const ProfileSettings = () => {
         setUniformSize((profile.uniform_size as UniformSize | null) ?? '');
         setPreferredClassPaymentMethod((profile.preferred_class_payment_method as PaymentMethod | null) ?? '');
         const nextSportCharacteristics = (profile.sport_characteristics ?? {}) as Partial<Record<SportId, PlayerCharacteristic[]>>;
+        const nextSelectedSports = (profile.preferred_sports ?? []) as SportId[];
         setSportCharacteristics(nextSportCharacteristics);
+        setSelectedSports(nextSelectedSports);
         setLastSavedState(serializeProfileState({
           name: profile.name,
+          nickname: profile.nickname ?? '',
+          email: profile.email,
           nationality: profile.country ?? currentUser.country ?? 'BR',
           phoneCountry: profile.phone_country ?? profile.country ?? currentUser.phoneCountry ?? currentUser.country ?? 'BR',
           phoneNumber: profile.phone_number ?? '',
@@ -182,12 +193,13 @@ const ProfileSettings = () => {
           documentNumber: profile.document_number ?? '',
           uniformSize: (profile.uniform_size as UniformSize | null) ?? '',
           preferredClassPaymentMethod: (profile.preferred_class_payment_method as PaymentMethod | null) ?? '',
-          selectedSports,
+          selectedSports: nextSelectedSports,
           sportCharacteristics: nextSportCharacteristics,
         }));
 
         updateCurrentUser({
           name: profile.name,
+          nickname: profile.nickname ?? undefined,
           avatarUrl: profile.picture_url ?? profile.google_picture_url ?? undefined,
           country: profile.country ?? undefined,
           phoneCountry: profile.phone_country ?? undefined,
@@ -195,7 +207,9 @@ const ProfileSettings = () => {
           documentType: (profile.document_type as DocumentType | null) ?? undefined,
           documentNumber: profile.document_number ?? undefined,
           uniformSize: (profile.uniform_size as UniformSize | null) ?? undefined,
-          sportCharacteristics: (profile.sport_characteristics ?? {}) as Partial<Record<SportId, PlayerCharacteristic[]>>,
+          level: (profile.level as PlayerLevel | null) ?? 'beginner',
+          preferences: nextSelectedSports,
+          sportCharacteristics: nextSportCharacteristics,
           preferredClassPaymentMethod: (profile.preferred_class_payment_method as PaymentMethod | null) ?? undefined,
           wins: profile.wins,
           losses: profile.losses,
@@ -261,6 +275,8 @@ const ProfileSettings = () => {
       if (token) {
         profile = await usersApi.updateProfile(token, {
           name,
+          email: email.trim() || null,
+          nickname: nickname.trim() || null,
           document_type: documentType || null,
           document_number: documentNumber || null,
           phone_country: phoneCountry || null,
@@ -268,6 +284,7 @@ const ProfileSettings = () => {
           country: nationality || null,
           uniform_size: uniformSize || null,
           level: null,
+          preferred_sports: selectedSports.length > 0 ? selectedSports : null,
           sport_characteristics: Object.keys(sportCharacteristics).length > 0
             ? (sportCharacteristics as Record<string, string[]>)
             : null,
@@ -275,6 +292,8 @@ const ProfileSettings = () => {
         });
       }
       const nextName = profile?.name ?? name;
+      const nextNickname = profile?.nickname ?? nickname;
+      const nextEmail = profile?.email ?? email;
       const nextCountry = profile?.country ?? nationality;
       const nextAvatarUrl = profile?.picture_url ?? profile?.google_picture_url ?? avatarUrl;
       const nextDocumentType = (profile?.document_type as DocumentType | null) ?? documentType;
@@ -286,12 +305,16 @@ const ProfileSettings = () => {
         ?? sportCharacteristics;
 
       setName(nextName);
+      setNickname(nextNickname);
+      setEmail(nextEmail);
       setAvatarUrl(nextAvatarUrl);
       setDocumentType(nextDocumentType);
       setDocumentNumber(nextDocumentType === 'cpf' ? formatCpf(nextDocumentNumber) : nextDocumentNumber);
       setUniformSize(nextUniformSize);
       setLastSavedState(serializeProfileState({
         name: nextName,
+        nickname: nextNickname,
+        email: nextEmail,
         nationality: nextCountry ?? 'BR',
         phoneCountry: nextPhoneCountry ?? nextCountry ?? 'BR',
         phoneNumber: nextPhoneNumber,
@@ -304,6 +327,8 @@ const ProfileSettings = () => {
       }));
       updateCurrentUser({
         name: nextName,
+        email: nextEmail,
+        nickname: nextNickname || undefined,
         country: nextCountry ?? undefined,
         phoneCountry: nextPhoneCountry,
         phoneNumber: nextPhoneNumber,
@@ -386,8 +411,8 @@ const ProfileSettings = () => {
 
       {savingProfile
         ? createPortal(
-          <div className="fixed inset-x-0 top-0 z-[100]">
-            <Progress value={92} className="h-0.5 rounded-none bg-transparent [&>div]:bg-gradient-primary" />
+          <div className="fixed inset-x-0 top-0 z-[100] h-0.5 overflow-hidden">
+            <div className="animate-loading-bar h-full bg-gradient-primary" />
           </div>,
           document.body,
         )
@@ -460,8 +485,12 @@ const ProfileSettings = () => {
               <Input value={name} onChange={(event) => setName(event.target.value)} className="border-border bg-background/60" />
             </Field>
 
+            <Field label={t('nickname')}>
+              <Input value={nickname} onChange={(event) => setNickname(event.target.value)} placeholder={t('nicknamePlaceholder')} className="border-border bg-background/60" />
+            </Field>
+
             <Field label={t('email')}>
-              <Input value={email} readOnly className="border-border bg-background/30 text-muted-foreground" />
+              <Input value={email} onChange={(event) => setEmail(event.target.value)} className="border-border bg-background/60" />
             </Field>
 
             <Field label={t('nationality')}>
@@ -840,6 +869,8 @@ const getUniformSizeLabel = (size: UniformSize, language: string) => {
 
 const serializeProfileState = ({
   name,
+  nickname,
+  email,
   nationality,
   phoneCountry,
   phoneNumber,
@@ -851,6 +882,8 @@ const serializeProfileState = ({
   sportCharacteristics,
 }: {
   name: string;
+  nickname: string;
+  email: string;
   nationality: string;
   phoneCountry: string;
   phoneNumber: string;
@@ -862,6 +895,8 @@ const serializeProfileState = ({
   sportCharacteristics: Partial<Record<SportId, PlayerCharacteristic[]>>;
 }) => JSON.stringify({
   name: name.trim(),
+  nickname: nickname.trim(),
+  email: email.trim(),
   nationality,
   phoneCountry,
   phoneNumber,

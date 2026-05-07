@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell,
-  Search,
   Menu,
   LayoutDashboard,
   Trophy,
@@ -16,6 +15,7 @@ import {
   GraduationCap,
   Users,
   ShieldCheck,
+  ClipboardList,
 } from 'lucide-react';
 import { SPORTS } from '@/data/mock';
 import { LanguageSelector } from './LanguageSelector';
@@ -25,43 +25,30 @@ import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
 export const TopBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t, sportName, gestorRoleLabel } = useLanguage();
 
   const {
-    activeGestorRole,
     currentUser,
     isGestorMode,
-    availableGestorRoles,
-    setActiveGestorRole,
   } = useSession();
+  const canManage = isGestorMode || currentUser.isAdmin;
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [managementOpen, setManagementOpen] = useState(
-    location.pathname.startsWith('/management') || location.pathname.startsWith('/settings'),
+    location.pathname.startsWith('/management'),
   );
 
-  const accessLabels = currentUser.isAdmin
-    ? [
-      gestorRoleLabel('owner'),
-      t('admin'),
-      t('player'),
-      t('scorer'),
-      gestorRoleLabel('manager'),
-      gestorRoleLabel('professor'),
-    ]
-    : [
-      currentUser.roles?.includes('owner') ? gestorRoleLabel('owner') : null,
-      currentUser.isAdmin ? t('admin') : null,
-      currentUser.roles?.includes('player') || currentUser.profiles?.includes('player') ? t('player') : null,
-      currentUser.roles?.includes('scorer') ? t('scorer') : null,
-      currentUser.roles?.includes('manager') ? gestorRoleLabel('manager') : null,
-      currentUser.roles?.includes('professor') ? gestorRoleLabel('professor') : null,
-    ].filter((label): label is string => Boolean(label));
+  const accessLabel = (() => {
+    if (currentUser.isAdmin) return t('admin');
+    if (currentUser.roles?.includes('owner')) return gestorRoleLabel('owner');
+    if (currentUser.roles?.includes('manager')) return gestorRoleLabel('manager');
+    if (currentUser.roles?.includes('professor')) return gestorRoleLabel('professor');
+    if (currentUser.roles?.includes('scorer')) return t('scorer');
+    return t('player');
+  })();
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
@@ -112,7 +99,7 @@ export const TopBar = () => {
                   </NavLink>
                 ))}
 
-                {isGestorMode && (
+                {canManage && (
                   <>
                     <button
                       type="button"
@@ -132,7 +119,7 @@ export const TopBar = () => {
                     {managementOpen && (
                       <div className="ml-3 space-y-1 border-l border-border pl-3">
                         <NavLink
-                          to="/management"
+                          to="/management/courts"
                           onClick={closeMobileMenu}
                           className={({ isActive }) =>
                             `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
@@ -192,21 +179,34 @@ export const TopBar = () => {
                         </NavLink>
 
                         {currentUser.isAdmin ? (
-                          <NavLink
-                            to="/management/admin/access"
-                            onClick={closeMobileMenu}
-                            className={({ isActive }) =>
-                              `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                              }`
-                            }
-                          >
-                            <ShieldCheck className="h-4 w-4 shrink-0 text-violet-300" />
-                            <span className="truncate">{t('admin')}</span>
-                          </NavLink>
+                          <>
+                            <NavLink
+                              to="/admin/access"
+                              onClick={closeMobileMenu}
+                              className={({ isActive }) =>
+                                `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                                }`
+                              }
+                            >
+                              <ShieldCheck className="h-4 w-4 shrink-0 text-violet-300" />
+                              <span className="truncate">{t('admin')}</span>
+                            </NavLink>
+                            <NavLink
+                              to="/admin/approvals"
+                              onClick={closeMobileMenu}
+                              className={({ isActive }) =>
+                                `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                                }`
+                              }
+                            >
+                              <ClipboardList className="h-4 w-4 shrink-0 text-violet-300" />
+                              <span className="truncate">{t('approvals')}</span>
+                            </NavLink>
+                          </>
                         ) : null}
 
                         <NavLink
-                          to="/settings/complex"
+                          to="/management/complexs"
                           onClick={closeMobileMenu}
                           className={({ isActive }) =>
                             `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
@@ -229,32 +229,24 @@ export const TopBar = () => {
                           <span className="truncate">{t('managementPayments')}</span>
                         </NavLink>
 
-                        <div className="rounded-lg border border-border bg-background/30 p-3">
-                          <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
-                            {t('gestorRole')}
-                          </div>
-
-                          <Select
-                            value={activeGestorRole}
-                            onValueChange={(value) => setActiveGestorRole(value as typeof activeGestorRole)}
-                          >
-                            <SelectTrigger className="h-9 border-border bg-background/60 text-xs font-semibold">
-                              <SelectValue />
-                            </SelectTrigger>
-
-                            <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                              {availableGestorRoles.map((role) => (
-                                <SelectItem key={role} value={role}>
-                                  {gestorRoleLabel(role)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
                       </div>
                     )}
                   </>
                 )}
+
+                {currentUser.isAdmin && !isGestorMode ? (
+                  <NavLink
+                    to="/admin/access"
+                    onClick={closeMobileMenu}
+                    className={({ isActive }) =>
+                      `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                      }`
+                    }
+                  >
+                    <ShieldCheck className="h-4 w-4 shrink-0 text-violet-300" />
+                    <span className="truncate">{t('admin')}</span>
+                  </NavLink>
+                ) : null}
               </div>
 
               <div className="px-3 pt-6 pb-2 text-[10px] font-display font-bold tracking-[0.25em] text-muted-foreground">
@@ -309,13 +301,7 @@ export const TopBar = () => {
         </SheetContent>
       </Sheet>
 
-      <div className="order-3 relative basis-full md:order-none md:max-w-md md:flex-1">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
-          placeholder={t('searchPlaceholder')}
-          className="w-full pl-10 pr-4 py-2 rounded-lg bg-secondary/60 border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:shadow-glow transition-smooth"
-        />
-      </div>
+      <div className="order-3 flex-1 md:order-none" />
 
       <LanguageSelector />
 
@@ -348,7 +334,7 @@ export const TopBar = () => {
         <div className="text-right hidden sm:block">
           <div className="text-sm font-bold leading-tight">{currentUser.name}</div>
           <div className="text-[10px] uppercase tracking-wider text-neon-cyan font-semibold">
-            {accessLabels.join(' · ')}
+            {accessLabel}
           </div>
         </div>
 

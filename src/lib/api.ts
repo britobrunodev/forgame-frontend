@@ -1,7 +1,7 @@
 const API_BASE = import.meta.env.VITE_API_URL ?? '/api/v1';
 
 export interface AuthUser {
-  id: string;
+  id: number;
   email: string;
   name: string;
   is_admin: boolean;
@@ -17,33 +17,43 @@ export interface AuthResponse {
 }
 
 export interface ApprovalRequest {
-  id: string;
-  user_id: string;
+  id: number;
+  user_id: number;
   user_email: string;
   user_name: string;
   requested_role: string;
   status: string;
   created_at: string;
+  reviewed_at: string | null;
+  reviewed_by_name: string | null;
 }
 
 export interface ManagedComplex {
-  id: string;
+  id: number;
   name: string;
   city: string | null;
   address: string | null;
 }
 
 export interface AccessControlUser {
-  id: string;
+  id: number;
   name: string;
   email: string;
   is_admin: boolean;
 }
 
 export interface ComplexRoleAssignment {
-  sport_complex_id: string;
-  user_id: string;
+  sport_complex_id: number;
+  user_id: number;
   role: string;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
 }
 
 export interface AccessControlSnapshot {
@@ -68,6 +78,7 @@ async function handle<T>(res: Response): Promise<T> {
 
 export interface PlayerProfile {
   name: string;
+  nickname: string | null;
   email: string;
   picture_url: string | null;
   google_picture_url: string | null;
@@ -78,6 +89,7 @@ export interface PlayerProfile {
   country: string | null;
   uniform_size: string | null;
   level: string | null;
+  preferred_sports: string[] | null;
   wins: number;
   losses: number;
   draws: number;
@@ -87,6 +99,8 @@ export interface PlayerProfile {
 
 export interface PlayerProfileUpdateInput {
   name: string;
+  email?: string | null;
+  nickname?: string | null;
   document_type: string | null;
   document_number: string | null;
   phone_country: string | null;
@@ -94,9 +108,80 @@ export interface PlayerProfileUpdateInput {
   country: string | null;
   uniform_size: string | null;
   level: string | null;
+  preferred_sports: string[] | null;
   sport_characteristics: Record<string, string[]> | null;
   preferred_class_payment_method: string | null;
 }
+
+export interface SportComplexData {
+  id: number;
+  is_active: boolean;
+  name: string;
+  city: string | null;
+  country: string | null;
+  zip_code: string | null;
+  street: string | null;
+  address_number: string | null;
+  address_complement: string | null;
+  image_url: string | null;
+}
+
+export interface CreateSportComplexInput {
+  name: string;
+  city?: string | null;
+  country?: string | null;
+  zip_code?: string | null;
+  street?: string | null;
+  address_number?: string | null;
+  address_complement?: string | null;
+}
+
+export const sportComplexApi = {
+  listAll: (token: string, page = 1, perPage = 12) =>
+    fetch(`${API_BASE}/sport-complexes/all?page=${page}&per_page=${perPage}`, { headers: json(token) }).then((r) =>
+      handle<PaginatedResponse<SportComplexData>>(r),
+    ),
+
+  list: (token: string, page = 1, perPage = 12) =>
+    fetch(`${API_BASE}/sport-complexes?page=${page}&per_page=${perPage}`, { headers: json(token) }).then((r) =>
+      handle<PaginatedResponse<SportComplexData>>(r),
+    ),
+
+  get: (token: string, complexId: number | string) =>
+    fetch(`${API_BASE}/sport-complexes/${complexId}`, { headers: json(token) }).then((r) =>
+      handle<SportComplexData>(r),
+    ),
+
+  create: (token: string, body: CreateSportComplexInput) =>
+    fetch(`${API_BASE}/sport-complexes`, {
+      method: 'POST',
+      headers: json(token),
+      body: JSON.stringify(body),
+    }).then((r) => handle<SportComplexData>(r)),
+
+  update: (token: string, complexId: number | string, body: CreateSportComplexInput) =>
+    fetch(`${API_BASE}/sport-complexes/${complexId}`, {
+      method: 'PUT',
+      headers: json(token),
+      body: JSON.stringify(body),
+    }).then((r) => handle<SportComplexData>(r)),
+
+  uploadImage: async (token: string, complexId: number | string, dataUrl: string): Promise<{ url: string }> => {
+    const [, base64] = dataUrl.split(',');
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: 'image/jpeg' });
+    const form = new FormData();
+    form.append('file', blob, 'complex.jpg');
+    const res = await fetch(`${API_BASE}/sport-complexes/${complexId}/image`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    return handle<{ url: string }>(res);
+  },
+};
 
 export const usersApi = {
   uploadAvatar: async (token: string, dataUrl: string): Promise<{ url: string }> => {
@@ -136,7 +221,7 @@ export const accessControlApi = {
 
   updateAssignments: (
     token: string,
-    payload: { sport_complex_id: string; assignments: Array<{ user_id: string; role: string }> },
+    payload: { sport_complex_id: number; assignments: Array<{ user_id: number; role: string }> },
   ) =>
     fetch(`${API_BASE}/access-control`, {
       method: 'PUT',
@@ -146,6 +231,11 @@ export const accessControlApi = {
 };
 
 export const authApi = {
+  getMe: (token: string) =>
+    fetch(`${API_BASE}/auth/me`, { headers: json(token) }).then((r) =>
+      handle<AuthUser>(r),
+    ),
+
   register: (name: string, email: string, password: string, requested_profile: 'player' | 'gestor') =>
     fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
@@ -167,19 +257,30 @@ export const authApi = {
       body: JSON.stringify({ access_token, requested_profile }),
     }).then((r) => handle<AuthResponse>(r)),
 
-  getApprovals: (token: string) =>
-    fetch(`${API_BASE}/auth/approvals`, { headers: json(token) }).then((r) =>
-      handle<ApprovalRequest[]>(r),
+  getApprovals: (token: string, page = 1, perPage = 12) =>
+    fetch(`${API_BASE}/auth/approvals?page=${page}&per_page=${perPage}`, { headers: json(token) }).then((r) =>
+      handle<PaginatedResponse<ApprovalRequest>>(r),
     ),
 
-  approveRequest: (token: string, requestId: string) =>
+  getAllApprovals: (token: string, page = 1, perPage = 12) =>
+    fetch(`${API_BASE}/auth/approvals/history?page=${page}&per_page=${perPage}`, { headers: json(token) }).then((r) =>
+      handle<PaginatedResponse<ApprovalRequest>>(r),
+    ),
+
+  approveRequest: (token: string, requestId: number | string) =>
     fetch(`${API_BASE}/auth/approvals/${requestId}/approve`, {
       method: 'POST',
       headers: json(token),
     }).then((r) => handle<{ message: string }>(r)),
 
-  rejectRequest: (token: string, requestId: string) =>
+  rejectRequest: (token: string, requestId: number | string) =>
     fetch(`${API_BASE}/auth/approvals/${requestId}/reject`, {
+      method: 'POST',
+      headers: json(token),
+    }).then((r) => handle<{ message: string }>(r)),
+
+  revokeApproval: (token: string, requestId: number | string) =>
+    fetch(`${API_BASE}/auth/approvals/${requestId}/revoke`, {
       method: 'POST',
       headers: json(token),
     }).then((r) => handle<{ message: string }>(r)),

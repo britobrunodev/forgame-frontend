@@ -52,7 +52,9 @@ const Dashboard = () => {
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('playerFeed')}</p>
               <h1 className="mt-0.5 truncate font-display text-xl font-black leading-tight sm:text-2xl">
-                {t('hey')}, <span className="neon-text">{currentUser.name.split(' ')[0]}</span>
+                {currentUser.nickname
+                  ? <><span className="text-foreground/70">{t('hey')},</span> <span className="neon-text">{currentUser.nickname}</span></>
+                  : <span className="text-foreground/70">{t('hey')}!</span>}
               </h1>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {currentUser.level && (

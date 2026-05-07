@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Calendar, Clock3, Plus, Save, Settings2, X } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { RESERVATION_PLACES } from '@/data/mock';
+import { useNavigate, useParams } from 'react-router-dom';
 import { DragSelectField } from '@/components/DragSelectField';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { createHolidaySchedule, getComplexPreference, paymentMethodOptions, saveComplexPreference, weekDayOrder } from '@/lib/complex-preferences-store';
+import { sportComplexApi } from '@/lib/api';
 
 import type { DaySchedule, HolidaySchedule, PaymentMethod, PricingRule } from '@/types';
 import { getAllCourts } from '@/lib/courts-store';
@@ -51,24 +52,25 @@ const describePricingRuleCourts = (
 
 const ComplexPreferences = () => {
   const { t } = useLanguage();
-  const { isGestorMode, currentUser } = useSession();
+  const { complexId } = useParams<{ complexId: string }>();
+  const { currentUser, isGestorMode, token } = useSession();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const ownedPlaces = useMemo(
-    () => RESERVATION_PLACES.filter((place) => (currentUser.ownedComplexIds ?? []).includes(place.id)),
-    [currentUser.ownedComplexIds],
+  const canManageComplexes = currentUser.isAdmin || isGestorMode;
+  const { data: manageableComplexes = [], isLoading } = useQuery({
+    queryKey: ['sport-complexes'],
+    queryFn: async () => {
+      const response = await sportComplexApi.list(token!, 1, 100);
+      return response.items;
+    },
+    enabled: !!token && canManageComplexes,
+  });
+  const selectedPlace = useMemo(
+    () => manageableComplexes.find((place) => String(place.id) === complexId) ?? null,
+    [manageableComplexes, complexId],
   );
-  const queryComplexId = searchParams.get('complexId') ?? '';
-  const defaultComplexId = useMemo(() => {
-    if (queryComplexId && ownedPlaces.some((place) => place.id === queryComplexId)) {
-      return queryComplexId;
-    }
-    return ownedPlaces[0]?.id ?? '';
-  }, [ownedPlaces, queryComplexId]);
-  const [selectedComplexId, setSelectedComplexId] = useState(defaultComplexId);
-  const selectedPlace = ownedPlaces.find((place) => place.id === selectedComplexId) ?? null;
-  const basePreference = selectedPlace ? getComplexPreference(selectedPlace.id) : null;
+  const selectedComplexKey = selectedPlace ? String(selectedPlace.id) : '';
+  const basePreference = selectedComplexKey ? getComplexPreference(selectedComplexKey) : null;
   const [weekSchedule, setWeekSchedule] = useState<DaySchedule[]>(basePreference?.weekSchedule ?? []);
   const [holidays, setHolidays] = useState<HolidaySchedule[]>(basePreference?.holidays ?? []);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(basePreference?.paymentMethods ?? []);
@@ -76,24 +78,18 @@ const ComplexPreferences = () => {
   const [rentalPaymentMethods, setRentalPaymentMethods] = useState<PaymentMethod[]>(basePreference?.rentalPaymentMethods ?? []);
   const [championshipPaymentMethods, setChampionshipPaymentMethods] = useState<PaymentMethod[]>(basePreference?.championshipPaymentMethods ?? []);
   const [pricingRules, setPricingRules] = useState<PricingRule[]>(basePreference?.pricingRules ?? []);
-  const [dateSectionOpen, setDateSectionOpen] = useState(true);
-  const [pricingSectionOpen, setPricingSectionOpen] = useState(true);
-  const [paymentSectionOpen, setPaymentSectionOpen] = useState(true);
+  const [dateSectionOpen, setDateSectionOpen] = useState(false);
+  const [pricingSectionOpen, setPricingSectionOpen] = useState(false);
+  const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
   const ownedCourts = useMemo(
-    () => getAllCourts().filter((court) => court.complexId === selectedComplexId),
-    [selectedComplexId],
+    () => getAllCourts().filter((court) => court.complexId === selectedComplexKey),
+    [selectedComplexKey],
   );
 
   useEffect(() => {
-    if (defaultComplexId && defaultComplexId !== selectedComplexId) {
-      setSelectedComplexId(defaultComplexId);
-    }
-  }, [defaultComplexId, selectedComplexId]);
-
-  useEffect(() => {
-    if (!selectedComplexId) return;
-    syncPreference(selectedComplexId);
-  }, [selectedComplexId]);
+    if (!selectedComplexKey) return;
+    syncPreference(selectedComplexKey);
+  }, [selectedComplexKey]);
 
   const syncPreference = (complexId: string) => {
     const preference = getComplexPreference(complexId);
@@ -106,7 +102,7 @@ const ComplexPreferences = () => {
     setPricingRules(preference.pricingRules);
   };
 
-  if (!isGestorMode) {
+  if (!canManageComplexes) {
     return (
       <div className="mx-auto w-full max-w-3xl">
         <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
@@ -122,12 +118,31 @@ const ComplexPreferences = () => {
     );
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Clock3 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!selectedPlace) {
+    return (
+      <div className="mx-auto w-full max-w-3xl">
+        <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
+          <h1 className="font-display text-3xl font-black">{t('sportComplexes')}</h1>
+          <p className="mt-3 text-sm text-muted-foreground">Complexo não encontrado ou sem acesso.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
       <header className="flex items-center gap-4">
         <button
           type="button"
-          onClick={() => navigate('/settings/complex')}
+          onClick={() => navigate('/management/complexs')}
           className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -142,24 +157,9 @@ const ComplexPreferences = () => {
           <div className="space-y-6">
             <div className="space-y-2">
               <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('sportComplex')}</Label>
-              <Select
-                value={selectedComplexId}
-                onValueChange={(value) => {
-                  setSelectedComplexId(value);
-                  syncPreference(value);
-                }}
-              >
-                <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
-                  <SelectValue placeholder={t('selectComplex')} />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                  {ownedPlaces.map((place) => (
-                    <SelectItem key={place.id} value={place.id}>
-                      {place.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="rounded-xl border border-border bg-background/30 px-4 py-3 text-sm font-semibold text-foreground">
+                {selectedPlace.name}
+              </div>
             </div>
 
             <PreferencePanel title={t('datesOpen')} isOpen={dateSectionOpen} onToggle={() => setDateSectionOpen((current) => !current)}>
@@ -482,7 +482,7 @@ const ComplexPreferences = () => {
               onClick={() => {
                 if (!selectedPlace) return;
                 saveComplexPreference({
-                  complexId: selectedPlace.id,
+                  complexId: String(selectedPlace.id),
                   weekSchedule,
                   holidays,
                   paymentMethods,

@@ -1,7 +1,7 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { CURRENT_USER } from '@/data/mock';
-import type { AuthUser } from '@/lib/api';
+import { authApi, type AuthUser } from '@/lib/api';
 import type { GestorRole, User, UserProfile, UserRole } from '@/types';
 
 type SessionContextValue = {
@@ -42,6 +42,36 @@ const getAvailableGestorRoles = (user: User): GestorRole[] => {
   return user.type === 'gestor' ? ['owner'] : [];
 };
 
+const buildUserFromAuth = (authUser: AuthUser): User => {
+  const backendRoles = new Set(authUser.roles);
+  const isGestor = authUser.is_admin || GESTOR_ROLES.some((r) => backendRoles.has(r));
+  const profiles: UserProfile[] = isGestor ? ['player', 'gestor'] : ['player'];
+  const gestorRoles = authUser.is_admin ? [...GESTOR_ROLES] : GESTOR_ROLES.filter((r) => backendRoles.has(r));
+
+  return {
+    ...CURRENT_USER,
+    id: String(authUser.id),
+    email: authUser.email,
+    name: authUser.name,
+    isAdmin: authUser.is_admin,
+    roles: authUser.roles as UserRole[],
+    avatarUrl: authUser.picture_url ?? undefined,
+    type: isGestor ? 'gestor' : 'player',
+    profiles,
+    gestorRoles,
+    preferences: [],
+    level: 'beginner',
+    wins: 0,
+    losses: 0,
+    draws: 0,
+    sportCharacteristics: {},
+    country: undefined,
+    phoneCountry: undefined,
+    phoneNumber: undefined,
+    nickname: undefined,
+  };
+};
+
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 export const SessionProvider = ({ children }: { children: ReactNode }) => {
@@ -63,7 +93,7 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
       try {
         const parsed = JSON.parse(stored) as UserProfile[];
         const valid = parsed
-          .map((p) => (p === 'owner' ? 'gestor' : p))
+          .map((p) => ((p as string) === 'owner' ? 'gestor' : p))
           .filter((p): p is UserProfile => p === 'player' || p === 'gestor');
         if (valid.length > 0) return Array.from(new Set(valid));
       } catch {
@@ -108,6 +138,48 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
   const [pendingApproval, setPendingApproval] = useState<boolean>(() => {
     return window.localStorage.getItem(pendingApprovalStorageKey) === 'true';
   });
+
+  useEffect(() => {
+    if (!token) return;
+
+    let cancelled = false;
+
+    authApi.getMe(token)
+      .then((authUser) => {
+        if (cancelled) return;
+
+        const nextUser = buildUserFromAuth(authUser);
+        const profiles = nextUser.profiles ?? ['player'];
+        const gestorRoles = nextUser.gestorRoles ?? [];
+
+        window.localStorage.setItem(userStorageKey, JSON.stringify(nextUser));
+        window.localStorage.setItem(profilesStorageKey, JSON.stringify(profiles));
+        setCurrentUser(nextUser);
+        setAvailableProfilesState(profiles);
+
+        if (!profiles.includes(activeProfile)) {
+          window.localStorage.setItem(storageKey, profiles[profiles.length - 1]);
+          setActiveProfileState(profiles[profiles.length - 1]);
+        }
+
+        if (gestorRoles.length > 0) {
+          window.localStorage.setItem(gestorRolesStorageKey, JSON.stringify(gestorRoles));
+          setAvailableGestorRolesState(gestorRoles);
+
+          if (!gestorRoles.includes(activeGestorRole)) {
+            window.localStorage.setItem(gestorRoleStorageKey, gestorRoles[0]);
+            setActiveGestorRoleState(gestorRoles[0]);
+          }
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   const value = useMemo<SessionContextValue>(
     () => ({
@@ -167,24 +239,9 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
       token,
       pendingApproval,
       login: (newToken, authUser, pending = false) => {
-        const backendRoles = new Set(authUser.roles);
-        const isGestor = authUser.is_admin || GESTOR_ROLES.some((r) => backendRoles.has(r));
-        const profiles: UserProfile[] = isGestor ? ['player', 'gestor'] : ['player'];
-        const gestorRoles = authUser.is_admin ? [...GESTOR_ROLES] : GESTOR_ROLES.filter((r) => backendRoles.has(r));
-
-        const nextUser: User = {
-          ...CURRENT_USER,
-          id: authUser.id,
-          email: authUser.email,
-          name: authUser.name,
-          isAdmin: authUser.is_admin,
-          roles: authUser.roles as UserRole[],
-          avatarUrl: authUser.picture_url ?? undefined,
-          type: isGestor ? 'gestor' : 'player',
-          profiles,
-          gestorRoles,
-          preferences: [],
-        };
+        const nextUser = buildUserFromAuth(authUser);
+        const profiles = nextUser.profiles ?? ['player'];
+        const gestorRoles = nextUser.gestorRoles ?? [];
 
         window.localStorage.setItem(tokenStorageKey, newToken);
         window.localStorage.setItem(pendingApprovalStorageKey, String(pending));

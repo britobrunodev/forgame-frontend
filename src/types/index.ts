@@ -194,6 +194,7 @@ export interface ReservationPlace {
   street?: string;
   addressNumber?: string;
   addressComplement?: string;
+  active?: boolean;
 }
 
 export type DocumentType = "cpf" | "rg" | "cc" | "passport";
@@ -202,6 +203,7 @@ export type UniformSize = "XS" | "S" | "M" | "L" | "XL" | "XXL";
 export interface User {
   id: string;
   name: string;
+  nickname?: string;
   email: string;
   isAdmin?: boolean;
   type: "player" | "gestor";

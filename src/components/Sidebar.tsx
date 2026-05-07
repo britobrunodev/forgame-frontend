@@ -1,21 +1,21 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Trophy, MapPin, LogOut, Building2, ChevronDown, Receipt, Settings, GraduationCap, Users, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Calendar, Trophy, MapPin, LogOut, Building2, ChevronDown, Receipt, Settings, GraduationCap, Users, ShieldCheck, ClipboardList } from 'lucide-react';
 import { Logo } from './Logo';
 import { SportIcon } from './SportIcon';
 import { SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
 export const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { t, sportName, gestorRoleLabel } = useLanguage();
-  const { isGestorMode, currentUser, activeGestorRole, setActiveGestorRole, availableGestorRoles, logout } = useSession();
+  const { t, sportName } = useLanguage();
+  const { isGestorMode, currentUser, logout } = useSession();
+  const canManage = isGestorMode || currentUser.isAdmin;
   const [managementOpen, setManagementOpen] = useState(
-    location.pathname.startsWith('/management') || location.pathname.startsWith('/settings'),
+    location.pathname.startsWith('/management'),
   );
+  const [adminOpen, setAdminOpen] = useState(location.pathname.startsWith('/admin'));
   const navItems = [
     { to: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
     { to: '/championships', label: t('championships'), icon: Trophy },
@@ -25,7 +25,7 @@ export const Sidebar = () => {
 
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border bg-sidebar/80 backdrop-blur-xl lg:flex xl:w-64">
-      <div className="px-5 py-6 border-b border-border flex justify-center">
+      <div className="px-5 py-3 sm:py-4 border-b border-border flex items-center justify-center">
         <Logo />
       </div>
       <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-1">
@@ -46,7 +46,7 @@ export const Sidebar = () => {
           </NavLink>
         ))}
 
-        {isGestorMode && (
+        {canManage && (
           <>
             <button
               type="button"
@@ -62,7 +62,7 @@ export const Sidebar = () => {
             {managementOpen && (
               <div className="ml-3 space-y-1 border-l border-border pl-3">
                 <NavLink
-                  to="/management"
+                  to="/management/courts"
                   className={({ isActive }) =>
                     `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
                     }`
@@ -119,20 +119,6 @@ export const Sidebar = () => {
                   <Users className="h-4 w-4 text-neon-cyan" />
                   {t('users')}
                 </NavLink>
-                {currentUser.isAdmin ? (
-                  <NavLink
-                    to="/management/admin/access"
-                    className={({ isActive }) =>
-                      `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
-                        ? 'bg-sidebar-accent text-foreground'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                      }`
-                    }
-                  >
-                    <ShieldCheck className="h-4 w-4 text-violet-300" />
-                    {t('admin')}
-                  </NavLink>
-                ) : null}
                 <NavLink
                   to="/management/approvals"
                   className={({ isActive }) =>
@@ -146,18 +132,6 @@ export const Sidebar = () => {
                   {t('approvals')}
                 </NavLink>
                 <NavLink
-                  to="/settings/complex"
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
-                      ? 'bg-sidebar-accent text-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                    }`
-                  }
-                >
-                  <Building2 className="h-4 w-4 text-neon-pink" />
-                  {t('sportComplexes')}
-                </NavLink>
-                <NavLink
                   to="/management/payments"
                   className={({ isActive }) =>
                     `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
@@ -169,21 +143,62 @@ export const Sidebar = () => {
                   <Receipt className="h-4 w-4 text-neon-pink" />
                   {t('managementPayments')}
                 </NavLink>
-                <div className="rounded-lg border border-border bg-background/30 p-3">
-                  <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{t('gestorRole')}</div>
-                  <Select value={activeGestorRole} onValueChange={(value) => setActiveGestorRole(value as typeof activeGestorRole)}>
-                    <SelectTrigger className="h-9 border-border bg-background/60 text-xs font-semibold">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                      {availableGestorRoles.map((role) => (
-                        <SelectItem key={role} value={role}>
-                          {gestorRoleLabel(role)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <NavLink
+                  to="/management/complexs"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
+                      ? 'bg-sidebar-accent text-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                    }`
+                  }
+                >
+                  <Building2 className="h-4 w-4 text-neon-pink" />
+                  {t('sportComplexes')}
+                </NavLink>
+              </div>
+            )}
+          </>
+        )}
+
+        {currentUser.isAdmin && (
+          <>
+            <button
+              type="button"
+              onClick={() => setAdminOpen((current) => !current)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-smooth ${adminOpen || location.pathname.startsWith('/admin')
+                  ? 'bg-sidebar-accent text-foreground border border-violet-400/30'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground'
+                }`}
+            >
+              <ShieldCheck className="w-4 h-4 text-violet-300" /> {t('admin')}
+              <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${adminOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {adminOpen && (
+              <div className="ml-3 space-y-1 border-l border-border pl-3">
+                <NavLink
+                  to="/admin/access"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
+                      ? 'bg-sidebar-accent text-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                    }`
+                  }
+                >
+                  <Users className="h-4 w-4 text-violet-300" />
+                  {t('users')}
+                </NavLink>
+                <NavLink
+                  to="/admin/approvals"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
+                      ? 'bg-sidebar-accent text-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                    }`
+                  }
+                >
+                  <ClipboardList className="h-4 w-4 text-violet-300" />
+                  Aprovações
+                </NavLink>
               </div>
             )}
           </>

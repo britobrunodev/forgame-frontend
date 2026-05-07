@@ -43,7 +43,7 @@ const Register = () => {
   ];
 
   return (
-    <AuthShell mode="register" title={t('createAccount')} subtitle={t('createYourAccount')}>
+    <AuthShell mode="register" title={t('createAccount')} isLoading={submitting}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('accessProfile')}</label>

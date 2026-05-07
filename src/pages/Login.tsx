@@ -62,7 +62,7 @@ const Login = () => {
   ];
 
   return (
-    <AuthShell mode="login" title={t('login')} subtitle="">
+    <AuthShell mode="login" title={t('login')} subtitle="" isLoading={emailLoading || googleLoading}>
       <form onSubmit={handleSubmit} className="space-y-3.5">
         <div>
           <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('accessProfile')}</label>

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Clock, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Clock, Loader2, XCircle } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/i18n';
 import { authApi } from '@/lib/api';
@@ -9,15 +10,19 @@ const ManagementApprovals = () => {
   const { t } = useLanguage();
   const { token } = useSession();
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const perPage = 12;
 
-  const { data: approvals = [], isLoading } = useQuery({
-    queryKey: ['approvals'],
-    queryFn: () => authApi.getApprovals(token!),
+  const { data, isLoading } = useQuery({
+    queryKey: ['approvals', page],
+    queryFn: () => authApi.getApprovals(token!, page, perPage),
     enabled: !!token,
   });
+  const approvals = data?.items ?? [];
+  const totalPages = data?.total_pages ?? 1;
 
   const approveMutation = useMutation({
-    mutationFn: (requestId: string) => authApi.approveRequest(token!, requestId),
+    mutationFn: (requestId: number) => authApi.approveRequest(token!, requestId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       toast.success(t('approvalApproved'));
@@ -26,7 +31,7 @@ const ManagementApprovals = () => {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: (requestId: string) => authApi.rejectRequest(token!, requestId),
+    mutationFn: (requestId: number) => authApi.rejectRequest(token!, requestId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       toast.success(t('approvalRejected'));
@@ -114,6 +119,31 @@ const ManagementApprovals = () => {
           </table>
         </div>
       )}
+      {totalPages > 1 ? (
+        <div className="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setPage(page - 1)}
+            disabled={page <= 1}
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-background/40 px-3 py-2 text-sm font-semibold text-muted-foreground transition-smooth hover:border-primary/30 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Anterior
+          </button>
+          <span className="text-sm text-muted-foreground">
+            {page} / {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage(page + 1)}
+            disabled={page >= totalPages}
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-background/40 px-3 py-2 text-sm font-semibold text-muted-foreground transition-smooth hover:border-primary/30 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Próxima
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 };

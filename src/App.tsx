@@ -29,6 +29,7 @@ import ManagementCourtEdit from "./pages/ManagementCourtEdit.tsx";
 import ManagementChampionshipEdit from "./pages/ManagementChampionshipEdit.tsx";
 import ManagementUsers from "./pages/ManagementUsers.tsx";
 import ManagementAdminAccess from "./pages/ManagementAdminAccess.tsx";
+import AdminApprovals from "./pages/AdminApprovals.tsx";
 import TournamentSettings from "./pages/TournamentSettings.tsx";
 import SportComplexesManagement from "./pages/SportComplexesManagement.tsx";
 import SportComplexSettings from "./pages/SportComplexSettings.tsx";
@@ -77,7 +78,8 @@ const App = () => (
                 <Route path="/sports/:sportId" element={<SportPage />} />
                 <Route path="/schedule" element={<Schedule />} />
                 <Route path="/profile" element={<ProfileSettings />} />
-                <Route path="/management" element={<ManagementDashboard />} />
+                <Route path="/management" element={<Navigate to="/management/courts" replace />} />
+                <Route path="/management/courts" element={<ManagementDashboard />} />
                 <Route path="/management/approvals" element={<ManagementApprovals />} />
                 <Route path="/management/championships" element={<ManagementChampionships />} />
                 <Route path="/management/classes" element={<ManagementClasses />} />
@@ -87,13 +89,15 @@ const App = () => (
                 <Route path="/management/courts/:id/edit" element={<ManagementCourtEdit />} />
                 <Route path="/management/championships/:id/edit" element={<ManagementChampionshipEdit />} />
                 <Route path="/management/users" element={<ManagementUsers />} />
-                <Route path="/management/admin/access" element={<ManagementAdminAccess />} />
+                <Route path="/admin/access" element={<ManagementAdminAccess />} />
+                <Route path="/admin/approvals" element={<AdminApprovals />} />
                 <Route path="/management/payments" element={<ManagementPayments />} />
-                <Route path="/management/preferences" element={<ComplexPreferences />} />
+                <Route path="/management/complexs" element={<SportComplexesManagement />} />
+                <Route path="/management/complexs/new" element={<SportComplexSettings />} />
+                <Route path="/management/complexs/:complexId/edit" element={<SportComplexSettings />} />
+                <Route path="/management/complexs/:complexId/preferences" element={<ComplexPreferences />} />
                 <Route path="/management/students" element={<StudentsManagement />} />
                 <Route path="/settings" element={<TournamentSettings />} />
-                <Route path="/settings/complex" element={<SportComplexesManagement />} />
-                <Route path="/settings/complex/new" element={<SportComplexSettings />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
