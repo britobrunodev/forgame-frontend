@@ -6,10 +6,15 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const backendTarget = env.VITE_BACKEND_PROXY_TARGET ?? "http://127.0.0.1:8000";
+  const apiUrl = process.env.API_URL ?? env.API_URL ?? "/api/v1";
+  const googleClientId = process.env.GOOGLE_CLIENT_ID ?? env.GOOGLE_CLIENT_ID ?? "";
+  const backendTarget = process.env.VITE_BACKEND_PROXY_TARGET ?? env.VITE_BACKEND_PROXY_TARGET ?? "http://127.0.0.1:8000";
 
   return {
-    envPrefix: ['VITE_', 'GOOGLE_'],
+    define: {
+      "import.meta.env.API_URL": JSON.stringify(apiUrl),
+      "import.meta.env.GOOGLE_CLIENT_ID": JSON.stringify(googleClientId),
+    },
     server: {
       host: "::",
       port: 8080,
