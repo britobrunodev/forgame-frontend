@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Loader2, PlusCircle, Save, ShieldCheck, Trash2, Trophy } from 'lucide-react';
+import { ArrowLeft, Calendar, ChevronDown, ChevronUp, Loader2, PlusCircle, Save, ShieldCheck, Trash2, Trophy } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BackgroundUploadField } from '@/components/BackgroundUploadField';
@@ -516,33 +516,22 @@ const ChampionshipSettings = () => {
                       </Select>
                     </Field>
                     <Field label={t('entryFee')}>
-                      <div className="rounded-xl border border-border bg-background/35 p-3">
-                        <div className="relative">
-                          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-neon-cyan">R$</span>
-                          <Input
-                            type="number"
-                            min={0}
-                            step={10}
-                            value={cat.entry_fee}
-                            onChange={(e) => updateCategory(cat.id, 'entry_fee', e.target.value)}
-                            className="border-border bg-background/60 pl-10 text-sm font-semibold"
-                          />
-                        </div>
-                        <p className="mt-2 text-[11px] text-muted-foreground">{t('entryFee')}</p>
-                      </div>
+                      <NumberStepper
+                        value={cat.entry_fee}
+                        onChange={(v) => updateCategory(cat.id, 'entry_fee', v)}
+                        step={10}
+                        min={0}
+                        prefix="R$"
+                      />
                     </Field>
                     <Field label={t('players')}>
-                      <div className="rounded-xl border border-border bg-background/35 p-3">
-                        <Input
-                          type="number"
-                          min={1}
-                          max={8}
-                          value={cat.players_per_team}
-                          onChange={(e) => updateCategory(cat.id, 'players_per_team', e.target.value.replace(/\D/g, '') || '1')}
-                          className="border-border bg-background/60 text-sm font-semibold"
-                        />
-                        <p className="mt-2 text-[11px] text-muted-foreground">{t('players')}</p>
-                      </div>
+                      <NumberStepper
+                        value={cat.players_per_team}
+                        onChange={(v) => updateCategory(cat.id, 'players_per_team', v)}
+                        step={1}
+                        min={1}
+                        max={8}
+                      />
                     </Field>
                   </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
@@ -618,6 +607,68 @@ const ChampionshipSettings = () => {
           </button>
         </div>
       </section>
+    </div>
+  );
+};
+
+const NumberStepper = ({
+  value,
+  onChange,
+  step = 1,
+  min,
+  max,
+  prefix,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  step?: number;
+  min?: number;
+  max?: number;
+  prefix?: string;
+}) => {
+  const num = Number(value) || 0;
+  const decrement = () => {
+    const next = num - step;
+    if (min !== undefined && next < min) return;
+    onChange(String(next));
+  };
+  const increment = () => {
+    const next = num + step;
+    if (max !== undefined && next > max) return;
+    onChange(String(next));
+  };
+  return (
+    <div className="flex h-10 overflow-hidden rounded-lg border border-border bg-background/60">
+      {prefix && (
+        <span className="flex items-center border-r border-border px-2.5 text-xs font-bold text-neon-cyan">
+          {prefix}
+        </span>
+      )}
+      <Input
+        type="text"
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => onChange(e.target.value.replace(/[^\d]/g, ''))}
+        className="h-full border-0 bg-transparent shadow-none focus-visible:ring-0"
+      />
+      <div className="flex w-9 shrink-0 flex-col border-l border-border">
+        <button
+          type="button"
+          onClick={increment}
+          disabled={max !== undefined && num >= max}
+          className="flex h-1/2 items-center justify-center text-muted-foreground transition-smooth hover:bg-secondary/70 hover:text-foreground disabled:opacity-30"
+        >
+          <ChevronUp className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={decrement}
+          disabled={min !== undefined && num <= min}
+          className="flex h-1/2 items-center justify-center border-t border-border text-muted-foreground transition-smooth hover:bg-secondary/70 hover:text-foreground disabled:opacity-30"
+        >
+          <ChevronDown className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   );
 };

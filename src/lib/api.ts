@@ -342,6 +342,19 @@ export const categoriesApi = {
     }).then((r) => handle<CategoryData[]>(r)),
 };
 
+export interface SportData {
+  id: number;
+  slug: string;
+  name: string;
+}
+
+export const sportsApi = {
+  list: (token: string) =>
+    fetch(`${API_BASE}/sports`, { headers: json(token) }).then((r) =>
+      handle<SportData[]>(r),
+    ),
+};
+
 export const accessControlApi = {
   getSnapshot: (
     token: string,

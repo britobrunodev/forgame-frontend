@@ -221,7 +221,7 @@ const ManagementPayments = () => {
         </div>
 
         {visibleRows.length > 0 ? (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+          <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-4">
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -231,6 +231,7 @@ const ManagementPayments = () => {
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
+              <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
               <button
                 type="button"
                 disabled={page === totalPages}
@@ -239,16 +240,10 @@ const ManagementPayments = () => {
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
-              <span className="text-xs text-muted-foreground">{page}/{totalPages}</span>
             </div>
-            <div className="flex items-center gap-2 text-right">
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('totalPrice')}</span>
-              <span className="text-sm font-semibold text-foreground">{formatCurrency(totalPaid, language)}</span>
-              <span className="text-xs text-muted-foreground">/ {formatCurrency(totalAmount, language)}</span>
-              <span className="ml-6 text-xs text-muted-foreground">
-                {paymentsResponse?.total ?? 0} {t('payments').toLowerCase()}
-              </span>
-            </div>
+            <span className="text-xs text-muted-foreground">
+              {paymentsResponse?.total ?? 0} {t('payments').toLowerCase()}
+            </span>
           </div>
         ) : null}
       </section>

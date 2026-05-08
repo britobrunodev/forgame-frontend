@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
-import { Camera, Phone, Save, Search, X } from 'lucide-react';
+import { Camera, Phone, Save, Search, Trophy, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CountrySelect } from '@/components/CountrySelect';
 import { DragSelectField } from '@/components/DragSelectField';
@@ -11,12 +11,21 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { COUNTRY_OPTIONS, formatPhoneNumber } from '@/data/countries';
-import { SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { notify } from '@/lib/notify';
-import { sportComplexApi, usersApi } from '@/lib/api';
+import { sportComplexApi, sportsApi, usersApi } from '@/lib/api';
 import type { DocumentType, PlayerCharacteristic, PlayerLevel, SportId, UniformSize } from '@/types';
+
+const levelColors: Record<string, string> = {
+  beginner: 'border-muted-foreground/40 bg-muted-foreground/10 text-muted-foreground',
+  'high-beginner': 'border-sky-400/40 bg-sky-400/10 text-sky-300',
+  intermediate: 'border-neon-cyan/40 bg-neon-cyan/10 text-neon-cyan',
+  'high-intermediate': 'border-primary/40 bg-primary/10 text-primary-glow',
+  advanced: 'border-neon-pink/40 bg-neon-pink/10 text-neon-pink',
+  'high-advanced': 'border-yellow-400/50 bg-yellow-400/10 text-yellow-300',
+  professional: 'border-live/40 bg-live/10 text-live',
+};
 
 const CHARACTERISTICS_BY_SPORT: Partial<Record<SportId, PlayerCharacteristic[]>> = {
   footvolley: ['right', 'left'],
@@ -71,9 +80,22 @@ const ProfileSettings = () => {
     preferredComplexIds: currentUser.preferredComplexes ?? [],
   }));
 
+  const { data: sportsData = [] } = useQuery({
+    queryKey: ['sports'],
+    queryFn: () => sportsApi.list(token!),
+    enabled: !!token,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const allSportSlugs = useMemo(() => sportsData.map((s) => s.slug as SportId), [sportsData]);
+  const sportLabelFromSlug = useMemo(
+    () => Object.fromEntries(sportsData.map((s) => [s.slug, s.name])),
+    [sportsData],
+  );
+
   const availableSports = useMemo(
-    () => SPORTS.map((sport) => sport.id).filter((sportId) => !selectedSports.includes(sportId)),
-    [selectedSports],
+    () => allSportSlugs.filter((slug) => !selectedSports.includes(slug)),
+    [allSportSlugs, selectedSports],
   );
 
   const { data: preferredComplexesData } = useQuery({
@@ -457,6 +479,14 @@ const ProfileSettings = () => {
               </span>
             </button>
             <input ref={inputRef} type="file" accept="image/*" onChange={handleAvatarPick} className="hidden" />
+            {currentUser.level && (
+              <div className="mt-3 flex justify-center">
+                <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${levelColors[currentUser.level] ?? levelColors.beginner}`}>
+                  <Trophy className="h-2.5 w-2.5" />
+                  {t(currentUser.level)}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
@@ -562,8 +592,8 @@ const ProfileSettings = () => {
               hint=""
               availableTitle={t('availableSports')}
               selectedTitle={t('selectedSports')}
-              availableItems={availableSports.map((sportId) => ({ id: sportId, label: sportName(sportId) }))}
-              selectedItems={selectedSports.map((sportId) => ({ id: sportId, label: sportName(sportId) }))}
+              availableItems={availableSports.map((slug) => ({ id: slug, label: sportLabelFromSlug[slug] ?? sportName(slug) }))}
+              selectedItems={selectedSports.map((slug) => ({ id: slug, label: sportLabelFromSlug[slug] ?? sportName(slug) }))}
               onMove={(id, nextState) => moveSport(id as SportId, nextState)}
             />
           </div>
