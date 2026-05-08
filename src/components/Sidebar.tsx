@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Trophy, MapPin, LogOut, Building2, ChevronDown, Receipt, Settings, GraduationCap, Users, ShieldCheck, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Trophy, MapPin, LogOut, Building2, ChevronDown, Receipt, Settings, GraduationCap, Users, ShieldCheck, ClipboardList, Calendar } from 'lucide-react';
 import { Logo } from './Logo';
-import { SportIcon } from './SportIcon';
-import { SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 export const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { t, sportName } = useLanguage();
+  const { t } = useLanguage();
   const { isGestorMode, currentUser, logout } = useSession();
   const canManage = isGestorMode || currentUser.isAdmin;
   const [managementOpen, setManagementOpen] = useState(
@@ -20,7 +18,7 @@ export const Sidebar = () => {
     { to: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
     { to: '/championships', label: t('championships'), icon: Trophy },
     { to: '/reservations', label: t('reservations'), icon: MapPin },
-    { to: '/schedule', label: t('mySchedule'), icon: Calendar },
+    { to: '/bookings', label: t('mySchedule'), icon: ClipboardList },
   ];
 
   return (
@@ -180,21 +178,6 @@ export const Sidebar = () => {
           </>
         )}
 
-        <div className="px-3 pt-6 pb-2 text-[10px] font-display font-bold tracking-[0.25em] text-muted-foreground">{t('sports')}</div>
-        {SPORTS.map((s) => (
-          <NavLink
-            key={s.id}
-            to={`/sports/${s.id}`}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground border-l-2 border-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent/60'
-              } ${currentUser.preferences.includes(s.id) ? 'font-bold' : 'font-medium'}`
-            }
-          >
-            <SportIcon sportId={s.id} className="h-4 w-4 translate-y-[0.5px]" />
-            {sportName(s.id)}
-            {currentUser.preferences.includes(s.id) && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-neon-cyan shadow-[0_0_8px_hsl(var(--neon-cyan))]" />}
-          </NavLink>
-        ))}
       </nav>
       <div className="shrink-0 border-t border-border bg-sidebar/95 backdrop-blur-xl">
         <button

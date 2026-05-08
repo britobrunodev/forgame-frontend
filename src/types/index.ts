@@ -11,13 +11,16 @@ export type PlayerCharacteristic =
   | "left"
   | "goalkeeper"
   | "midfielder";
-export type PlayerLevel =
-  | "beginner"
-  | "intermediate"
-  | "advanced"
-  | "silver"
-  | "gold"
-  | "professional";
+export const PLAYER_LEVELS = [
+  "beginner",
+  "high-beginner",
+  "intermediate",
+  "high-intermediate",
+  "advanced",
+  "high-advanced",
+  "professional",
+] as const;
+export type PlayerLevel = (typeof PLAYER_LEVELS)[number];
 export type PaymentMethod =
   | "pix"
   | "credit-card"
@@ -194,7 +197,9 @@ export interface ReservationPlace {
   street?: string;
   addressNumber?: string;
   addressComplement?: string;
+  imageOffsetX?: number;
   imageOffsetY?: number;
+  imageZoom?: number;
   active?: boolean;
 }
 
@@ -226,7 +231,6 @@ export interface User {
   documentType?: DocumentType;
   documentNumber?: string;
   uniformSize?: UniformSize;
-  preferredClassPaymentMethod?: PaymentMethod;
   preferredComplexes?: number[];
 }
 

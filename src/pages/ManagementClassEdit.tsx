@@ -4,12 +4,12 @@ import { ArrowLeft, Calendar as CalendarIcon, Check, Save, Trash2, Users } from 
 import { MANAGED_PLAYERS, RESERVATION_PLACES, SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
-import { useToast } from '@/components/ui/use-toast';
+import { notify } from '@/lib/notify';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { ClassSlot, PlayerLevel, SportId } from '@/types';
+import { PLAYER_LEVELS, type ClassSlot, type PlayerLevel, type SportId } from '@/types';
 
 const classStorageKey = 'joga-junto-management-classes';
 const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
@@ -17,7 +17,7 @@ type Weekday = (typeof weekdays)[number];
 type ScheduleMode = 'weekly' | 'specific';
 type EnrollmentMode = 'all' | 'select';
 
-const levelOptions: PlayerLevel[] = ['beginner', 'intermediate', 'advanced', 'silver', 'gold', 'professional'];
+const levelOptions: PlayerLevel[] = [...PLAYER_LEVELS];
 
 const toDateStr = (d: Date) => {
   const y = d.getFullYear();
@@ -44,7 +44,6 @@ const ManagementClassEdit = () => {
   const navigate = useNavigate();
   const { t, sportName, language } = useLanguage();
   const { isGestorMode, currentUser } = useSession();
-  const { toast } = useToast();
   const locale = language === 'pt-BR' ? 'pt-BR' : 'en-US';
   const ownedComplexIds = currentUser.ownedComplexIds ?? [];
 
@@ -129,14 +128,14 @@ const ManagementClassEdit = () => {
     const all = getClasses();
     const next = all.map((c) => c.id === id ? updated : c);
     window.localStorage.setItem(classStorageKey, JSON.stringify(next));
-    toast({ title: t('classUpdated'), description: `${selectedComplex.name} · ${selectedProfessor.name} · ${dateLabel}` });
+    notify.success(t('classUpdated'), `${selectedComplex.name} · ${selectedProfessor.name} · ${dateLabel}`);
     navigate('/management/classes');
   };
 
   const handleDelete = () => {
     const all = getClasses();
     window.localStorage.setItem(classStorageKey, JSON.stringify(all.filter((c) => c.id !== id)));
-    toast({ title: t('classDeleted'), description: slot?.complexName });
+    notify.success(t('classDeleted'), slot?.complexName);
     navigate('/management/classes');
   };
 

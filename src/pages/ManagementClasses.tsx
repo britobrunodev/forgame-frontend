@@ -85,7 +85,7 @@ const exampleClasses: ClassSlot[] = [
     endTime: '18:30',
     maxSpots: 10,
     bookedSpots: 5,
-    level: 'silver',
+    level: 'high-intermediate',
   },
   {
     id: 'class-example-7',
@@ -98,7 +98,7 @@ const exampleClasses: ClassSlot[] = [
     endTime: '10:30',
     maxSpots: 14,
     bookedSpots: 10,
-    level: 'gold',
+    level: 'high-advanced',
   },
   {
     id: 'class-example-8',

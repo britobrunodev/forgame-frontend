@@ -4,7 +4,7 @@ import { ArrowLeft, Building2, ChevronDown, ChevronUp, Clock3, Plus, Ruler, Save
 import { RESERVATION_PLACES } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
-import { useToast } from '@/components/ui/use-toast';
+import { notify } from '@/lib/notify';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,7 +27,6 @@ const ManagementCourtEdit = () => {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
   const { isGestorMode, currentUser } = useSession();
-  const { toast } = useToast();
   const ownedPlaces = useMemo(
     () => RESERVATION_PLACES.filter((place) => (currentUser.ownedComplexIds ?? []).includes(place.id)),
     [currentUser.ownedComplexIds],
@@ -90,13 +89,13 @@ const ManagementCourtEdit = () => {
       monthlyRate: Number(monthlyRate) || 0,
       slotOptions,
     });
-    toast({ title: t('courtUpdated'), description: `${courtName.trim()} · ${selectedPlace.name}` });
+    notify.success(t('courtUpdated'), `${courtName.trim()} · ${selectedPlace.name}`);
     navigate('/management');
   };
 
   const handleDelete = () => {
     deleteCourt(court.id);
-    toast({ title: t('courtDeleted'), description: court.name });
+    notify.success(t('courtDeleted'), court.name);
     navigate('/management');
   };
 

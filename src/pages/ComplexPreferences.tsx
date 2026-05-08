@@ -5,7 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { DragSelectField } from '@/components/DragSelectField';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
-import { useToast } from '@/components/ui/use-toast';
+import { notify } from '@/lib/notify';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,11 +54,10 @@ const ComplexPreferences = () => {
   const { t } = useLanguage();
   const { complexId } = useParams<{ complexId: string }>();
   const { currentUser, isGestorMode, token } = useSession();
-  const { toast } = useToast();
   const navigate = useNavigate();
   const canManageComplexes = currentUser.isAdmin || isGestorMode;
   const { data: manageableComplexes = [], isLoading } = useQuery({
-    queryKey: ['sport-complexes'],
+    queryKey: ['complexes', 'manageable'],
     queryFn: async () => {
       const response = await sportComplexApi.list(token!, 1, 100);
       return response.items;
@@ -491,10 +490,7 @@ const ComplexPreferences = () => {
                   championshipPaymentMethods,
                   pricingRules,
                 });
-                toast({
-                  title: t('preferencesSaved'),
-                  description: selectedPlace.name,
-                });
+                notify.success(t('preferencesSaved'), selectedPlace.name);
               }}
               disabled={!selectedPlace}
               className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"

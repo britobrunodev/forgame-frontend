@@ -5,7 +5,7 @@ import type { DateRange } from 'react-day-picker';
 import { RESERVATION_PLACES } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
-import { useToast } from '@/components/ui/use-toast';
+import { notify } from '@/lib/notify';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
@@ -27,7 +27,6 @@ const ManagementChampionshipEdit = () => {
   const navigate = useNavigate();
   const { t, sportName, language } = useLanguage();
   const { isGestorMode, currentUser } = useSession();
-  const { toast } = useToast();
   const locale = language === 'pt-BR' ? 'pt-BR' : 'en-US';
   const ownedComplexIds = currentUser.ownedComplexIds ?? [];
 
@@ -67,13 +66,13 @@ const ManagementChampionshipEdit = () => {
       startDate: toDateValue(dateRange.from),
       endDate: toDateValue(dateRange.to ?? dateRange.from),
     });
-    toast({ title: t('championshipUpdated'), description: name.trim() });
+    notify.success(t('championshipUpdated'), name.trim());
     navigate('/management/championships');
   };
 
   const handleDelete = () => {
     deleteChampionship(champ!.id);
-    toast({ title: t('championshipDeleted'), description: champ?.name });
+    notify.success(t('championshipDeleted'), champ?.name);
     navigate('/management/championships');
   };
 

@@ -4,12 +4,12 @@ import { ArrowLeft, Calendar as CalendarIcon, Check, Users } from 'lucide-react'
 import { MANAGED_PLAYERS, RESERVATION_PLACES, SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
-import { useToast } from '@/components/ui/use-toast';
+import { notify } from '@/lib/notify';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { ClassSlot, PlayerLevel, SportId } from '@/types';
+import { PLAYER_LEVELS, type ClassSlot, type PlayerLevel, type SportId } from '@/types';
 
 type EnrollmentMode = 'all' | 'select';
 
@@ -18,7 +18,7 @@ const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'satur
 type Weekday = (typeof weekdays)[number];
 type ScheduleMode = 'weekly' | 'specific';
 
-const levelOptions: PlayerLevel[] = ['beginner', 'intermediate', 'advanced', 'silver', 'gold', 'professional'];
+const levelOptions: PlayerLevel[] = [...PLAYER_LEVELS];
 
 const toDateStr = (d: Date) => {
   const y = d.getFullYear();
@@ -34,7 +34,6 @@ const ManagementClassCreate = () => {
   const navigate = useNavigate();
   const { t, sportName, language } = useLanguage();
   const { isGestorMode, currentUser } = useSession();
-  const { toast } = useToast();
   const locale = language === 'pt-BR' ? 'pt-BR' : 'en-US';
   const ownedComplexIds = currentUser.ownedComplexIds ?? [];
 
@@ -109,10 +108,7 @@ const ManagementClassCreate = () => {
     } catch {
       window.localStorage.setItem(classStorageKey, JSON.stringify([newClass]));
     }
-    toast({
-      title: t('classCreated'),
-      description: `${selectedComplex.name} · ${selectedProfessor.name} · ${dateLabel} ${startTime}–${endTime}`,
-    });
+    notify.success(t('classCreated'), `${selectedComplex.name} · ${selectedProfessor.name} · ${dateLabel} ${startTime}–${endTime}`);
     navigate('/management/classes');
   };
 

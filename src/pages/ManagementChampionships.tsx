@@ -1,34 +1,44 @@
-import { useMemo } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Calendar, Pencil, Plus, Receipt, Trophy } from 'lucide-react';
-import { MANAGED_CHAMPIONSHIPS, RESERVATION_PLACES } from '@/data/mock';
+import { useQuery } from '@tanstack/react-query';
+import { ChevronLeft, ChevronRight, Loader2, Pencil, Plus, Receipt, Trophy } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
-import type { ManagedChampionship } from '@/types';
+import { championshipApi } from '@/lib/api';
 
-const statusOrder: Record<ManagedChampionship['status'], number> = {
-  upcoming: 0,
-  live: 1,
-  finished: 2,
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'Rascunho',
+  open: 'Inscrições abertas',
+  running: 'Em andamento',
+  finished: 'Finalizado',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  draft: 'bg-muted/60 text-muted-foreground',
+  open: 'bg-primary/10 text-primary-glow',
+  running: 'bg-live/10 text-live',
+  finished: 'bg-muted/40 text-muted-foreground',
 };
 
 const ManagementChampionships = () => {
   const navigate = useNavigate();
-  const { t, language, sportName } = useLanguage();
-  const { isGestorMode, currentUser } = useSession();
-  const ownedComplexIds = currentUser.ownedComplexIds ?? [];
-  const visibleChampionships = useMemo(
-    () => MANAGED_CHAMPIONSHIPS
-      .filter((championship) => ownedComplexIds.includes(championship.complexId))
-      .sort((left, right) => {
-        const statusDifference = statusOrder[left.status] - statusOrder[right.status];
-        if (statusDifference !== 0) return statusDifference;
-        return left.startDate.localeCompare(right.startDate);
-      }),
-    [ownedComplexIds],
-  );
+  const { t } = useLanguage();
+  const { currentUser, isGestorMode, token } = useSession();
+  const [page, setPage] = useState(1);
+  const perPage = 12;
+  const canManage = currentUser.isAdmin || isGestorMode;
 
-  if (!isGestorMode) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['championships', page],
+    queryFn: () => championshipApi.listMine(token!, page, perPage),
+    enabled: !!token && canManage,
+  });
+
+  const championships = data?.items ?? [];
+  const totalPages = data?.total_pages ?? 1;
+  const totalItems = data?.total ?? 0;
+
+  if (!canManage) {
     return (
       <div className="mx-auto w-full max-w-3xl">
         <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
@@ -53,66 +63,137 @@ const ManagementChampionships = () => {
         </div>
         <button
           type="button"
-          onClick={() => navigate('/settings')}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary/70 text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+          onClick={() => navigate('/management/championships/new')}
+          title={t('createChampionship')}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
         >
           <Plus className="h-4 w-4" />
         </button>
       </header>
 
-      {visibleChampionships.length > 0 ? (
-        <div className="space-y-5">
-          {visibleChampionships.map((championship) => {
-            const complex = RESERVATION_PLACES.find((place) => place.id === championship.complexId);
-            return (
-              <article key={championship.id} className="rounded-[2rem] border border-border bg-gradient-card p-5 shadow-card sm:p-6">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{sportName(championship.sport)}</p>
-                    <h2 className="font-display text-2xl font-black leading-tight">{championship.name}</h2>
-                    <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                      <span className="inline-flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-neon-pink" />
-                        {complex?.name ?? '-'}
-                      </span>
-                      <span className="inline-flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-neon-cyan" />
-                        {formatDateRange(championship.startDate, championship.endDate, language)}
-                      </span>
-                      <span className="inline-flex items-center gap-2">
-                        <Trophy className="h-4 w-4 text-neon-cyan" />
-                        {championship.teamsCount} {t('teams')}
-                      </span>
-                      <span className="inline-flex items-center gap-2">
-                        <Receipt className="h-4 w-4 text-neon-pink" />
-                        {championship.status === 'live' ? t('live') : championship.status === 'finished' ? t('finished') : t('upcoming')}
-                      </span>
-                    </div>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : championships.length > 0 ? (
+        <div className="rounded-[2rem] border border-border bg-gradient-card p-4 shadow-card sm:p-6">
+          {/* Mobile cards */}
+          <div className="space-y-3 md:hidden">
+            {championships.map((c) => (
+              <article key={c.id} className="rounded-2xl border border-border bg-background/40 p-4">
+                <div className="mb-3 flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="truncate font-display text-sm font-bold uppercase tracking-[0.12em] text-foreground">{c.name}</div>
+                    {(c.start_date || c.end_date) && (
+                      <div className="mt-1 truncate text-xs text-muted-foreground">
+                        {formatDateRange(c.start_date, c.end_date)}
+                      </div>
+                    )}
                   </div>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] ${STATUS_COLORS[c.status] ?? STATUS_COLORS.draft}`}>
+                    {STATUS_LABELS[c.status] ?? c.status}
+                  </span>
+                </div>
+                <div className="mt-4 flex gap-2 border-t border-border/50 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/management/championships/${c.id}/edit`)}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    {t('edit')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/management/payments?type=championship&id=${c.id}`)}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+                  >
+                    <Receipt className="h-4 w-4" />
+                    {t('payments')}
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
 
-                  <div className="flex items-center gap-2">
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
+            <div className="min-w-[860px]">
+              <div className="grid grid-cols-[minmax(0,2fr)_140px_minmax(0,1.2fr)_160px_200px] gap-4 border-b border-border bg-background/30 px-5 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
+                <div>{t('tournamentName')}</div>
+                <div>Status</div>
+                <div>{t('eventDate')}</div>
+                <div>{t('registrationDeadline')}</div>
+                <div className="text-right">{t('settings')}</div>
+              </div>
+              {championships.map((c, index) => (
+                <div
+                  key={c.id}
+                  className={`grid grid-cols-[minmax(0,2fr)_140px_minmax(0,1.2fr)_160px_200px] gap-4 px-5 py-4 transition-smooth hover:bg-primary/5 sm:px-6 ${index !== championships.length - 1 ? 'border-b border-border/70' : ''}`}
+                >
+                  <div className="min-w-0">
+                    <div className="truncate font-display text-xs font-bold uppercase tracking-[0.14em] text-foreground">{c.name}</div>
+                  </div>
+                  <div>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] ${STATUS_COLORS[c.status] ?? STATUS_COLORS.draft}`}>
+                      {STATUS_LABELS[c.status] ?? c.status}
+                    </span>
+                  </div>
+                  <div className="min-w-0 truncate text-sm text-muted-foreground">
+                    {formatDateRange(c.start_date, c.end_date)}
+                  </div>
+                  <div className="min-w-0 truncate text-sm text-muted-foreground">
+                    {c.registration_deadline ? fmtDate(c.registration_deadline) : '-'}
+                  </div>
+                  <div className="flex justify-end gap-3">
                     <button
                       type="button"
-                      onClick={() => navigate(`/management/championships/${championship.id}/edit`)}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary/70 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground hover:bg-secondary"
+                      onClick={() => navigate(`/management/championships/${c.id}/edit`)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
                     >
                       <Pencil className="h-4 w-4" />
+                      {t('edit')}
                     </button>
                     <button
                       type="button"
-                      onClick={() => navigate(`/management/payments?type=championship&id=${championship.id}`)}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary/70 text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+                      onClick={() => navigate(`/management/payments?type=championship&id=${c.id}`)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
                     >
                       <Receipt className="h-4 w-4" />
+                      {t('payments')}
                     </button>
                   </div>
                 </div>
-              </article>
-            );
-          })}
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 flex items-center justify-start gap-2">
+            <button
+              type="button"
+              onClick={() => setPage(page - 1)}
+              disabled={page <= 1}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+              aria-label="Página anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
+            <button
+              type="button"
+              onClick={() => setPage(page + 1)}
+              disabled={page >= totalPages}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+              aria-label="Próxima página"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <span className="ml-2 text-xs text-muted-foreground">{totalItems} {t('championships').toLowerCase()}</span>
+          </div>
         </div>
       ) : (
         <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
+          <Trophy className="mb-4 h-8 w-8 text-muted-foreground/50" />
           <h2 className="font-display text-2xl font-black">{t('noManagedChampionshipsTitle')}</h2>
           <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('noManagedChampionshipsDescription')}</p>
         </div>
@@ -121,19 +202,13 @@ const ManagementChampionships = () => {
   );
 };
 
-const formatDateRange = (startDate: string, endDate: string, language: 'en' | 'pt-BR') => {
-  const locale = language === 'pt-BR' ? 'pt-BR' : 'en-US';
-  const start = new Date(`${startDate}T12:00:00`).toLocaleDateString(locale, {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-  const end = new Date(`${endDate}T12:00:00`).toLocaleDateString(locale, {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-  return `${start} - ${end}`;
+const fmtDate = (iso: string) =>
+  new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+const formatDateRange = (start: string | null, end: string | null) => {
+  if (!start && !end) return '-';
+  if (!end || start === end) return start ? fmtDate(start) : '-';
+  return `${fmtDate(start!)} – ${fmtDate(end)}`;
 };
 
 export default ManagementChampionships;

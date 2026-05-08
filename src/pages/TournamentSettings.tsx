@@ -4,7 +4,7 @@ import type { DateRange } from 'react-day-picker';
 import { RESERVATION_PLACES } from '@/data/mock';
 import { BackgroundUploadField } from '@/components/BackgroundUploadField';
 import { useLanguage } from '@/i18n';
-import { useToast } from '@/components/ui/use-toast';
+import { notify } from '@/lib/notify';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -14,13 +14,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useSession } from '@/session';
 
 type TournamentType = 'open-pairs' | 'mixed-pairs' | 'king-of-the-court';
-type Category = 'professional' | 'gold' | 'silver' | 'advanced' | 'intermediate' | 'beginner';
+type Category = 'professional' | 'high-advanced' | 'high-intermediate' | 'advanced' | 'intermediate' | 'beginner';
 type BracketSize = '8' | '16' | '32';
 type Audience = 'mixed' | 'male' | 'female';
 type ChampFormat = 'dupla-fechada' | 'cumbuca' | 'rei-da-praia';
 type CategoryEntry = { id: string; format: ChampFormat; category: Category; audience: Audience; date: string; time: string; entryFee: string };
 
-const CATEGORY_ORDER: Category[] = ['beginner', 'intermediate', 'advanced', 'silver', 'gold', 'professional'];
+const CATEGORY_ORDER: Category[] = ['beginner', 'intermediate', 'advanced', 'high-intermediate', 'high-advanced', 'professional'];
 const AUDIENCE_OPTIONS: Audience[] = ['mixed', 'male', 'female'];
 const START_TIME_OPTIONS = ['08:00', '09:00', '10:00', '11:00', '13:00', '15:00', '17:00', '19:00'];
 
@@ -59,7 +59,6 @@ const makeEntryId = () => String(nextEntryId++);
 const TournamentSettings = () => {
   const { t, sportName, language } = useLanguage();
   const { currentUser, isGestorMode } = useSession();
-  const { toast } = useToast();
   const today = useMemo(() => {
     const value = new Date();
     value.setHours(0, 0, 0, 0);
@@ -186,17 +185,11 @@ const TournamentSettings = () => {
   };
 
   const handleDraft = () => {
-    toast({
-      title: t('draftSaved'),
-      description: `${tournamentName} · ${selectedComplex?.name ?? '-'}`,
-    });
+    notify.success(t('draftSaved'), `${tournamentName} · ${selectedComplex?.name ?? '-'}`);
   };
 
   const handlePublish = () => {
-    toast({
-      title: t('tournamentPublished'),
-      description: `${tournamentName} · ${selectedComplex?.name ?? '-'}`,
-    });
+    notify.success(t('tournamentPublished'), `${tournamentName} · ${selectedComplex?.name ?? '-'}`);
   };
 
   return (

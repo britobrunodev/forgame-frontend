@@ -4,7 +4,7 @@ import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { useSession } from '@/session';
 import { usersApi } from '@/lib/api';
-import type { DocumentType, PaymentMethod, PlayerCharacteristic, PlayerLevel, SportId, UniformSize } from '@/types';
+import type { DocumentType, PlayerCharacteristic, PlayerLevel, SportId, UniformSize } from '@/types';
 
 const useProfileSync = () => {
   const { token, updateCurrentUser } = useSession();
@@ -27,7 +27,6 @@ const useProfileSync = () => {
         level: (profile.level as PlayerLevel | null) ?? 'beginner',
         preferences: (profile.preferred_sports ?? []) as SportId[],
         sportCharacteristics: (profile.sport_characteristics ?? {}) as Partial<Record<SportId, PlayerCharacteristic[]>>,
-        preferredClassPaymentMethod: (profile.preferred_class_payment_method as PaymentMethod | null) ?? undefined,
         wins: profile.wins,
         losses: profile.losses,
         draws: profile.draws,

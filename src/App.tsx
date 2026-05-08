@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/AppLayout";
@@ -17,8 +16,7 @@ import ReservationDetail from "./pages/ReservationDetail.tsx";
 import Payment from "./pages/Payment.tsx";
 import ClassSchedule from "./pages/ClassSchedule.tsx";
 import ChampionshipRegistration from "./pages/ChampionshipRegistration.tsx";
-import SportPage from "./pages/SportPage.tsx";
-import Schedule from "./pages/Schedule.tsx";
+import Bookings from "./pages/Bookings.tsx";
 import ManagementDashboard from "./pages/ManagementDashboard.tsx";
 import ManagementChampionships from "./pages/ManagementChampionships.tsx";
 import ManagementPayments from "./pages/ManagementPayments.tsx";
@@ -26,7 +24,7 @@ import ManagementClasses from "./pages/ManagementClasses.tsx";
 import ManagementClassCreate from "./pages/ManagementClassCreate.tsx";
 import ManagementClassEdit from "./pages/ManagementClassEdit.tsx";
 import ManagementCourtEdit from "./pages/ManagementCourtEdit.tsx";
-import ManagementChampionshipEdit from "./pages/ManagementChampionshipEdit.tsx";
+import ChampionshipSettings from "./pages/ChampionshipSettings.tsx";
 import ManagementUsers from "./pages/ManagementUsers.tsx";
 import ManagementAdminAccess from "./pages/ManagementAdminAccess.tsx";
 import AdminApprovals from "./pages/AdminApprovals.tsx";
@@ -58,7 +56,6 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Sonner />
         <SessionProvider>
           <BrowserRouter>
             <Routes>
@@ -75,8 +72,9 @@ const App = () => (
                 <Route path="/reservations/classes" element={<ClassSchedule />} />
                 <Route path="/reservations/complexes/:complexId" element={<ReservationDetail />} />
                 <Route path="/payment" element={<Payment />} />
-                <Route path="/sports/:sportId" element={<SportPage />} />
-                <Route path="/schedule" element={<Schedule />} />
+                <Route path="/payment/:paymentId" element={<Payment />} />
+                <Route path="/schedule" element={<Navigate to="/bookings" replace />} />
+                <Route path="/bookings" element={<Bookings />} />
                 <Route path="/profile" element={<ProfileSettings />} />
                 <Route path="/management" element={<Navigate to="/management/courts" replace />} />
                 <Route path="/management/courts" element={<ManagementDashboard />} />
@@ -87,7 +85,8 @@ const App = () => (
                 <Route path="/management/classes/:id/edit" element={<ManagementClassEdit />} />
                 <Route path="/management/courts/new" element={<CourtCreate />} />
                 <Route path="/management/courts/:id/edit" element={<ManagementCourtEdit />} />
-                <Route path="/management/championships/:id/edit" element={<ManagementChampionshipEdit />} />
+                <Route path="/management/championships/new" element={<ChampionshipSettings />} />
+                <Route path="/management/championships/:championshipId/edit" element={<ChampionshipSettings />} />
                 <Route path="/management/users" element={<ManagementUsers />} />
                 <Route path="/admin/access" element={<ManagementAdminAccess />} />
                 <Route path="/admin/approvals" element={<AdminApprovals />} />

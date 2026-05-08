@@ -1,5 +1,5 @@
 import { MANAGED_PLAYERS } from '@/data/mock';
-import type { ManagedPlayer, PlayerLevel } from '@/types';
+import { PLAYER_LEVELS, type ManagedPlayer, type PlayerLevel } from '@/types';
 
 const storageKey = 'joga-junto-managed-player-profiles';
 
@@ -9,12 +9,7 @@ type StoredPlayerProfile = {
 };
 
 const isLevel = (value: unknown): value is PlayerLevel =>
-  value === 'beginner'
-  || value === 'intermediate'
-  || value === 'advanced'
-  || value === 'silver'
-  || value === 'gold'
-  || value === 'professional';
+  typeof value === 'string' && PLAYER_LEVELS.includes(value as PlayerLevel);
 
 const isStoredProfile = (value: unknown): value is StoredPlayerProfile => {
   if (!value || typeof value !== 'object') return false;

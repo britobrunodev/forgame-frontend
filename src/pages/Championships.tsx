@@ -1,17 +1,62 @@
-import { Trophy, Flame, Calendar } from 'lucide-react';
-import { CHAMPIONSHIPS, SPORTS } from '@/data/mock';
+import { useMemo, useState } from 'react';
+import { Trophy, Flame, Calendar, Loader2, Lock } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { ChampionshipCard } from '@/components/ChampionshipCard';
-import { SportIcon } from '@/components/SportIcon';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
+import { championshipApi } from '@/lib/api';
+import type { SportId } from '@/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const Championships = () => {
   const { t, sportName } = useLanguage();
-  const { currentUser } = useSession();
-  const preferred = CHAMPIONSHIPS.filter((championship) => currentUser.preferences.includes(championship.sport));
-  const live = preferred.filter((championship) => championship.status === 'live');
-  const upcoming = preferred.filter((championship) => championship.status === 'upcoming');
-  const others = CHAMPIONSHIPS.filter((championship) => !currentUser.preferences.includes(championship.sport));
+  const { currentUser, token } = useSession();
+  const [selectedSport, setSelectedSport] = useState<'all' | string>('all');
+
+  const { data: sports = [] } = useQuery({
+    queryKey: ['championship-sports'],
+    queryFn: () => championshipApi.listSports(token!),
+    enabled: !!token,
+  });
+
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['championships-public'],
+    queryFn: () => championshipApi.list(token!, 1, 100),
+    enabled: !!token,
+  });
+
+  const sportsById = useMemo(
+    () => new Map(sports.map((sport) => [sport.id, sport])),
+    [sports],
+  );
+
+  const championships = (data?.items ?? []).map((championship) => ({
+    sportSlug: championship.sport_id != null ? sportsById.get(championship.sport_id)?.slug ?? null : null,
+    id: String(championship.id),
+    name: championship.name,
+    sport: championship.sport_id != null ? mapSportSlug(sportsById.get(championship.sport_id)?.slug ?? null) : null,
+    location: championship.complex_name ?? championship.complex_city ?? '-',
+    startDate: formatDate(championship.start_date),
+    endDate: formatDate(championship.end_date),
+    teamsCount: championship.bracket_size ?? 0,
+    status: mapChampionshipStatus(championship.status),
+    image: championship.image_url ?? undefined,
+    imageOffsetX: championship.image_offset_x ?? 0,
+    imageOffsetY: championship.image_offset_y ?? 0,
+    imageZoom: championship.image_zoom ?? 1,
+    youtubeUrl: championship.transmission_url ?? undefined,
+    addressUrl: championship.address_url ?? undefined,
+  }))
+    .filter((championship) => championship.status !== 'draft');
+
+  const filteredChampionships = useMemo(
+    () => championships.filter((championship) => selectedSport === 'all' || championship.sportSlug === selectedSport),
+    [championships, selectedSport],
+  );
+
+  const live = filteredChampionships.filter((championship) => championship.status === 'live');
+  const open = filteredChampionships.filter((championship) => championship.status === 'open');
+  const closed = filteredChampionships.filter((championship) => championship.status === 'closed');
 
   return (
     <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-10 xl:max-w-[min(116rem,calc(100vw-3rem))]">
@@ -20,54 +65,94 @@ const Championships = () => {
           <div>
             <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('championships')}</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {currentUser.preferences.map((preference) => {
-              const sport = SPORTS.find((item) => item.id === preference);
-              if (!sport) return null;
-
-              return (
-                <span key={preference} className="flex items-center gap-1 rounded-full border border-border bg-secondary px-2.5 py-1 text-xs font-bold leading-none">
-                  <SportIcon sportId={sport.id} className="h-3.5 w-3.5 translate-y-[0.5px]" />
-                  <span className="translate-y-[0.5px] leading-none">{sportName(sport.id)}</span>
-                </span>
-              );
-            })}
+          <div className="w-full max-w-xs">
+            <Select value={selectedSport} onValueChange={setSelectedSport}>
+              <SelectTrigger className="border-border bg-secondary/70 text-sm font-semibold">
+                <SelectValue placeholder={t('allSports')} />
+              </SelectTrigger>
+              <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                <SelectItem value="all">{t('allSports')}</SelectItem>
+                {sports.map((sport) => (
+                  <SelectItem key={sport.id} value={sport.slug}>
+                    {mapSportSlug(sport.slug) ? sportName(mapSportSlug(sport.slug)!) : sport.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
-        <p className="mt-3 text-sm text-muted-foreground">{t('tournamentsTailored')}</p>
+        <p className="mt-3 text-sm text-muted-foreground">{t('allChampionships')}</p>
       </section>
 
-      <Stats live={live.length} upcoming={upcoming.length} mySports={currentUser.preferences.length} />
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : isError ? (
+        <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
+          <p className="text-sm font-semibold text-muted-foreground">
+            {error instanceof Error ? error.message : t('googleAuthError')}
+          </p>
+        </div>
+      ) : filteredChampionships.length === 0 ? (
+        <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
+          <p className="text-sm font-semibold text-muted-foreground">{t('noChampionshipsYet')}</p>
+        </div>
+      ) : (
+        <>
+          <Stats live={live.length} open={open.length} closed={closed.length} />
 
-      {live.length > 0 ? (
-        <Section title={t('featuredTournaments')} label={t('liveNow')} icon={<Flame className="h-4 w-4 text-live" />} accent>
-          <Grid items={live} />
-        </Section>
-      ) : null}
+          {live.length > 0 ? (
+            <Section title={t('featuredTournaments')} label={t('liveNow')} icon={<Flame className="h-4 w-4 text-live" />} accent>
+              <Grid items={live} />
+            </Section>
+          ) : null}
 
-      {upcoming.length > 0 ? (
-        <Section title={t('nextStops')} label={t('upcomingForYou')} icon={<Calendar className="h-4 w-4 text-neon-cyan" />}>
-          <Grid items={upcoming} />
-        </Section>
-      ) : null}
+          {open.length > 0 ? (
+            <Section title={t('openRegistrationsDescription')} label={t('openRegistrations')} icon={<Calendar className="h-4 w-4 text-neon-cyan" />}>
+              <Grid items={open} />
+            </Section>
+          ) : null}
 
-      <Section title={t('expandArena')} label={t('discoverOtherSports')} icon={<Trophy className="h-4 w-4 text-neon-pink" />}>
-        <Grid items={others} />
-      </Section>
+          {closed.length > 0 ? (
+            <Section title={t('closedRegistrationsDescription')} label={t('closedRegistrations')} icon={<Lock className="h-4 w-4 text-neon-pink" />}>
+              <Grid items={closed} />
+            </Section>
+          ) : null}
+        </>
+      )}
     </div>
   );
 };
 
-const Stats = ({ live, upcoming, mySports }: { live: number; upcoming: number; mySports: number }) => {
+const mapSportSlug = (slug: string | null | undefined): SportId | null => {
+  if (slug === 'footvolley') return 'footvolley';
+  if (slug === 'beach-tennis') return 'beach-tennis';
+  if (slug === 'volleyball') return 'volleyball';
+  return null;
+};
+
+const mapChampionshipStatus = (status: string): 'draft' | 'open' | 'live' | 'closed' | 'finished' => {
+  if (status === 'running') return 'live';
+  if (status === 'open') return 'open';
+  if (status === 'closed') return 'closed';
+  if (status === 'finished') return 'finished';
+  return 'draft';
+};
+
+const formatDate = (date: string | null) =>
+  date ? new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '-';
+
+const Stats = ({ live, open, closed }: { live: number; open: number; closed: number }) => {
   const { t } = useLanguage();
 
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
       {[
         { label: t('liveNow'), value: live, color: 'text-live' },
-        { label: t('upcoming'), value: upcoming, color: 'text-neon-cyan' },
-        { label: t('mySports'), value: mySports, color: 'text-neon-pink' },
-        { label: t('reservations'), value: 3, color: 'text-primary-glow' },
+        { label: t('openRegistrations'), value: open, color: 'text-neon-cyan' },
+        { label: t('closedRegistrations'), value: closed, color: 'text-neon-pink' },
+        { label: t('championships'), value: live + open + closed, color: 'text-primary-glow' },
       ].map((stat) => (
         <div key={stat.label} className="rounded-xl border border-border bg-gradient-card p-4">
           <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{stat.label}</div>
@@ -102,7 +187,23 @@ const Section = ({
   </section>
 );
 
-const Grid = ({ items }: { items: typeof CHAMPIONSHIPS }) => (
+const Grid = ({ items }: { items: Array<{
+  id: string;
+  name: string;
+  sportSlug?: string | null;
+  sport?: SportId | null;
+  location: string;
+  startDate: string;
+  endDate: string;
+  teamsCount: number;
+  status: 'draft' | 'open' | 'live' | 'closed' | 'finished';
+  image?: string;
+  imageOffsetX?: number;
+  imageOffsetY?: number;
+  imageZoom?: number;
+  youtubeUrl?: string;
+  addressUrl?: string;
+}> }) => (
   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
     {items.map((championship) => <ChampionshipCard key={championship.id} c={championship} />)}
   </div>

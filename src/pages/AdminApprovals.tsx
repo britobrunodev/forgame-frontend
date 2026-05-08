@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, ChevronLeft, ChevronRight, Clock, Loader2, RotateCcw, XCircle } from 'lucide-react';
-import { toast } from 'sonner';
 import { useLanguage } from '@/i18n';
 import { authApi } from '@/lib/api';
+import { notify } from '@/lib/notify';
 import { useSession } from '@/session';
 import type { ApprovalRequest } from '@/lib/api';
 
@@ -65,9 +65,9 @@ const AdminApprovals = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-approvals'] });
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
-      toast.success(t('approvalApproved'));
+      notify.success(t('approvalApproved'));
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : t('googleAuthError')),
+    onError: (err) => notify.error(err instanceof Error ? err.message : t('googleAuthError')),
   });
 
   const rejectMutation = useMutation({
@@ -75,9 +75,9 @@ const AdminApprovals = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-approvals'] });
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
-      toast.success(t('approvalRejected'));
+      notify.success(t('approvalRejected'));
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : t('googleAuthError')),
+    onError: (err) => notify.error(err instanceof Error ? err.message : t('googleAuthError')),
   });
 
   const revokeMutation = useMutation({
@@ -85,9 +85,9 @@ const AdminApprovals = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-approvals'] });
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
-      toast.success('Aprovação revogada — solicitação voltou para pendente.');
+      notify.warning('Aprovação revogada', 'Solicitação voltou para pendente.');
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : t('googleAuthError')),
+    onError: (err) => notify.error(err instanceof Error ? err.message : t('googleAuthError')),
   });
 
   const isMutating = approveMutation.isPending || rejectMutation.isPending || revokeMutation.isPending;

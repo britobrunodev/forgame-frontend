@@ -4,7 +4,7 @@ import { CLASS_SCHEDULE, RESERVATION_PLACES, SPORTS } from '@/data/mock';
 import { SportIcon } from '@/components/SportIcon';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLanguage } from '@/i18n';
-import { useToast } from '@/components/ui/use-toast';
+import { notify } from '@/lib/notify';
 import type { SportId } from '@/types';
 
 const todayStr = new Date().toISOString().slice(0, 10);
@@ -19,7 +19,6 @@ const weekDays = Array.from({ length: 7 }, (_, i) => addDays(todayStr, i));
 
 const ClassSchedule = ({ embedded = false }: { embedded?: boolean }) => {
   const { t, language, sportName } = useLanguage();
-  const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [selectedSport, setSelectedSport] = useState<'all' | SportId>('all');
   const [selectedComplexId, setSelectedComplexId] = useState<'all' | string>('all');
@@ -188,10 +187,7 @@ const ClassSchedule = ({ embedded = false }: { embedded?: boolean }) => {
                         disabled={isFull}
                         onClick={() => {
                           setEnrolled((prev) => [...prev, slot.id]);
-                          toast({
-                            title: t('classBooked'),
-                            description: `${sportName(slot.sport)} · ${slot.startTime} – ${slot.endTime} · ${slot.complexName}`,
-                          });
+                          notify.success(t('classBooked'), `${sportName(slot.sport)} · ${slot.startTime} – ${slot.endTime} · ${slot.complexName}`);
                         }}
                         className="w-full rounded-xl bg-gradient-primary py-2.5 font-display text-[11px] font-bold uppercase tracking-[0.15em] shadow-neon transition-smooth hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
                       >
@@ -281,10 +277,7 @@ const ClassSchedule = ({ embedded = false }: { embedded?: boolean }) => {
                               disabled={isFull}
                               onClick={() => {
                                 setEnrolled((prev) => [...prev, slot.id]);
-                                toast({
-                                  title: t('classBooked'),
-                                  description: `${sportName(slot.sport)} · ${slot.startTime} – ${slot.endTime} · ${slot.complexName}`,
-                                });
+                                notify.success(t('classBooked'), `${sportName(slot.sport)} · ${slot.startTime} – ${slot.endTime} · ${slot.complexName}`);
                               }}
                               className="rounded-lg bg-gradient-primary px-3 py-1.5 font-display text-[11px] font-bold uppercase tracking-[0.15em] shadow-neon transition-smooth hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
                             >

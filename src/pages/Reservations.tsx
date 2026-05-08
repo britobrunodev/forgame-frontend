@@ -7,6 +7,7 @@ import { useSession } from '@/session';
 import { sportComplexApi, usersApi } from '@/lib/api';
 import type { ReservationPlace } from '@/types';
 import ClassSchedule from './ClassSchedule';
+import type { ReactNode } from 'react';
 
 const Reservations = () => {
   const { t } = useLanguage();
@@ -23,7 +24,7 @@ const Reservations = () => {
   const preferredIds = profile?.preferred_complexes ?? [];
 
   const { data, isLoading } = useQuery({
-    queryKey: ['sport-complexes-public'],
+    queryKey: ['complexes-public'],
     queryFn: () => sportComplexApi.listAll(token!, 1, 50),
     enabled: !!token,
   });
@@ -34,11 +35,13 @@ const Reservations = () => {
     id: c.id,
     name: c.name,
     city: c.city ?? '',
-    sports: [],
+    sports: (c.available_sports ?? []) as ReservationPlace['sports'],
     courts: 0,
     rating: 0,
     image: c.image_url ?? undefined,
+    imageOffsetX: c.image_offset_x ?? 0,
     imageOffsetY: c.image_offset_y ?? 0,
+    imageZoom: c.image_zoom ?? 1,
     country: c.country ?? undefined,
     active: c.is_active,
   });
@@ -122,7 +125,7 @@ const Reservations = () => {
   );
 };
 
-const SectionLabel = ({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) => (
+const SectionLabel = ({ icon, children }: { icon: ReactNode; children: ReactNode }) => (
   <div className="flex items-center gap-2">
     {icon}
     <span className="font-display text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">

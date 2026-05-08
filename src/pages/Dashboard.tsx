@@ -1,17 +1,18 @@
 import { useMemo, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, MapPin, Trophy } from 'lucide-react';
+import { ClipboardList, MapPin, Trophy } from 'lucide-react';
 import { SportIcon } from '@/components/SportIcon';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 
 const levelColors: Record<string, string> = {
   beginner: 'border-muted-foreground/40 bg-muted-foreground/10 text-muted-foreground',
+  'high-beginner': 'border-sky-400/40 bg-sky-400/10 text-sky-300',
   intermediate: 'border-neon-cyan/40 bg-neon-cyan/10 text-neon-cyan',
+  'high-intermediate': 'border-primary/40 bg-primary/10 text-primary-glow',
   advanced: 'border-neon-pink/40 bg-neon-pink/10 text-neon-pink',
-  silver: 'border-primary/40 bg-primary/10 text-primary-glow',
-  gold: 'border-yellow-400/50 bg-yellow-400/10 text-yellow-300',
+  'high-advanced': 'border-yellow-400/50 bg-yellow-400/10 text-yellow-300',
   professional: 'border-live/40 bg-live/10 text-live',
 };
 
@@ -84,7 +85,7 @@ const Dashboard = () => {
       <section className="grid grid-cols-3 gap-3 sm:grid-cols-3">
         <QuickAction icon={<Trophy className="h-4 w-4 text-neon-cyan sm:h-5 sm:w-5" />} label={t('championships')} onClick={() => navigate('/championships')} />
         <QuickAction icon={<MapPin className="h-4 w-4 text-neon-pink sm:h-5 sm:w-5" />} label={t('reservations')} onClick={() => navigate('/reservations')} />
-        <QuickAction icon={<Calendar className="h-4 w-4 text-live sm:h-5 sm:w-5" />} label={t('mySchedule')} onClick={() => navigate('/schedule')} />
+        <QuickAction icon={<ClipboardList className="h-4 w-4 text-live sm:h-5 sm:w-5" />} label={t('mySchedule')} onClick={() => navigate('/bookings')} />
       </section>
     </div>
   );

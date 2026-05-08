@@ -3,18 +3,17 @@ import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, GraduationCap, Save,
 import { RESERVATION_PLACES } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
-import { useToast } from '@/components/ui/use-toast';
+import { notify } from '@/lib/notify';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getManagedPlayers, saveManagedPlayerProfile } from '@/lib/managed-players-store';
-import type { PlayerLevel, SportId } from '@/types';
+import { PLAYER_LEVELS, type PlayerLevel, type SportId } from '@/types';
 
-const levelOptions: PlayerLevel[] = ['beginner', 'intermediate', 'advanced', 'silver', 'gold', 'professional'];
+const levelOptions: PlayerLevel[] = [...PLAYER_LEVELS];
 
 const StudentsManagement = () => {
   const { t, sportName } = useLanguage();
   const { isGestorMode, currentUser } = useSession();
-  const { toast } = useToast();
   const ownedComplexIds = currentUser.ownedComplexIds ?? [];
   const visiblePlaces = useMemo(
     () => RESERVATION_PLACES.filter((place) => ownedComplexIds.includes(place.id)),
@@ -58,10 +57,7 @@ const StudentsManagement = () => {
       const score = Number(playerProfiles[player.id]?.score ?? player.score) || 0;
       saveManagedPlayerProfile(player.id, { level, score });
     });
-    toast({
-      title: t('saveAllScores'),
-      description: t('allStudentsSaved'),
-    });
+    notify.success(t('saveAllScores'), t('allStudentsSaved'));
   };
 
   if (!isGestorMode) {

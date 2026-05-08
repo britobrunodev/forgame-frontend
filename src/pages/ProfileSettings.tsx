@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
-import { Camera, ChevronDown, MapPin, Phone, Save, ShieldCheck, Trophy } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Camera, Phone, Save, Search, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CountrySelect } from '@/components/CountrySelect';
 import { DragSelectField } from '@/components/DragSelectField';
@@ -11,13 +10,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { COUNTRY_OPTIONS, formatPhoneNumber, getCountryLabel } from '@/data/countries';
+import { COUNTRY_OPTIONS, formatPhoneNumber } from '@/data/countries';
 import { SPORTS } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
-import { useToast } from '@/components/ui/use-toast';
+import { notify } from '@/lib/notify';
 import { sportComplexApi, usersApi } from '@/lib/api';
-import type { DocumentType, PaymentMethod, PlayerCharacteristic, PlayerLevel, SportId, UniformSize } from '@/types';
+import type { DocumentType, PlayerCharacteristic, PlayerLevel, SportId, UniformSize } from '@/types';
 
 const CHARACTERISTICS_BY_SPORT: Partial<Record<SportId, PlayerCharacteristic[]>> = {
   footvolley: ['right', 'left'],
@@ -30,7 +29,6 @@ const _MIN_SAVING_FEEDBACK_MS = 800;
 const ProfileSettings = () => {
   const { currentUser, updateCurrentUser, token } = useSession();
   const { language, t, sportName } = useLanguage();
-  const { toast } = useToast();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const cropFrameRef = useRef<HTMLDivElement | null>(null);
   const [name, setName] = useState(currentUser.name);
@@ -49,14 +47,8 @@ const ProfileSettings = () => {
     currentUser.documentType === 'cpf' ? formatCpf(currentUser.documentNumber ?? '') : (currentUser.documentNumber ?? ''),
   );
   const [uniformSize, setUniformSize] = useState<UniformSize | ''>(currentUser.uniformSize ?? '');
-  const [preferredClassPaymentMethod, setPreferredClassPaymentMethod] = useState<PaymentMethod | ''>(
-    currentUser.preferredClassPaymentMethod ?? '',
-  );
   const [preferredComplexIds, setPreferredComplexIds] = useState<number[]>(currentUser.preferredComplexes ?? []);
-  const [complexCache, setComplexCache] = useState<Record<number, { name: string; city: string | null }>>({});
-  const [searchResults, setSearchResults] = useState<Array<{ id: number; name: string; city: string | null }>>([]);
-  const [comboOpen, setComboOpen] = useState(false);
-  const [comboQuery, setComboQuery] = useState('');
+  const [preferredComplexSearch, setPreferredComplexSearch] = useState('');
   const [cropSource, setCropSource] = useState('');
   const [cropImageSize, setCropImageSize] = useState({ width: 1, height: 1 });
   const [cropPreviewSize, setCropPreviewSize] = useState(320);
@@ -74,7 +66,6 @@ const ProfileSettings = () => {
     documentType: currentUser.documentType ?? 'cpf',
     documentNumber: currentUser.documentNumber ?? '',
     uniformSize: currentUser.uniformSize ?? '',
-    preferredClassPaymentMethod: currentUser.preferredClassPaymentMethod ?? '',
     selectedSports: currentUser.preferences,
     sportCharacteristics: currentUser.sportCharacteristics ?? {},
     preferredComplexIds: currentUser.preferredComplexes ?? [],
@@ -85,21 +76,45 @@ const ProfileSettings = () => {
     [selectedSports],
   );
 
-  useEffect(() => {
-    if (!token) return;
-    const delay = comboQuery ? 300 : 0;
-    const timer = setTimeout(() => {
-      sportComplexApi.search(token, comboQuery, 50).then((results) => {
-        setSearchResults(results);
-        setComplexCache((prev) => {
-          const next = { ...prev };
-          for (const r of results) next[r.id] = { name: r.name, city: r.city };
-          return next;
-        });
-      }).catch(() => {});
-    }, delay);
-    return () => clearTimeout(timer);
-  }, [comboQuery, token]);
+  const { data: preferredComplexesData } = useQuery({
+    queryKey: ['complexes-public', 'all-for-profile'],
+    queryFn: () => sportComplexApi.listAll(token!, 1, 100),
+    enabled: !!token,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const activeComplexOptions = useMemo(
+    () => (preferredComplexesData?.items ?? []).map((complex) => ({
+      id: String(complex.id),
+      label: complex.city ? `${complex.name} · ${complex.city}` : complex.name,
+    })),
+    [preferredComplexesData],
+  );
+
+  const { data: searchedComplexes = [] } = useQuery({
+    queryKey: ['complex-search', preferredComplexSearch],
+    queryFn: () => sportComplexApi.search(token!, preferredComplexSearch.trim(), 20),
+    enabled: !!token && preferredComplexSearch.trim().length >= 2,
+    staleTime: 60_000,
+  });
+
+  const availablePreferredComplexes = useMemo(
+    () => searchedComplexes
+      .map((complex) => ({
+        id: String(complex.id),
+        label: complex.city ? `${complex.name} · ${complex.city}` : complex.name,
+      }))
+      .filter((complex) => !preferredComplexIds.includes(Number(complex.id))),
+    [searchedComplexes, preferredComplexIds],
+  );
+
+  const selectedPreferredComplexes = useMemo(
+    () => preferredComplexIds.map((id) => {
+      const found = activeComplexOptions.find((complex) => Number(complex.id) === id);
+      return found ?? { id: String(id), label: `#${id}` };
+    }),
+    [activeComplexOptions, preferredComplexIds],
+  );
 
   useEffect(() => {
     setSportCharacteristics((current) => {
@@ -163,7 +178,6 @@ const ProfileSettings = () => {
     documentType,
     documentNumber,
     uniformSize,
-    preferredClassPaymentMethod,
     selectedSports,
     sportCharacteristics,
     preferredComplexIds,
@@ -177,7 +191,6 @@ const ProfileSettings = () => {
     documentType,
     documentNumber,
     uniformSize,
-    preferredClassPaymentMethod,
     selectedSports,
     sportCharacteristics,
     preferredComplexIds,
@@ -204,7 +217,6 @@ const ProfileSettings = () => {
         setDocumentType(nextDocumentType);
         setDocumentNumber(nextDocumentType === 'cpf' ? formatCpf(profile.document_number ?? '') : (profile.document_number ?? ''));
         setUniformSize((profile.uniform_size as UniformSize | null) ?? '');
-        setPreferredClassPaymentMethod((profile.preferred_class_payment_method as PaymentMethod | null) ?? '');
         const nextSportCharacteristics = (profile.sport_characteristics ?? {}) as Partial<Record<SportId, PlayerCharacteristic[]>>;
         const nextSelectedSports = (profile.preferred_sports ?? []) as SportId[];
         setSportCharacteristics(nextSportCharacteristics);
@@ -220,7 +232,6 @@ const ProfileSettings = () => {
           documentType: nextDocumentType,
           documentNumber: profile.document_number ?? '',
           uniformSize: (profile.uniform_size as UniformSize | null) ?? '',
-          preferredClassPaymentMethod: (profile.preferred_class_payment_method as PaymentMethod | null) ?? '',
           selectedSports: nextSelectedSports,
           sportCharacteristics: nextSportCharacteristics,
           preferredComplexIds: profile.preferred_complexes ?? [],
@@ -239,7 +250,6 @@ const ProfileSettings = () => {
           level: (profile.level as PlayerLevel | null) ?? 'beginner',
           preferences: nextSelectedSports,
           sportCharacteristics: nextSportCharacteristics,
-          preferredClassPaymentMethod: (profile.preferred_class_payment_method as PaymentMethod | null) ?? undefined,
           preferredComplexes: profile.preferred_complexes?.length ? profile.preferred_complexes : undefined,
           wins: profile.wins,
           losses: profile.losses,
@@ -247,11 +257,7 @@ const ProfileSettings = () => {
         });
       } catch (err) {
         if (cancelled) return;
-        toast({
-          title: t('profileLoadError'),
-          description: err instanceof Error ? err.message : undefined,
-          variant: 'destructive',
-        });
+        notify.error(t('profileLoadError'), err instanceof Error ? err.message : undefined);
       }
     };
 
@@ -281,11 +287,7 @@ const ProfileSettings = () => {
         setAvatarUrl(url);
         updateCurrentUser({ avatarUrl: url });
       } catch (err) {
-        toast({
-          title: t('avatarSaveError'),
-          description: err instanceof Error ? err.message : undefined,
-          variant: 'destructive',
-        });
+        notify.error(t('avatarSaveError'), err instanceof Error ? err.message : undefined);
         setAvatarUrl(cropped);
       } finally {
         setUploadingAvatar(false);
@@ -318,7 +320,6 @@ const ProfileSettings = () => {
           sport_characteristics: Object.keys(sportCharacteristics).length > 0
             ? (sportCharacteristics as Record<string, string[]>)
             : null,
-          preferred_class_payment_method: preferredClassPaymentMethod || null,
           preferred_complexes: preferredComplexIds.length > 0 ? preferredComplexIds : null,
         });
       }
@@ -352,7 +353,6 @@ const ProfileSettings = () => {
         documentType: nextDocumentType,
         documentNumber: nextDocumentNumber,
         uniformSize: nextUniformSize,
-        preferredClassPaymentMethod: (profile?.preferred_class_payment_method as PaymentMethod | null) ?? preferredClassPaymentMethod,
         selectedSports,
         sportCharacteristics: nextSportCharacteristics,
         preferredComplexIds,
@@ -370,18 +370,13 @@ const ProfileSettings = () => {
         documentType: nextDocumentType,
         documentNumber: nextDocumentNumber,
         uniformSize: nextUniformSize || undefined,
-        preferredClassPaymentMethod: preferredClassPaymentMethod || undefined,
         preferredComplexes: preferredComplexIds.length > 0 ? preferredComplexIds : undefined,
         wins: profile?.wins ?? currentUser.wins,
         losses: profile?.losses ?? currentUser.losses,
         draws: profile?.draws ?? currentUser.draws,
       });
     } catch (err) {
-      toast({
-        title: t('profileSaveError'),
-        description: err instanceof Error ? err.message : undefined,
-        variant: 'destructive',
-      });
+      notify.error(t('profileSaveError'), err instanceof Error ? err.message : undefined);
     } finally {
       const elapsed = Date.now() - startedAt;
       if (elapsed < _MIN_SAVING_FEEDBACK_MS) {
@@ -398,11 +393,7 @@ const ProfileSettings = () => {
     .join('')
     .slice(0, 2);
 
-  const wins = currentUser.wins ?? 0;
-  const losses = currentUser.losses ?? 0;
-  const draws = currentUser.draws ?? 0;
   const phonePrefix = COUNTRY_OPTIONS.find((option) => option.code === phoneCountry)?.dialCode ?? '';
-  const phoneSummary = phoneNumber ? `${phonePrefix} ${phoneNumber}` : '';
   const characteristicLabel = (item: PlayerCharacteristic) => {
     if (item === 'right') return t('rightSide');
     if (item === 'left') return t('leftSide');
@@ -451,68 +442,23 @@ const ProfileSettings = () => {
         )
         : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_360px]">
-        <aside className="order-1 space-y-5 xl:order-2">
-          <div className="rounded-2xl border border-border bg-gradient-card p-5 shadow-card">
-            <div className="mb-4">
-              <h2 className="font-display text-sm font-bold uppercase tracking-[0.2em]">{t('quickPreview')}</h2>
-            </div>
-            <div className="rounded-2xl border border-primary/20 bg-background/40 p-4">
-              <button type="button" onClick={() => inputRef.current?.click()} className="group relative mx-auto block">
-                <Avatar className="h-28 w-28 border border-primary/25 shadow-neon">
-                  <AvatarImage src={avatarUrl} alt={name} />
-                  <AvatarFallback className="bg-gradient-primary font-display text-2xl font-bold text-primary-foreground">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="absolute bottom-1 right-1 inline-flex h-9 w-9 items-center justify-center rounded-full border border-primary/30 bg-background/85 text-neon-cyan transition-smooth group-hover:border-primary/50">
-                  <Camera className="h-4 w-4" />
-                </span>
-              </button>
-              <input ref={inputRef} type="file" accept="image/*" onChange={handleAvatarPick} className="hidden" />
-
-              <div className="mt-4 text-center">
-                <div className="font-display text-2xl font-black">{name}</div>
-                <div className="mt-1 text-xs uppercase tracking-[0.2em] text-neon-cyan">{t('playerCard')}</div>
-              </div>
-
-              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <StatCard label={t('wins')} value={String(wins)} accent="text-neon-cyan" />
-                <StatCard label={t('losses')} value={String(losses)} accent="text-live" />
-                <StatCard label={t('draws')} value={String(draws)} accent="text-primary-glow" />
-              </div>
-
-              <div className="mt-5 space-y-3 text-sm">
-                <PreviewRow icon={<ShieldCheck className="h-4 w-4 text-neon-cyan" />} label={t('nationality')} value={getCountryLabel(nationality, language)} />
-                {phoneSummary ? <PreviewRow icon={<Phone className="h-4 w-4 text-neon-cyan" />} label={t('phoneNumber')} value={phoneSummary} /> : null}
-                <PreviewRow
-                  icon={<Trophy className="h-4 w-4 text-neon-cyan" />}
-                  label={t('playerSports')}
-                  value={selectedSports.length > 0 ? selectedSports.map((sportId) => sportName(sportId)).join(' · ') : '-'}
-                />
-                {selectedSports
-                  .filter((sportId) => (sportCharacteristics[sportId] ?? []).length > 0)
-                  .map((sportId) => (
-                    <PreviewRow
-                      key={sportId}
-                      icon={<Trophy className="h-4 w-4 text-neon-cyan" />}
-                      label={`${sportName(sportId)} · ${t('playerCharacteristics')}`}
-                      value={(sportCharacteristics[sportId] ?? []).map((item) => characteristicLabel(item)).join(' · ')}
-                    />
-                  ))}
-                {uniformSize ? (
-                  <PreviewRow
-                    icon={<ShieldCheck className="h-4 w-4 text-neon-cyan" />}
-                    label={t('uniformSize')}
-                    value={getUniformSizeLabel(uniformSize, language)}
-                  />
-                ) : null}
-              </div>
-            </div>
+      <div>
+        <section className="rounded-2xl border border-border bg-gradient-card p-5 shadow-card sm:p-6">
+          <div className="mb-6 rounded-2xl border border-primary/20 bg-background/40 p-4">
+            <button type="button" onClick={() => inputRef.current?.click()} className="group mx-auto block relative">
+              <Avatar className="h-28 w-28 border border-primary/25 shadow-neon">
+                <AvatarImage src={avatarUrl} alt={name} />
+                <AvatarFallback className="bg-gradient-primary font-display text-2xl font-bold text-primary-foreground">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <span className="absolute bottom-1 right-1 inline-flex h-9 w-9 items-center justify-center rounded-full border border-primary/30 bg-background/85 text-neon-cyan transition-smooth group-hover:border-primary/50">
+                <Camera className="h-4 w-4" />
+              </span>
+            </button>
+            <input ref={inputRef} type="file" accept="image/*" onChange={handleAvatarPick} className="hidden" />
           </div>
-        </aside>
 
-        <section className="order-2 rounded-2xl border border-border bg-gradient-card p-5 shadow-card sm:p-6 xl:order-1">
           <div className="grid gap-5 md:grid-cols-2">
             <Field label={t('fullName')}>
               <Input value={name} onChange={(event) => setName(event.target.value)} className="border-border bg-background/60" />
@@ -523,7 +469,7 @@ const ProfileSettings = () => {
             </Field>
 
             <Field label={t('email')}>
-              <Input value={email} onChange={(event) => setEmail(event.target.value)} className="border-border bg-background/60" />
+              <Input value={email} readOnly disabled className="border-border bg-background/40 text-muted-foreground" />
             </Field>
 
             <Field label={t('nationality')}>
@@ -582,20 +528,6 @@ const ProfileSettings = () => {
                       {getUniformSizeLabel(size, language)}
                     </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
-            </Field>
-
-            <Field label={t('preferredClassPaymentMethod')}>
-              <Select value={preferredClassPaymentMethod} onValueChange={(v) => setPreferredClassPaymentMethod(v as PaymentMethod)}>
-                <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
-                  <SelectValue placeholder="—" />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                  <SelectItem value="pix">{t('pix')}</SelectItem>
-                  <SelectItem value="credit-card">{t('creditCard')}</SelectItem>
-                  <SelectItem value="debit-card">{t('debitCard')}</SelectItem>
-                  <SelectItem value="pay-on-site">{t('payOnSite')}</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
@@ -665,80 +597,64 @@ const ProfileSettings = () => {
 
           {token && (
             <div className="mt-5">
-              <span className="mb-3 block text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('preferredComplexes')}</span>
-              <Popover open={comboOpen} onOpenChange={(open) => { setComboOpen(open); if (!open) setComboQuery(''); }}>
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={comboOpen}
-                    className="w-full justify-between border-border bg-background/60 font-semibold text-muted-foreground shadow-none hover:bg-secondary/80 hover:text-foreground"
-                  >
-                    {t('addComplex')}
-                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="border-border bg-popover/95 p-0 backdrop-blur-xl"
-                  style={{ width: 'var(--radix-popover-trigger-width)' }}
-                  align="start"
-                >
-                  <Command shouldFilter={false}>
-                    <CommandInput
-                      placeholder={t('searchComplexPlaceholder')}
-                      value={comboQuery}
-                      onValueChange={setComboQuery}
-                    />
-                    <CommandList>
-                      <CommandEmpty>{t('noComplexFound')}</CommandEmpty>
-                      <CommandGroup>
-                        {searchResults
-                          .filter((r) => !preferredComplexIds.includes(r.id))
-                          .map((r) => (
-                            <CommandItem
-                              key={r.id}
-                              value={String(r.id)}
-                              onSelect={() => {
-                                setPreferredComplexIds((current) => [...current, r.id]);
-                                setComplexCache((prev) => ({ ...prev, [r.id]: { name: r.name, city: r.city } }));
-                                setComboOpen(false);
-                              }}
-                              className="rounded-lg px-3 py-2 text-sm font-semibold"
-                            >
-                              <MapPin className="mr-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                              <div className="min-w-0 flex-1">
-                                <div className="truncate">{r.name}</div>
-                                {r.city && <div className="truncate text-xs font-normal text-muted-foreground">{r.city}</div>}
-                              </div>
-                            </CommandItem>
-                          ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {preferredComplexIds.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {preferredComplexIds.map((id) => {
-                    const entry = complexCache[id];
-                    return (
-                      <span key={id} className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/15 px-3 py-1.5 text-xs font-semibold text-primary-glow">
-                        <MapPin className="h-3 w-3 shrink-0" />
-                        {entry?.name ?? `#${id}`}
-                        <button
-                          type="button"
-                          onClick={() => setPreferredComplexIds((current) => current.filter((cid) => cid !== id))}
-                          className="ml-0.5 rounded-full opacity-60 transition-smooth hover:opacity-100"
-                          aria-label={`Remove ${entry?.name ?? id}`}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    );
-                  })}
+              <div className="rounded-2xl border border-border bg-background/25 p-4 sm:p-5">
+                <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('preferredComplexes')}</span>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={preferredComplexSearch}
+                    onChange={(event) => setPreferredComplexSearch(event.target.value)}
+                    placeholder={t('searchComplexPlaceholder')}
+                    className="border-border bg-background/60 pl-9 text-sm"
+                  />
                 </div>
-              )}
+
+                <div className="mt-3 min-h-[56px] rounded-2xl border border-primary/20 bg-primary/10 p-3">
+                  <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{t('preferredComplexes')}</div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedPreferredComplexes.map((complex) => (
+                      <button
+                        key={complex.id}
+                        type="button"
+                        onClick={() => setPreferredComplexIds((current) => current.filter((id) => id !== Number(complex.id)))}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.22)]"
+                      >
+                        <span>{complex.label}</span>
+                        <X className="h-3 w-3" />
+                      </button>
+                    ))}
+                    {selectedPreferredComplexes.length === 0 ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="mt-3 rounded-2xl border border-border bg-background/40 p-3">
+                  <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{t('allComplexes')}</div>
+                  {preferredComplexSearch.trim().length < 2 ? (
+                    <div className="text-xs text-muted-foreground">{t('searchComplexPlaceholder')}</div>
+                  ) : availablePreferredComplexes.length === 0 ? (
+                    <div className="text-xs text-muted-foreground">{t('noComplexFound')}</div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {availablePreferredComplexes.map((complex) => (
+                        <button
+                          key={complex.id}
+                          type="button"
+                          onClick={() => {
+                            const numericId = Number(complex.id);
+                            setPreferredComplexIds((current) => current.includes(numericId) ? current : [...current, numericId]);
+                            setPreferredComplexSearch('');
+                          }}
+                          className="rounded-full border border-border bg-secondary px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-foreground transition-smooth hover:border-primary/30"
+                        >
+                          {complex.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -826,31 +742,14 @@ const ProfileSettings = () => {
   );
 };
 
-const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+const Field = ({ label, children }: { label: string; children: ReactNode }) => (
   <label className="block">
     <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
     {children}
   </label>
 );
 
-const PreviewRow = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
-  <div className="flex items-start gap-3">
-    <div className="mt-0.5">{icon}</div>
-    <div>
-      <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{label}</div>
-      <div className="font-semibold text-foreground">{value}</div>
-    </div>
-  </div>
-);
-
-const StatCard = ({ label, value, accent }: { label: string; value: string; accent: string }) => (
-  <div className="rounded-xl border border-border bg-background/40 p-3 text-center">
-    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{label}</div>
-    <div className={`mt-1 font-display text-2xl font-black ${accent}`}>{value}</div>
-  </div>
-);
-
-const SliderField = ({ label, children }: { label: string; children: React.ReactNode }) => (
+const SliderField = ({ label, children }: { label: string; children: ReactNode }) => (
   <div>
     <div className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
     {children}
@@ -989,7 +888,6 @@ const serializeProfileState = ({
   documentType,
   documentNumber,
   uniformSize,
-  preferredClassPaymentMethod,
   selectedSports,
   sportCharacteristics,
   preferredComplexIds,
@@ -1003,7 +901,6 @@ const serializeProfileState = ({
   documentType: DocumentType;
   documentNumber: string;
   uniformSize: UniformSize | '';
-  preferredClassPaymentMethod: PaymentMethod | '';
   selectedSports: SportId[];
   sportCharacteristics: Partial<Record<SportId, PlayerCharacteristic[]>>;
   preferredComplexIds: number[];
@@ -1017,7 +914,6 @@ const serializeProfileState = ({
   documentType,
   documentNumber: documentType === 'cpf' ? documentNumber.replace(/\D/g, '') : documentNumber.trim(),
   uniformSize,
-  preferredClassPaymentMethod,
   selectedSports,
   sportCharacteristics: Object.fromEntries(
     Object.entries(sportCharacteristics)

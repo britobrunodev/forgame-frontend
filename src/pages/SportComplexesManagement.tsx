@@ -16,7 +16,7 @@ const SportComplexesManagement = () => {
   const canManageComplexes = currentUser.isAdmin || isGestorMode;
 
   const { data, isLoading } = useQuery({
-    queryKey: ['sport-complexes', page],
+    queryKey: ['complexes', page],
     queryFn: () => sportComplexApi.list(token!, page, perPage),
     enabled: !!token && canManageComplexes,
   });

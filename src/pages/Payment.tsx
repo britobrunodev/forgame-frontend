@@ -1,13 +1,17 @@
-import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Copy, CreditCard, QrCode, Receipt, ShieldCheck, Wallet } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useLanguage } from '@/i18n';
-import { useToast } from '@/components/ui/use-toast';
+import { notify } from '@/lib/notify';
 import { Input } from '@/components/ui/input';
 import { getComplexPreference } from '@/lib/complex-preferences-store';
+import { paymentsApi } from '@/lib/api';
+import { useSession } from '@/session';
 import type { PaymentMethod } from '@/types';
 
 type PaymentState = {
+  paymentId?: number;
   title?: string;
   description?: string;
   amount?: string;
@@ -18,9 +22,18 @@ type PaymentState = {
 
 const Payment = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { t } = useLanguage();
-  const { toast } = useToast();
+  const { token } = useSession();
+  const { paymentId: paymentIdParam } = useParams<{ paymentId: string }>();
   const state = (location.state as PaymentState | null) ?? null;
+  const resolvedPaymentId = paymentIdParam ? Number(paymentIdParam) : state?.paymentId;
+  const { data: payment } = useQuery({
+    queryKey: ['payment', resolvedPaymentId],
+    queryFn: () => paymentsApi.get(token!, resolvedPaymentId!),
+    enabled: !!token && !!resolvedPaymentId,
+  });
+
   const availableMethods = state?.complexId
     ? getComplexPreference(state.complexId).paymentMethods
     : ['pix', 'credit-card', 'debit-card', 'pay-on-site'] satisfies PaymentMethod[];
@@ -30,6 +43,26 @@ const Payment = () => {
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvv, setCardCvv] = useState('');
   const [pixCopied, setPixCopied] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const resolvedAmount = useMemo(() => {
+    if (state?.amount) return state.amount;
+    if (!payment) return 'R$ 0,00';
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(payment.remaining_amount || payment.total_amount || 0);
+  }, [payment, state?.amount]);
+
+  const resolvedSummary = useMemo(() => {
+    if (state?.summary?.length) return state.summary;
+    if (!payment) return [];
+    return [
+      { label: t('paymentTitle'), value: payment.source_name },
+      { label: t('paymentStatusSummary'), value: payment.status },
+      { label: t('totalPrice'), value: resolvedAmount },
+    ];
+  }, [payment, resolvedAmount, state?.summary, t]);
 
   const paymentOptions = [
     { id: 'pix' as const, label: t('pix'), icon: QrCode },
@@ -43,7 +76,7 @@ const Payment = () => {
       <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('payment')}</p>
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{state?.description ?? t('paymentDescription')}</p>
+          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{state?.description ?? payment?.source_name ?? t('paymentDescription')}</p>
         </div>
       </header>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_320px]">
@@ -172,7 +205,7 @@ const Payment = () => {
             </div>
 
             <div className="space-y-3 text-sm">
-              {state?.summary?.map((item) => (
+              {resolvedSummary.map((item) => (
                 <div key={item.label} className="rounded-xl border border-border bg-background/30 p-3">
                   <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{item.label}</div>
                   <div className="mt-1 font-semibold text-foreground">{item.value}</div>
@@ -182,21 +215,37 @@ const Payment = () => {
 
             <div className="mt-5 rounded-xl border border-primary/20 bg-primary/10 p-4">
               <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('totalPrice')}</div>
-              <div className="mt-1 font-display text-3xl font-black text-primary-glow">{state?.amount ?? 'R$ 0,00'}</div>
+              <div className="mt-1 font-display text-3xl font-black text-primary-glow">{resolvedAmount}</div>
             </div>
 
             <div className="mt-5">
               <button
                 type="button"
+                disabled={isSubmitting}
                 onClick={() => {
-                  toast({
-                    title: t('payment'),
-                    description: `${t('payNow')} · ${state?.amount ?? 'R$ 0,00'}`,
-                  });
+                  if (!resolvedPaymentId) {
+                    notify.success(t('payment'), `${t('payNow')} · ${resolvedAmount}`);
+                    return;
+                  }
+                  if (!token) {
+                    notify.error(t('payment'), 'Pagamento não encontrado.');
+                    return;
+                  }
+
+                  setIsSubmitting(true);
+                  paymentsApi.pay(token, resolvedPaymentId, paymentMethod)
+                    .then(() => {
+                      notify.success(t('payment'), `${t('payNow')} · ${resolvedAmount}`);
+                      navigate(state?.backTo ?? '/bookings');
+                    })
+                    .catch((err: unknown) => {
+                      notify.error(t('payment'), err instanceof Error ? err.message : 'Erro ao processar pagamento');
+                    })
+                    .finally(() => setIsSubmitting(false));
                 }}
                 className="inline-flex w-full items-center justify-center rounded-lg bg-gradient-primary px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] shadow-neon transition-smooth hover:brightness-110"
               >
-                {t('payNow')}
+                {isSubmitting ? '...' : t('payNow')}
               </button>
             </div>
           </div>

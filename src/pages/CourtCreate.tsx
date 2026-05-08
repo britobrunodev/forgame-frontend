@@ -4,7 +4,7 @@ import { ArrowLeft, Building2, ChevronDown, ChevronUp, Clock3, Plus, Ruler, Wall
 import { RESERVATION_PLACES } from '@/data/mock';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
-import { useToast } from '@/components/ui/use-toast';
+import { notify } from '@/lib/notify';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -39,7 +39,6 @@ const CourtCreate = () => {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
   const { isGestorMode, currentUser } = useSession();
-  const { toast } = useToast();
   const ownedPlaces = useMemo(
     () => RESERVATION_PLACES.filter((place) => (currentUser.ownedComplexIds ?? []).includes(place.id)),
     [currentUser.ownedComplexIds],
@@ -238,10 +237,7 @@ const CourtCreate = () => {
                   slotOptions,
                   reservations: [],
                 });
-                toast({
-                  title: t('courtCreated'),
-                  description: `${courtName.trim()} · ${selectedPlace.name}`,
-                });
+                notify.success(t('courtCreated'), `${courtName.trim()} · ${selectedPlace.name}`);
                 navigate('/management');
               }}
               disabled={!selectedPlace || !courtName.trim() || slotOptions.length === 0}

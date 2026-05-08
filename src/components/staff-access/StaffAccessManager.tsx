@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Building2, ChevronLeft, ChevronRight, GraduationCap, MapPin, Save, Search, ShieldCheck, Target, Users } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
-import { useToast } from '@/components/ui/use-toast';
+import { notify } from '@/lib/notify';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { accessControlApi, type AccessControlSnapshot, type ComplexRoleAssignment } from '@/lib/api';
@@ -33,7 +33,6 @@ export const StaffAccessManager = ({
 }) => {
   const { t } = useLanguage();
   const { currentUser, token } = useSession();
-  const { toast } = useToast();
   const [selectedComplexId, setSelectedComplexId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -64,11 +63,7 @@ export const StaffAccessManager = ({
         setSelectedComplexId((current) => current || String(data.complexes[0]?.id ?? ''));
       } catch (err) {
         if (cancelled) return;
-        toast({
-          title: t('profileLoadError'),
-          description: err instanceof Error ? err.message : undefined,
-          variant: 'destructive',
-        });
+        notify.error(t('profileLoadError'), err instanceof Error ? err.message : undefined);
       }
     };
 
@@ -138,13 +133,9 @@ export const StaffAccessManager = ({
         [selectedComplexId]: buildAssignmentsIndex(updated)[selectedComplexId] ?? {},
       }));
 
-      toast({ title: t('rolesSaved'), description: t('usersSavedDescription') });
+      notify.success(t('rolesSaved'), t('usersSavedDescription'));
     } catch (err) {
-      toast({
-        title: t('profileSaveError'),
-        description: err instanceof Error ? err.message : undefined,
-        variant: 'destructive',
-      });
+      notify.error(t('profileSaveError'), err instanceof Error ? err.message : undefined);
     } finally {
       setSaving(false);
     }

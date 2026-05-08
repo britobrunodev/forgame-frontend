@@ -17,10 +17,8 @@ import {
   ShieldCheck,
   ClipboardList,
 } from 'lucide-react';
-import { SPORTS } from '@/data/mock';
 import { LanguageSelector } from './LanguageSelector';
 import { Logo } from './Logo';
-import { SportIcon } from './SportIcon';
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLanguage } from '@/i18n';
@@ -28,7 +26,7 @@ import { useSession } from '@/session';
 export const TopBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { t, sportName, gestorRoleLabel } = useLanguage();
+  const { t, gestorRoleLabel } = useLanguage();
 
   const {
     currentUser,
@@ -56,7 +54,7 @@ export const TopBar = () => {
     { to: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
     { to: '/championships', label: t('championships'), icon: Trophy },
     { to: '/reservations', label: t('reservations'), icon: MapPin },
-    { to: '/schedule', label: t('mySchedule'), icon: Calendar },
+    { to: '/bookings', label: t('mySchedule'), icon: ClipboardList },
   ];
 
   return (
@@ -221,29 +219,6 @@ export const TopBar = () => {
                   </>
                 )}
 
-              </div>
-
-              <div className="px-3 pt-6 pb-2 text-[10px] font-display font-bold tracking-[0.25em] text-muted-foreground">
-                {t('sports')}
-              </div>
-
-              <div className="space-y-1">
-                {SPORTS.map((sport) => (
-                  <NavLink
-                    key={sport.id}
-                    to={`/sports/${sport.id}`}
-                    onClick={closeMobileMenu}
-                    className={({ isActive }) =>
-                      `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-3 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive
-                        ? 'bg-sidebar-accent text-foreground border-l-2 border-primary'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/60'
-                      } ${currentUser.preferences.includes(sport.id) ? 'font-bold' : 'font-medium'}`
-                    }
-                  >
-                    <SportIcon sportId={sport.id} className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{sportName(sport.id)}</span>
-                  </NavLink>
-                ))}
               </div>
             </div>
 

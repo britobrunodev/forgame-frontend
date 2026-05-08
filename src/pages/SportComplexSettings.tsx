@@ -7,7 +7,7 @@ import { CountrySelect } from '@/components/CountrySelect';
 import { DragSelectField } from '@/components/DragSelectField';
 import { COUNTRY_OPTIONS, formatPostalCode, getCountryLabel } from '@/data/countries';
 import { useLanguage } from '@/i18n';
-import { useToast } from '@/components/ui/use-toast';
+import { notify } from '@/lib/notify';
 import { Input } from '@/components/ui/input';
 import { useSession } from '@/session';
 import { sportComplexApi } from '@/lib/api';
@@ -20,7 +20,6 @@ const SportComplexSettings = () => {
   const { complexId } = useParams<{ complexId: string }>();
   const { language, t, sportName } = useLanguage();
   const { currentUser, isGestorMode, token } = useSession();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const isEditing = Boolean(complexId);
   const canManageComplexes = currentUser.isAdmin || isGestorMode;
@@ -34,11 +33,13 @@ const SportComplexSettings = () => {
   const [addressComplement, setAddressComplement] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [selectedBackgroundImage, setSelectedBackgroundImage] = useState('');
+  const [selectedBackgroundOffsetX, setSelectedBackgroundOffsetX] = useState(0);
   const [selectedBackgroundOffsetY, setSelectedBackgroundOffsetY] = useState(0);
-  const [selectedSports, setSelectedSports] = useState<SportOption[]>(['footvolley', 'beach-tennis']);
+  const [selectedBackgroundZoom, setSelectedBackgroundZoom] = useState(1);
+  const [selectedSports, setSelectedSports] = useState<SportOption[]>([]);
 
   const { data: complexData, isLoading: isLoadingComplex } = useQuery({
-    queryKey: ['sport-complex', complexId],
+    queryKey: ['complex', complexId],
     queryFn: () => sportComplexApi.get(token!, complexId!),
     enabled: !!token && !!complexId && canManageComplexes,
   });
@@ -59,7 +60,10 @@ const SportComplexSettings = () => {
     setAddressNumber(complexData.address_number ?? '');
     setAddressComplement(complexData.address_complement ?? '');
     setSelectedBackgroundImage(complexData.image_url ?? '');
+    setSelectedBackgroundOffsetX(complexData.image_offset_x ?? 0);
     setSelectedBackgroundOffsetY(complexData.image_offset_y ?? 0);
+    setSelectedBackgroundZoom(complexData.image_zoom ?? 1);
+    setSelectedSports((complexData.available_sports ?? []) as SportOption[]);
   }, [complexData]);
 
   if (!canManageComplexes) {
@@ -102,7 +106,10 @@ const SportComplexSettings = () => {
         street: street || null,
         address_number: addressNumber || null,
         address_complement: addressComplement || null,
+        image_offset_x: Math.round(selectedBackgroundOffsetX),
         image_offset_y: Math.round(selectedBackgroundOffsetY),
+        image_zoom: selectedBackgroundZoom,
+        available_sports: selectedSports,
       };
       const saved = isEditing
         ? await sportComplexApi.update(token!, complexId!, payload)
@@ -111,21 +118,21 @@ const SportComplexSettings = () => {
         const { url } = await sportComplexApi.uploadImage(token!, saved.id, selectedBackgroundImage);
         setSelectedBackgroundImage(url);
       }
-      await queryClient.invalidateQueries({ queryKey: ['sport-complexes'] });
+      await queryClient.invalidateQueries({ queryKey: ['complexes'] });
+      await queryClient.invalidateQueries({ queryKey: ['complexes-public'] });
       if (complexId) {
-        await queryClient.invalidateQueries({ queryKey: ['sport-complex', complexId] });
+        await queryClient.invalidateQueries({ queryKey: ['complex', complexId] });
       }
-      toast({
-        title: isEditing ? t('saveChanges') : t('sportComplexPublished'),
-        description: `${complexName} · ${street}${addressNumber ? `, ${addressNumber}` : ''} · ${getCountryLabel(country, language)}`,
-      });
+      notify.success(
+        isEditing ? t('saveChanges') : t('sportComplexPublished'),
+        `${complexName} · ${street}${addressNumber ? `, ${addressNumber}` : ''} · ${getCountryLabel(country, language)}`,
+      );
       navigate('/management/complexes');
     } catch (err) {
-      toast({
-        title: isEditing ? 'Erro ao atualizar complexo' : 'Erro ao criar complexo',
-        description: err instanceof Error ? err.message : 'Tente novamente.',
-        variant: 'destructive',
-      });
+      notify.error(
+        isEditing ? 'Erro ao atualizar complexo' : 'Erro ao criar complexo',
+        err instanceof Error ? err.message : 'Tente novamente.',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -238,20 +245,24 @@ const SportComplexSettings = () => {
           </Field>
         </div>
 
-        <div className="mt-5">
-          <div className="max-w-[280px]">
-            <BackgroundUploadField
-              label={t('complexBackground')}
-              buttonLabel={t('selectImage')}
-              image={selectedBackgroundImage}
-              offsetY={selectedBackgroundOffsetY}
-              onOffsetYChange={setSelectedBackgroundOffsetY}
-              onImageChange={async (file) => {
-                setSelectedBackgroundImage(await readFileAsDataUrl(file));
-                setSelectedBackgroundOffsetY(0);
-              }}
-            />
-          </div>
+        <div className="mt-5 max-w-[280px] mx-auto md:mx-0">
+          <BackgroundUploadField
+            label={t('complexBackground')}
+            buttonLabel={t('selectImage')}
+            image={selectedBackgroundImage}
+            offsetX={selectedBackgroundOffsetX}
+            offsetY={selectedBackgroundOffsetY}
+            zoom={selectedBackgroundZoom}
+            onOffsetXChange={setSelectedBackgroundOffsetX}
+            onOffsetYChange={setSelectedBackgroundOffsetY}
+            onZoomChange={setSelectedBackgroundZoom}
+            onImageChange={async (file) => {
+              setSelectedBackgroundImage(await readFileAsDataUrl(file));
+              setSelectedBackgroundOffsetX(0);
+              setSelectedBackgroundOffsetY(0);
+              setSelectedBackgroundZoom(1);
+            }}
+          />
         </div>
 
         <div className="mt-5">
