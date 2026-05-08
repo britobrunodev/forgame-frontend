@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 type CoverBounds = {
   maxOffsetX: number;
@@ -28,24 +28,34 @@ export const PositionedCoverImage = ({
 }: Props) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
-  const [naturalSize, setNaturalSize] = useState({ width: 1, height: 1 });
+  const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [visible, setVisible] = useState(false);
 
-  useEffect(() => {
+  // Measure container synchronously before first paint so bounds are correct immediately.
+  useLayoutEffect(() => {
     if (!containerRef.current) return;
-
-    const updateSize = () => {
+    const update = () => {
       if (!containerRef.current) return;
       setContainerSize({
         width: containerRef.current.clientWidth,
         height: containerRef.current.clientHeight,
       });
     };
-
-    updateSize();
-    const observer = new ResizeObserver(updateSize);
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
   }, []);
+
+  const ready = imgLoaded && containerSize.width > 0;
+
+  // Reveal the image 1 second after it is fully loaded and correctly positioned.
+  useEffect(() => {
+    if (!ready) return;
+    const t = setTimeout(() => setVisible(true), 1000);
+    return () => clearTimeout(t);
+  }, [ready]);
 
   const bounds = getCoverImageBounds(
     containerSize.width,
@@ -64,17 +74,27 @@ export const PositionedCoverImage = ({
 
   return (
     <div ref={containerRef} className={className}>
+      {/* Spinner — shown until image is revealed */}
+      {!visible && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/15 border-t-white/60" />
+        </div>
+      )}
+
       <img
         src={src}
         alt={alt}
         draggable={false}
-        onLoad={(event) =>
+        onLoad={(event) => {
           setNaturalSize({
             width: event.currentTarget.naturalWidth || 1,
             height: event.currentTarget.naturalHeight || 1,
-          })
-        }
-        className={imgClassName}
+          });
+          setImgLoaded(true);
+        }}
+        // transition-none while hidden prevents the transform from animating
+        // before the image is in its final position.
+        className={`${imgClassName} ${visible ? 'opacity-100' : 'opacity-0 [transition:none!important]'}`}
         style={{
           position: 'absolute',
           left: '50%',
@@ -97,12 +117,7 @@ export const getCoverImageBounds = (
   zoom: number,
 ) => {
   if (!containerWidth || !containerHeight || !imageWidth || !imageHeight) {
-    return {
-      width: containerWidth,
-      height: containerHeight,
-      maxOffsetX: 0,
-      maxOffsetY: 0,
-    };
+    return { width: 0, height: 0, maxOffsetX: 0, maxOffsetY: 0 };
   }
 
   const baseScale = Math.max(containerWidth / imageWidth, containerHeight / imageHeight);

@@ -169,7 +169,7 @@ export interface ChampionshipSubscriptionListItem {
   payment_status: string | null;
   payment_total_amount: number | null;
   payment_remaining_amount: number | null;
-  start_date: string | null;
+  start_at: string | null;
   created_at: string;
 }
 
@@ -355,6 +355,70 @@ export const sportsApi = {
     ),
 };
 
+export interface CourtSlotOption {
+  start: string;
+  end: string;
+}
+
+export interface CourtData {
+  id: number;
+  complex_id: number;
+  name: string;
+  dimensions: string;
+  application: string;
+  hourly_rate: number;
+  monthly_rate: number;
+  slot_options: CourtSlotOption[];
+  is_active: boolean;
+}
+
+export interface CourtInput {
+  name: string;
+  dimensions?: string;
+  application?: string;
+  hourly_rate?: number;
+  monthly_rate?: number;
+  slot_options?: CourtSlotOption[];
+  is_active?: boolean;
+}
+
+export const courtsApi = {
+  list: (token: string, complexId: number | string) =>
+    fetch(`${API_BASE}/complexes/${complexId}/courts`, { headers: json(token) }).then((r) =>
+      handle<CourtData[]>(r),
+    ),
+
+  listAll: (token: string, complexId: number | string) =>
+    fetch(`${API_BASE}/complexes/${complexId}/courts/all`, { headers: json(token) }).then((r) =>
+      handle<CourtData[]>(r),
+    ),
+
+  get: (token: string, complexId: number | string, courtId: number | string) =>
+    fetch(`${API_BASE}/complexes/${complexId}/courts/${courtId}`, { headers: json(token) }).then((r) =>
+      handle<CourtData>(r),
+    ),
+
+  create: (token: string, complexId: number | string, body: CourtInput) =>
+    fetch(`${API_BASE}/complexes/${complexId}/courts`, {
+      method: "POST",
+      headers: json(token),
+      body: JSON.stringify(body),
+    }).then((r) => handle<CourtData>(r)),
+
+  update: (token: string, complexId: number | string, courtId: number | string, body: CourtInput) =>
+    fetch(`${API_BASE}/complexes/${complexId}/courts/${courtId}`, {
+      method: "PUT",
+      headers: json(token),
+      body: JSON.stringify(body),
+    }).then((r) => handle<CourtData>(r)),
+
+  delete: (token: string, complexId: number | string, courtId: number | string) =>
+    fetch(`${API_BASE}/complexes/${complexId}/courts/${courtId}`, {
+      method: "DELETE",
+      headers: json(token),
+    }).then((r) => handle<void>(r)),
+};
+
 export const accessControlApi = {
   getSnapshot: (
     token: string,
@@ -473,10 +537,11 @@ export interface ChampionshipData {
   complex_name: string | null;
   complex_city: string | null;
   owner_id: number | null;
-  start_date: string | null;
-  end_date: string | null;
-  registration_deadline: string | null;
-  status: 'draft' | 'open' | 'running' | 'closed' | 'finished';
+  start_at: string | null;
+  end_at: string | null;
+  registration_deadline_at: string | null;
+  timezone: string | null;
+  status: 'draft' | 'open' | 'subscription_ended' | 'live' | 'ended' | string;
   bracket_size: number | null;
   transmission_url: string | null;
   address_url: string | null;
@@ -497,9 +562,10 @@ export interface ChampionshipInput {
   sport_id?: number | null;
   format_id?: number | null;
   complex_id?: number | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  registration_deadline?: string | null;
+  start_at?: string | null;
+  end_at?: string | null;
+  registration_deadline_at?: string | null;
+  timezone?: string | null;
   status?: string;
   bracket_size?: number | null;
   transmission_url?: string | null;

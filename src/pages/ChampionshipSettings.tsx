@@ -1,19 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, ChevronDown, ChevronUp, Loader2, PlusCircle, Save, ShieldCheck, Trash2, Trophy } from 'lucide-react';
-import type { DateRange } from 'react-day-picker';
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2, PlusCircle, Save, ShieldCheck, Trash2, Trophy } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BackgroundUploadField } from '@/components/BackgroundUploadField';
+import { DateTimePicker } from '@/components/DateTimePicker';
 import type { ReactNode } from 'react';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { notify } from '@/lib/notify';
+import { localToUtcIso, utcIsoToLocal } from '@/lib/datetime';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar as CalendarPicker } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { categoriesApi, championshipApi, sportComplexApi } from '@/lib/api';
 import type { SportId } from '@/types';
 
@@ -31,27 +30,25 @@ type CategoryEntry = {
 const AUDIENCE_SLUGS = ['mixed', 'male', 'female'] as const;
 const FORMAT_SLUGS = ['dupla-fechada', 'cumbuca', 'rei-da-praia'] as const;
 const START_TIMES = ['08:00', '09:00', '10:00', '11:00', '13:00', '15:00', '17:00', '19:00'];
-const STATUS_OPTIONS = ['draft', 'open', 'running', 'finished'] as const;
+const STATUS_OPTIONS = ['draft', 'open', 'subscription_ended', 'live', 'ended'] as const;
 const BRACKET_OPTIONS = [8, 16, 32, 64];
+
+const TIMEZONE_OPTIONS = [
+  { value: 'America/Sao_Paulo', label: 'São Paulo / Brasília (UTC-3)' },
+  { value: 'America/Manaus', label: 'Manaus / Campo Grande (UTC-4)' },
+  { value: 'America/Belem', label: 'Belém / Fortaleza / Recife (UTC-3)' },
+  { value: 'America/Cuiaba', label: 'Cuiabá (UTC-4)' },
+  { value: 'America/Rio_Branco', label: 'Rio Branco / Acre (UTC-5)' },
+  { value: 'America/Noronha', label: 'Fernando de Noronha (UTC-2)' },
+  { value: 'UTC', label: 'UTC (GMT+0)' },
+  { value: 'America/New_York', label: 'New York (UTC-5)' },
+  { value: 'Europe/Lisbon', label: 'Lisbon (UTC+0)' },
+  { value: 'Europe/London', label: 'London (UTC+0)' },
+];
 
 const toDateStr = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const fromDateStr = (s: string) => new Date(`${s}T12:00:00`);
-
-const buildDateOptions = (range: DateRange | undefined): string[] => {
-  if (!range?.from) return [];
-  const end = range.to ?? range.from;
-  const dates: string[] = [];
-  const cur = new Date(range.from);
-  cur.setHours(12, 0, 0, 0);
-  const endD = new Date(end);
-  endD.setHours(12, 0, 0, 0);
-  while (cur <= endD) {
-    dates.push(toDateStr(cur));
-    cur.setDate(cur.getDate() + 1);
-  }
-  return dates;
-};
 
 const readFileAsDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -117,8 +114,13 @@ const ChampionshipSettings = () => {
   const [addressUrl, setAddressUrl] = useState('');
   const [notes, setNotes] = useState('');
   const [uniformIncluded, setUniformIncluded] = useState(false);
-  const [eventRange, setEventRange] = useState<DateRange | undefined>(undefined);
-  const [regDeadline, setRegDeadline] = useState<Date | undefined>(undefined);
+  const [timezone, setTimezone] = useState<string>('America/Sao_Paulo');
+  const [startDate, setStartDate] = useState<string | undefined>(undefined);
+  const [startTime, setStartTime] = useState<string>('09:00');
+  const [endDate, setEndDate] = useState<string | undefined>(undefined);
+  const [endTime, setEndTime] = useState<string>('18:00');
+  const [deadlineDate, setDeadlineDate] = useState<string | undefined>(undefined);
+  const [deadlineTime, setDeadlineTime] = useState<string>('23:00');
   const [categories, setCategories] = useState<CategoryEntry[]>([]);
   const [image, setImage] = useState('');
   const [imageOffsetX, setImageOffsetX] = useState(0);
@@ -141,12 +143,23 @@ const ChampionshipSettings = () => {
     setAddressUrl(existing.address_url ?? '');
     setNotes(existing.notes ?? '');
     setUniformIncluded(existing.uniform_included);
-    setEventRange(
-      existing.start_date
-        ? { from: fromDateStr(existing.start_date), to: existing.end_date ? fromDateStr(existing.end_date) : undefined }
-        : undefined,
-    );
-    setRegDeadline(existing.registration_deadline ? fromDateStr(existing.registration_deadline) : undefined);
+    const tz = existing.timezone ?? 'America/Sao_Paulo';
+    setTimezone(tz);
+    if (existing.start_at) {
+      const local = utcIsoToLocal(existing.start_at, tz);
+      setStartDate(local.date);
+      setStartTime(local.time);
+    }
+    if (existing.end_at) {
+      const local = utcIsoToLocal(existing.end_at, tz);
+      setEndDate(local.date);
+      setEndTime(local.time);
+    }
+    if (existing.registration_deadline_at) {
+      const local = utcIsoToLocal(existing.registration_deadline_at, tz);
+      setDeadlineDate(local.date);
+      setDeadlineTime(local.time);
+    }
     setCategories(
       existing.categories.map((cat) => ({
         id: String(cat.id ?? genId()),
@@ -187,7 +200,18 @@ const ChampionshipSettings = () => {
     );
   }, [categoriesCatalog]);
 
-  const eventDateOptions = useMemo(() => buildDateOptions(eventRange), [eventRange]);
+  const eventDateOptions = useMemo(() => {
+    if (!startDate) return [];
+    const end = endDate ?? startDate;
+    const dates: string[] = [];
+    const cur = new Date(`${startDate}T12:00:00`);
+    const endD = new Date(`${end}T12:00:00`);
+    while (cur <= endD) {
+      dates.push(toDateStr(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
+    return dates;
+  }, [startDate, endDate]);
 
   // Keep category dates in range when event range changes
   useEffect(() => {
@@ -199,15 +223,6 @@ const ChampionshipSettings = () => {
       })),
     );
   }, [eventDateOptions]);
-
-  const fmtRange = useMemo(() => {
-    if (!eventRange?.from) return '-';
-    const s = eventRange.from.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
-    if (!eventRange.to) return s;
-    return `${s} – ${eventRange.to.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
-  }, [eventRange, locale]);
-
-  const fmtDeadline = regDeadline?.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }) ?? '-';
 
   // ── Category helpers ───────────────────────────────────────────────────────
   const addCategory = () =>
@@ -240,9 +255,10 @@ const ChampionshipSettings = () => {
         image_offset_x: Math.round(imageOffsetX),
         image_offset_y: imageOffsetY,
         image_zoom: imageZoom,
-        start_date: eventRange?.from ? toDateStr(eventRange.from) : null,
-        end_date: eventRange?.to ? toDateStr(eventRange.to) : (eventRange?.from ? toDateStr(eventRange.from) : null),
-        registration_deadline: regDeadline ? toDateStr(regDeadline) : null,
+        timezone: timezone || null,
+        start_at: startDate ? localToUtcIso(startDate, startTime, timezone) : null,
+        end_at: endDate ? localToUtcIso(endDate, endTime, timezone) : null,
+        registration_deadline_at: deadlineDate ? localToUtcIso(deadlineDate, deadlineTime, timezone) : null,
         categories: categories.map((c) => ({
           format_slug: c.format_slug,
           category_slug: c.category_slug,
@@ -359,8 +375,9 @@ const ChampionshipSettings = () => {
               <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
                 <SelectItem value="draft">Rascunho</SelectItem>
                 <SelectItem value="open">Inscrições abertas</SelectItem>
-                <SelectItem value="running">Em andamento</SelectItem>
-                <SelectItem value="finished">Finalizado</SelectItem>
+                <SelectItem value="subscription_ended">Inscrições encerradas</SelectItem>
+                <SelectItem value="live">Ao vivo</SelectItem>
+                <SelectItem value="ended">Finalizado</SelectItem>
               </SelectContent>
             </Select>
           </Field>
@@ -401,29 +418,44 @@ const ChampionshipSettings = () => {
           </Field>
 
           <Field label={t('eventDate')}>
-            <Popover>
-              <PopoverTrigger asChild>
-                <button type="button" className="inline-flex w-full items-center gap-2 rounded-lg border border-border bg-background/60 px-3 py-2 text-left text-sm font-semibold transition-smooth hover:border-primary/40">
-                  <Calendar className="h-4 w-4 text-neon-cyan" /><span>{fmtRange}</span>
-                </button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-auto border-border bg-popover/95 p-0 backdrop-blur-xl">
-                <CalendarPicker mode="range" selected={eventRange} onSelect={setEventRange} disabled={{ before: today }} numberOfMonths={2} initialFocus />
-              </PopoverContent>
-            </Popover>
+            <DateTimePicker
+              date={startDate}
+              time={startTime}
+              onChange={(d, t) => { setStartDate(d); setStartTime(t); }}
+              placeholder="-"
+              minDate={today}
+            />
+          </Field>
+
+          <Field label={t('championshipEndTime')}>
+            <DateTimePicker
+              date={endDate}
+              time={endTime}
+              onChange={(d, t) => { setEndDate(d); setEndTime(t); }}
+              placeholder="-"
+              minDate={today}
+            />
           </Field>
 
           <Field label={t('registrationDeadline')}>
-            <Popover>
-              <PopoverTrigger asChild>
-                <button type="button" className="inline-flex w-full items-center gap-2 rounded-lg border border-border bg-background/60 px-3 py-2 text-left text-sm font-semibold transition-smooth hover:border-primary/40">
-                  <Calendar className="h-4 w-4 text-neon-cyan" /><span>{fmtDeadline}</span>
-                </button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-auto border-border bg-popover/95 p-0 backdrop-blur-xl">
-                <CalendarPicker mode="single" selected={regDeadline} onSelect={(d) => d && setRegDeadline(d)} disabled={{ before: today }} initialFocus />
-              </PopoverContent>
-            </Popover>
+            <DateTimePicker
+              date={deadlineDate}
+              time={deadlineTime}
+              onChange={(d, t) => { setDeadlineDate(d); setDeadlineTime(t); }}
+              placeholder="-"
+              minDate={today}
+            />
+          </Field>
+
+          <Field label={t('timezone')} className="sm:col-span-2 lg:col-span-3">
+            <Select value={timezone} onValueChange={setTimezone}>
+              <SelectTrigger className="border-border bg-background/60"><SelectValue placeholder={t('selectTimezone')} /></SelectTrigger>
+              <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                {TIMEZONE_OPTIONS.map((tz) => (
+                  <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
 
           <Field label={t('transmissionUrl')}>

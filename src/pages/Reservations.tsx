@@ -50,7 +50,7 @@ const Reservations = () => {
   const discoverPlaces = allComplexes.filter((c) => !preferredIds.includes(c.id)).slice(0, 10).map(toPlace);
 
   return (
-    <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-6 xl:max-w-[min(116rem,calc(100vw-3rem))]">
+    <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-6">
       <header>
         <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('reservations')}</p>
         <p className="mt-3 text-sm text-muted-foreground">{t('findArenasAndReserve')}</p>
@@ -100,7 +100,7 @@ const Reservations = () => {
                 <SectionLabel icon={<Star className="h-3.5 w-3.5 fill-neon-cyan text-neon-cyan" />}>
                   {t('favoriteComplexes')}
                 </SectionLabel>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {favoritePlaces.map((p) => <PlaceCard key={p.id} p={p} />)}
                 </div>
               </section>
@@ -111,7 +111,7 @@ const Reservations = () => {
                 <SectionLabel icon={<MapPin className="h-3.5 w-3.5 text-muted-foreground" />}>
                   {t('discoverComplexes')}
                 </SectionLabel>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {discoverPlaces.map((p) => <PlaceCard key={p.id} p={p} />)}
                 </div>
               </section>

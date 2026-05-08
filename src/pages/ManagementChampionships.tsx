@@ -9,15 +9,17 @@ import { championshipApi } from '@/lib/api';
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Rascunho',
   open: 'Inscrições abertas',
-  running: 'Em andamento',
-  finished: 'Finalizado',
+  subscription_ended: 'Inscrições encerradas',
+  live: 'Ao vivo',
+  ended: 'Finalizado',
 };
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-muted/60 text-muted-foreground',
   open: 'bg-primary/10 text-primary-glow',
-  running: 'bg-live/10 text-live',
-  finished: 'bg-muted/40 text-muted-foreground',
+  subscription_ended: 'bg-neon-pink/10 text-neon-pink',
+  live: 'bg-live/10 text-live',
+  ended: 'bg-muted/40 text-muted-foreground',
 };
 
 const ManagementChampionships = () => {
@@ -84,9 +86,9 @@ const ManagementChampionships = () => {
                 <div className="mb-3 flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="truncate font-display text-sm font-bold uppercase tracking-[0.12em] text-foreground">{c.name}</div>
-                    {(c.start_date || c.end_date) && (
+                    {(c.start_at || c.end_at) && (
                       <div className="mt-1 truncate text-xs text-muted-foreground">
-                        {formatDateRange(c.start_date, c.end_date)}
+                        {formatDateRange(c.start_at, c.end_at)}
                       </div>
                     )}
                   </div>
@@ -140,10 +142,10 @@ const ManagementChampionships = () => {
                     </span>
                   </div>
                   <div className="min-w-0 truncate text-sm text-muted-foreground">
-                    {formatDateRange(c.start_date, c.end_date)}
+                    {formatDateRange(c.start_at, c.end_at)}
                   </div>
                   <div className="min-w-0 truncate text-sm text-muted-foreground">
-                    {c.registration_deadline ? fmtDate(c.registration_deadline) : '-'}
+                    {c.registration_deadline_at ? fmtDate(c.registration_deadline_at) : '-'}
                   </div>
                   <div className="flex justify-end gap-3">
                     <button
@@ -203,12 +205,14 @@ const ManagementChampionships = () => {
 };
 
 const fmtDate = (iso: string) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-const formatDateRange = (start: string | null, end: string | null) => {
+const formatDateRange = (start: string | null | undefined, end: string | null | undefined) => {
   if (!start && !end) return '-';
-  if (!end || start === end) return start ? fmtDate(start) : '-';
-  return `${fmtDate(start!)} – ${fmtDate(end)}`;
+  if (!end) return start ? fmtDate(start) : '-';
+  const s = fmtDate(start!);
+  const e = fmtDate(end);
+  return s === e ? s : `${s} – ${e}`;
 };
 
 export default ManagementChampionships;

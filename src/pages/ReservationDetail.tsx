@@ -2,13 +2,12 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock3, Loader2, MapPin, Star, Trophy } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { sportComplexApi } from '@/lib/api';
+import { courtsApi, sportComplexApi } from '@/lib/api';
 import { useSession } from '@/session';
 import { useLanguage } from '@/i18n';
 import { Switch } from '@/components/ui/switch';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { getAllCourts } from '@/lib/courts-store';
 import { getComplexPreference } from '@/lib/complex-preferences-store';
 
 const toDateValue = (date: Date) => {
@@ -53,6 +52,12 @@ const ReservationDetail = () => {
     enabled: !!token && !!complexId,
   });
 
+  const { data: apiCourts = [] } = useQuery({
+    queryKey: ['courts', complexId],
+    queryFn: () => courtsApi.list(token!, complexId!),
+    enabled: !!token && !!complexId && !isError,
+  });
+
   const today = useMemo(() => {
     const value = new Date();
     value.setHours(0, 0, 0, 0);
@@ -88,7 +93,17 @@ const ReservationDetail = () => {
     );
   }
 
-  const courts = getAllCourts().filter((court) => court.complexId === String(complexId));
+  const courts = apiCourts.map((c) => ({
+    id: String(c.id),
+    name: c.name,
+    complexId: String(c.complex_id),
+    dimensions: c.dimensions,
+    application: c.application,
+    hourlyRate: c.hourly_rate,
+    monthlyRate: c.monthly_rate,
+    slotOptions: c.slot_options,
+    reservations: [] as { date: string; start: string; end: string; user: string; type?: 'single' | 'monthly' }[],
+  }));
   const selectedCourt = courts.find((court) => court.id === selectedRange?.courtId) ?? null;
   const selectedRangeSlots = selectedRange && selectedCourt
     ? selectedCourt.slotOptions.slice(selectedRange.startIndex, selectedRange.endIndex + 1)

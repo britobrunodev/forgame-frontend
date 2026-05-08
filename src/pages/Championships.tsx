@@ -5,11 +5,13 @@ import { ChampionshipCard } from '@/components/ChampionshipCard';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { championshipApi } from '@/lib/api';
+import { formatUtcDate } from '@/lib/datetime';
 import type { SportId } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const Championships = () => {
-  const { t, sportName } = useLanguage();
+  const { t, sportName, language } = useLanguage();
+  const locale = language === 'pt-BR' ? 'pt-BR' : 'en-US';
   const { currentUser, token } = useSession();
   const [selectedSport, setSelectedSport] = useState<'all' | string>('all');
 
@@ -36,8 +38,8 @@ const Championships = () => {
     name: championship.name,
     sport: championship.sport_id != null ? mapSportSlug(sportsById.get(championship.sport_id)?.slug ?? null) : null,
     location: championship.complex_name ?? championship.complex_city ?? '-',
-    startDate: formatDate(championship.start_date),
-    endDate: formatDate(championship.end_date),
+    startDate: formatUtcDate(championship.start_at, championship.timezone, locale),
+    endDate: formatUtcDate(championship.end_at, championship.timezone, locale),
     teamsCount: championship.bracket_size ?? 0,
     status: mapChampionshipStatus(championship.status),
     image: championship.image_url ?? undefined,
@@ -59,7 +61,7 @@ const Championships = () => {
   const closed = filteredChampionships.filter((championship) => championship.status === 'closed');
 
   return (
-    <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-10 xl:max-w-[min(116rem,calc(100vw-3rem))]">
+    <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-10">
       <section>
         <div className="mb-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -133,15 +135,13 @@ const mapSportSlug = (slug: string | null | undefined): SportId | null => {
 };
 
 const mapChampionshipStatus = (status: string): 'draft' | 'open' | 'live' | 'closed' | 'finished' => {
-  if (status === 'running') return 'live';
+  if (status === 'live' || status === 'running') return 'live';
   if (status === 'open') return 'open';
-  if (status === 'closed') return 'closed';
-  if (status === 'finished') return 'finished';
+  if (status === 'subscription_ended' || status === 'closed') return 'closed';
+  if (status === 'ended' || status === 'finished') return 'finished';
   return 'draft';
 };
 
-const formatDate = (date: string | null) =>
-  date ? new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '-';
 
 const Stats = ({ live, open, closed }: { live: number; open: number; closed: number }) => {
   const { t } = useLanguage();
@@ -204,7 +204,7 @@ const Grid = ({ items }: { items: Array<{
   youtubeUrl?: string;
   addressUrl?: string;
 }> }) => (
-  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
     {items.map((championship) => <ChampionshipCard key={championship.id} c={championship} />)}
   </div>
 );

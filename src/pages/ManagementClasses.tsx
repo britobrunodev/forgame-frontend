@@ -184,9 +184,9 @@ const ManagementClasses = () => {
           <button
             type="button"
             onClick={() => navigate('/management/classes/new')}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-xs font-bold uppercase tracking-[0.15em] text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+            className="inline-flex items-center gap-2 rounded-xl border border-neon-cyan/25 bg-neon-cyan/10 px-3 py-2 text-xs font-bold uppercase tracking-[0.15em] text-neon-cyan transition-smooth hover:border-neon-cyan/50 hover:bg-neon-cyan/15"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
             {t('createClass')}
           </button>
         </div>

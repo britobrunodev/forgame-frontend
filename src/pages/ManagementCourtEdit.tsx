@@ -1,14 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Building2, ChevronDown, ChevronUp, Clock3, Plus, Ruler, Save, Trash2, Wallet, X } from 'lucide-react';
-import { RESERVATION_PLACES } from '@/data/mock';
+import { ArrowLeft, Building2, ChevronDown, ChevronUp, Clock3, Loader2, Plus, Ruler, Save, Trash2, Wallet, X } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { courtsApi } from '@/lib/api';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { notify } from '@/lib/notify';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { COURT_DIMENSIONS, getAllCourts, updateCourt, deleteCourt } from '@/lib/courts-store';
+import { COURT_DIMENSIONS } from '@/lib/courts-store';
 
 const timeToMinutes = (time: string) => {
   const [hour, minute] = time.split(':').map(Number);
@@ -26,23 +27,38 @@ const ManagementCourtEdit = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t, language } = useLanguage();
-  const { isGestorMode, currentUser } = useSession();
-  const ownedPlaces = useMemo(
-    () => RESERVATION_PLACES.filter((place) => (currentUser.ownedComplexIds ?? []).includes(place.id)),
-    [currentUser.ownedComplexIds],
-  );
+  const { isGestorMode, token } = useSession();
+  const queryClient = useQueryClient();
 
-  const court = useMemo(() => getAllCourts().find((c) => c.id === id) ?? null, [id]);
+  // id format: "{complexId}-{courtId}" or just "{courtId}" for legacy
+  const [complexIdStr, courtIdStr] = (id ?? '').includes('-')
+    ? (id ?? '').split('-')
+    : ['', id ?? ''];
 
-  const [complexId, setComplexId] = useState(court?.complexId ?? ownedPlaces[0]?.id ?? '');
-  const [courtName, setCourtName] = useState(court?.name ?? '');
-  const [dimensions, setDimensions] = useState(court?.dimensions ?? COURT_DIMENSIONS[0]);
-  const [hourlyRate, setHourlyRate] = useState(String(court?.hourlyRate ?? 120));
-  const [monthlyRate, setMonthlyRate] = useState(String(court?.monthlyRate ?? 420));
+  const { data: court, isLoading: courtLoading } = useQuery({
+    queryKey: ['court', complexIdStr, courtIdStr],
+    queryFn: () => courtsApi.get(token!, complexIdStr, courtIdStr),
+    enabled: !!token && !!complexIdStr && !!courtIdStr,
+  });
+
+  const [courtName, setCourtName] = useState('');
+  const [dimensions, setDimensions] = useState(COURT_DIMENSIONS[0]);
+  const [hourlyRate, setHourlyRate] = useState('120');
+  const [monthlyRate, setMonthlyRate] = useState('420');
   const [slotStart, setSlotStart] = useState('08:00');
   const [slotEnd, setSlotEnd] = useState('09:00');
-  const [slotOptions, setSlotOptions] = useState(court?.slotOptions ?? []);
+  const [slotOptions, setSlotOptions] = useState<{ start: string; end: string }[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+
+  if (court && !initialized) {
+    setCourtName(court.name);
+    setDimensions(court.dimensions || COURT_DIMENSIONS[0]);
+    setHourlyRate(String(court.hourly_rate));
+    setMonthlyRate(String(court.monthly_rate));
+    setSlotOptions(court.slot_options);
+    setInitialized(true);
+  }
 
   const nextSlotKey = `${slotStart}-${slotEnd}`;
   const canAddSlot = Boolean(slotStart)
@@ -50,7 +66,34 @@ const ManagementCourtEdit = () => {
     && timeToMinutes(slotEnd) > timeToMinutes(slotStart)
     && !slotOptions.some((slot) => `${slot.start}-${slot.end}` === nextSlotKey);
 
-  const selectedPlace = ownedPlaces.find((place) => place.id === complexId) ?? null;
+  const updateMutation = useMutation({
+    mutationFn: () =>
+      courtsApi.update(token!, complexIdStr, courtIdStr, {
+        name: courtName.trim(),
+        dimensions,
+        application: court?.application ?? '',
+        hourly_rate: Number(hourlyRate) || 0,
+        monthly_rate: Number(monthlyRate) || 0,
+        slot_options: slotOptions,
+        is_active: court?.is_active ?? true,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courts', complexIdStr] });
+      notify.success(t('courtUpdated'), courtName.trim());
+      navigate('/management/courts');
+    },
+    onError: () => notify.error(t('errorSavingData')),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => courtsApi.delete(token!, complexIdStr, courtIdStr),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courts', complexIdStr] });
+      notify.success(t('courtDeleted'), courtName);
+      navigate('/management/courts');
+    },
+    onError: () => notify.error(t('errorSavingData')),
+  });
 
   if (!isGestorMode) {
     return (
@@ -68,6 +111,14 @@ const ManagementCourtEdit = () => {
     );
   }
 
+  if (courtLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   if (!court) {
     return (
       <div className="mx-auto w-full max-w-3xl">
@@ -77,27 +128,6 @@ const ManagementCourtEdit = () => {
       </div>
     );
   }
-
-  const handleSave = () => {
-    if (!selectedPlace || !courtName.trim() || slotOptions.length === 0) return;
-    updateCourt(court.id, {
-      complexId: selectedPlace.id,
-      application: selectedPlace.name,
-      name: courtName.trim(),
-      dimensions,
-      hourlyRate: Number(hourlyRate) || 0,
-      monthlyRate: Number(monthlyRate) || 0,
-      slotOptions,
-    });
-    notify.success(t('courtUpdated'), `${courtName.trim()} · ${selectedPlace.name}`);
-    navigate('/management');
-  };
-
-  const handleDelete = () => {
-    deleteCourt(court.id);
-    notify.success(t('courtDeleted'), court.name);
-    navigate('/management');
-  };
 
   return (
     <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
@@ -123,12 +153,12 @@ const ManagementCourtEdit = () => {
         </button>
         <button
           type="button"
-          onClick={handleSave}
-          disabled={!selectedPlace || !courtName.trim() || slotOptions.length === 0}
+          onClick={() => updateMutation.mutate()}
+          disabled={!courtName.trim() || slotOptions.length === 0 || updateMutation.isPending}
           className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
           title={t('saveChanges')}
         >
-          <Save className="h-4 w-4" />
+          {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
         </button>
       </header>
 
@@ -137,8 +167,13 @@ const ManagementCourtEdit = () => {
           <p className="font-semibold text-live">{t('deleteConfirmTitle')}</p>
           <p className="mt-1 text-sm text-muted-foreground">{t('deleteConfirmDescription')}</p>
           <div className="mt-4 flex gap-3">
-            <button type="button" onClick={handleDelete} className="inline-flex items-center gap-2 rounded-lg bg-live px-4 py-2 text-sm font-bold text-white transition-smooth hover:brightness-110">
-              <Trash2 className="h-4 w-4" />
+            <button
+              type="button"
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+              className="inline-flex items-center gap-2 rounded-lg bg-live px-4 py-2 text-sm font-bold text-white transition-smooth hover:brightness-110 disabled:opacity-60"
+            >
+              {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               {t('confirmDelete')}
             </button>
             <button type="button" onClick={() => setShowDeleteConfirm(false)} className="inline-flex items-center rounded-lg border border-border bg-background/60 px-4 py-2 text-sm font-semibold transition-smooth hover:bg-secondary">
@@ -153,16 +188,9 @@ const ManagementCourtEdit = () => {
           <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
               <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('sportComplex')}</Label>
-              <Select value={complexId} onValueChange={setComplexId}>
-                <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
-                  <SelectValue placeholder={t('selectComplex')} />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                  {ownedPlaces.map((place) => (
-                    <SelectItem key={place.id} value={place.id}>{place.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex h-10 items-center rounded-lg border border-border bg-background/40 px-3 text-sm font-semibold text-muted-foreground">
+                {court.application || `Complex #${court.complex_id}`}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -269,7 +297,7 @@ const ManagementCourtEdit = () => {
             <h2 className="font-display text-sm font-bold uppercase tracking-[0.2em]">{t('quickPreview')}</h2>
           </div>
           <div className="space-y-3 text-sm">
-            <PreviewRow label={t('sportComplex')} value={selectedPlace?.name ?? '-'} />
+            <PreviewRow label={t('sportComplex')} value={court.application || `Complex #${court.complex_id}`} />
             <PreviewRow label={t('courtNameLabel')} value={courtName.trim() || '-'} />
             <PreviewRow label={t('dimensions')} value={dimensions} />
             <PreviewRow

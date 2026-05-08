@@ -42,19 +42,9 @@ const SportComplexesManagement = () => {
 
   return (
     <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('sportComplexes')}</p>
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('sportComplexesIntro')}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => navigate('/management/complexes/new')}
-          title={t('createSportComplex')}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
-        >
-          <Plus className="h-4 w-4" />
-        </button>
+      <header>
+        <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('sportComplexes')}</p>
+        <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('sportComplexesIntro')}</p>
       </header>
 
       {isLoading ? (
@@ -63,6 +53,19 @@ const SportComplexesManagement = () => {
         </div>
       ) : complexes.length > 0 ? (
         <div className="rounded-[2rem] border border-border bg-gradient-card p-4 shadow-card sm:p-6">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+              {totalItems} {t('sportComplexes').toLowerCase()}
+            </span>
+            <button
+              type="button"
+              onClick={() => navigate('/management/complexes/new')}
+              className="inline-flex items-center gap-2 rounded-xl border border-neon-cyan/25 bg-neon-cyan/10 px-3 py-2 text-xs font-bold uppercase tracking-[0.15em] text-neon-cyan transition-smooth hover:border-neon-cyan/50 hover:bg-neon-cyan/15"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {t('createSportComplex')}
+            </button>
+          </div>
           <div className="space-y-3 md:hidden">
             {complexes.map((complex) => (
               <article key={complex.id} className="rounded-2xl border border-border bg-background/40 p-4">
@@ -182,6 +185,14 @@ const SportComplexesManagement = () => {
           <Building2 className="mb-4 h-8 w-8 text-muted-foreground/50" />
           <h2 className="font-display text-2xl font-black">{t('noSportComplexesTitle')}</h2>
           <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('noSportComplexesDescription')}</p>
+          <button
+            type="button"
+            onClick={() => navigate('/management/complexes/new')}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl border border-neon-cyan/25 bg-neon-cyan/10 px-4 py-2.5 text-sm font-bold uppercase tracking-[0.15em] text-neon-cyan transition-smooth hover:border-neon-cyan/50 hover:bg-neon-cyan/15"
+          >
+            <Plus className="h-4 w-4" />
+            {t('createSportComplex')}
+          </button>
         </div>
       )}
     </div>

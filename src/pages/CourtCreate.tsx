@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Building2, ChevronDown, ChevronUp, Clock3, Plus, Ruler, Wallet, X } from 'lucide-react';
-import { RESERVATION_PLACES } from '@/data/mock';
+import { ArrowLeft, Building2, ChevronDown, ChevronUp, Clock3, Loader2, Plus, Ruler, Wallet, X } from 'lucide-react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { courtsApi, sportComplexApi } from '@/lib/api';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { notify } from '@/lib/notify';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { COURT_DIMENSIONS, saveCustomCourt } from '@/lib/courts-store';
+import { COURT_DIMENSIONS } from '@/lib/courts-store';
 
 const defaultSlotOptions = [
   { start: '08:00', end: '09:00' },
@@ -38,13 +39,15 @@ const timeOptions = Array.from({ length: 24 * 4 }, (_, index) => {
 const CourtCreate = () => {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
-  const { isGestorMode, currentUser } = useSession();
-  const ownedPlaces = useMemo(
-    () => RESERVATION_PLACES.filter((place) => (currentUser.ownedComplexIds ?? []).includes(place.id)),
-    [currentUser.ownedComplexIds],
-  );
+  const { isGestorMode, token } = useSession();
 
-  const [complexId, setComplexId] = useState(ownedPlaces[0]?.id ?? '');
+  const { data: managedComplexes = [] } = useQuery({
+    queryKey: ['complexes-mine'],
+    queryFn: () => sportComplexApi.listMine(token!),
+    enabled: !!token && isGestorMode,
+  });
+
+  const [complexId, setComplexId] = useState('');
   const [courtName, setCourtName] = useState('');
   const [dimensions, setDimensions] = useState(COURT_DIMENSIONS[0]);
   const [hourlyRate, setHourlyRate] = useState('120');
@@ -52,11 +55,32 @@ const CourtCreate = () => {
   const [slotStart, setSlotStart] = useState('08:00');
   const [slotEnd, setSlotEnd] = useState('09:00');
   const [slotOptions, setSlotOptions] = useState(defaultSlotOptions);
+
+  const effectiveComplexId = complexId || String(managedComplexes[0]?.id ?? '');
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      courtsApi.create(token!, effectiveComplexId, {
+        name: courtName.trim(),
+        dimensions,
+        application: managedComplexes.find((c) => String(c.id) === effectiveComplexId)?.name ?? '',
+        hourly_rate: Number(hourlyRate) || 0,
+        monthly_rate: Number(monthlyRate) || 0,
+        slot_options: slotOptions,
+      }),
+    onSuccess: (court) => {
+      notify.success(t('courtCreated'), `${court.name}`);
+      navigate('/management/courts');
+    },
+    onError: () => notify.error(t('errorSavingData')),
+  });
   const nextSlotKey = `${slotStart}-${slotEnd}`;
   const canAddSlot = Boolean(slotStart)
     && Boolean(slotEnd)
     && timeToMinutes(slotEnd) > timeToMinutes(slotStart)
     && !slotOptions.some((slot) => `${slot.start}-${slot.end}` === nextSlotKey);
+
+  const selectedComplex = managedComplexes.find((c) => String(c.id) === effectiveComplexId) ?? managedComplexes[0] ?? null;
 
   if (!isGestorMode) {
     return (
@@ -73,8 +97,6 @@ const CourtCreate = () => {
       </div>
     );
   }
-
-  const selectedPlace = ownedPlaces.find((place) => place.id === complexId) ?? null;
 
   return (
     <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
@@ -96,14 +118,14 @@ const CourtCreate = () => {
           <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
               <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('sportComplex')}</Label>
-              <Select value={complexId} onValueChange={setComplexId}>
+              <Select value={effectiveComplexId} onValueChange={setComplexId}>
                 <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
                   <SelectValue placeholder={t('selectComplex')} />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                  {ownedPlaces.map((place) => (
-                    <SelectItem key={place.id} value={place.id}>
-                      {place.name}
+                  {managedComplexes.map((complex) => (
+                    <SelectItem key={complex.id} value={String(complex.id)}>
+                      {complex.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -225,25 +247,13 @@ const CourtCreate = () => {
             <button
               type="button"
               onClick={() => {
-                if (!selectedPlace || !courtName.trim() || slotOptions.length === 0) return;
-                saveCustomCourt({
-                  id: `custom-${Date.now()}`,
-                  complexId: selectedPlace.id,
-                  application: selectedPlace.name,
-                  name: courtName.trim(),
-                  dimensions,
-                  hourlyRate: Number(hourlyRate) || 0,
-                  monthlyRate: Number(monthlyRate) || 0,
-                  slotOptions,
-                  reservations: [],
-                });
-                notify.success(t('courtCreated'), `${courtName.trim()} · ${selectedPlace.name}`);
-                navigate('/management');
+                if (!selectedComplex || !courtName.trim() || slotOptions.length === 0) return;
+                createMutation.mutate();
               }}
-              disabled={!selectedPlace || !courtName.trim() || slotOptions.length === 0}
+              disabled={!selectedComplex || !courtName.trim() || slotOptions.length === 0 || createMutation.isPending}
               className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/55 px-4 py-3 text-sm font-semibold text-foreground transition-smooth hover:border-neon-cyan/35 hover:text-neon-cyan disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Plus className="h-4 w-4" />
+              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               {t('addCourt')}
             </button>
           </div>
@@ -256,7 +266,7 @@ const CourtCreate = () => {
           </div>
 
           <div className="space-y-3 text-sm">
-            <PreviewRow label={t('sportComplex')} value={selectedPlace?.name ?? '-'} />
+            <PreviewRow label={t('sportComplex')} value={selectedComplex?.name ?? '-'} />
             <PreviewRow label={t('courtNameLabel')} value={courtName.trim() || '-'} />
             <PreviewRow label={t('dimensions')} value={dimensions} />
             <PreviewRow
