@@ -141,7 +141,7 @@ const ReservationDetail = () => {
     <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
       <section className="overflow-hidden rounded-[2rem] border border-border bg-gradient-card shadow-card">
         <div className="grid gap-0 lg:h-[320px] lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="relative h-64 overflow-hidden bg-secondary lg:h-full">
+          <div className="relative h-52 overflow-hidden bg-secondary sm:h-64 lg:h-full">
             {complex.image_url ? (
               <img
                 src={complex.image_url}
@@ -152,10 +152,10 @@ const ReservationDetail = () => {
             ) : (
               <div className="absolute inset-0 hex-grid opacity-30" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/35 to-background/10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
           </div>
 
-          <div className="flex h-full min-h-[260px] flex-col justify-center overflow-hidden p-5 sm:min-h-[280px] sm:p-6 lg:min-h-0">
+          <div className="flex h-full flex-col justify-center overflow-hidden p-5 sm:p-6 lg:min-h-0">
             <Link
               to="/reservations"
               className="mb-3 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground transition-smooth hover:text-foreground"

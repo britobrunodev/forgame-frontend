@@ -1,11 +1,9 @@
 import { Link } from 'react-router-dom';
-import { MapPin, Star, Lock, ArrowRight } from 'lucide-react';
+import { MapPin, Star, Lock } from 'lucide-react';
 import { PositionedCoverImage } from '@/components/PositionedCoverImage';
-import { useLanguage } from '@/i18n';
 import type { ReservationPlace } from '@/types';
 
 export const PlaceCard = ({ p }: { p: ReservationPlace }) => {
-  const { t } = useLanguage();
   const href = `/reservations/complexes/${p.id}`;
   const isActive = p.active !== false;
 
@@ -19,7 +17,6 @@ export const PlaceCard = ({ p }: { p: ReservationPlace }) => {
       )}
 
       <Link to={href} className="block">
-        {/* Image — aspect-[3/2] makes the card nearly square when combined with the footer */}
         <div className="relative aspect-[3/2] overflow-hidden bg-secondary">
           {p.image ? (
             <PositionedCoverImage
@@ -34,19 +31,16 @@ export const PlaceCard = ({ p }: { p: ReservationPlace }) => {
           ) : (
             <div className="absolute inset-0 hex-grid opacity-30" />
           )}
-          {/* Stronger gradient so text is always readable */}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-          {/* Rating badge */}
           {p.rating > 0 && (
             <div className="absolute right-3 top-3 flex items-center gap-1 rounded-lg border border-white/10 bg-background/60 px-2 py-1 text-xs font-bold backdrop-blur-md">
               <Star className="h-3 w-3 fill-neon-cyan text-neon-cyan" /> {p.rating}
             </div>
           )}
 
-          {/* Name + location overlaid on the image */}
           <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
-            <h3 className="line-clamp-2 font-display text-sm font-bold leading-tight text-foreground transition-smooth group-hover:text-primary-glow sm:text-base">
+            <h3 className="line-clamp-2 font-display text-xs font-bold leading-tight text-foreground transition-smooth group-hover:text-primary-glow sm:text-sm">
               {p.name}
             </h3>
             {p.city && (
@@ -56,14 +50,6 @@ export const PlaceCard = ({ p }: { p: ReservationPlace }) => {
               </div>
             )}
           </div>
-        </div>
-
-        {/* Reserve action bar */}
-        <div className="flex items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3">
-          <span className="font-display text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground transition-smooth group-hover:text-foreground sm:text-xs">
-            {t('reserve')}
-          </span>
-          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/50 transition-smooth group-hover:translate-x-0.5 group-hover:text-primary sm:h-4 sm:w-4" />
         </div>
       </Link>
     </div>

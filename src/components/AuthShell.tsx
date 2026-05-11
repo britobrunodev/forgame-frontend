@@ -30,7 +30,7 @@ export const AuthShell = ({ mode, title, subtitle, isLoading, children }: AuthSh
 
       <div className="relative w-full max-w-[26rem]">
         <div className="mb-5 text-center">
-          <Logo className="mx-auto" />
+          <Logo className="mx-auto h-16" />
           {subtitle ? <p className="mt-2 text-sm font-medium text-muted-foreground">{subtitle}</p> : null}
         </div>
 

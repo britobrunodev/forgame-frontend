@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Loader2, MapPin, Receipt, Trophy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Receipt, Trophy } from 'lucide-react';
 import { championshipSubscriptionsApi } from '@/lib/api';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
@@ -13,9 +13,6 @@ const Bookings = () => {
   const { token } = useSession();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
-  const reservationsPage = 1;
-  const reservationsTotalPages = 1;
-  const reservationsTotalItems = 0;
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['my-championship-subscriptions', page],
@@ -28,7 +25,7 @@ const Bookings = () => {
   const totalItems = data?.total ?? 0;
 
   return (
-    <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
+    <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-8">
       <header>
         <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('scheduleTitle')}</p>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('scheduleDescription')}</p>
@@ -165,71 +162,6 @@ const Bookings = () => {
         )}
       </section>
 
-      <section className="rounded-[2rem] border border-border bg-gradient-card p-4 shadow-card sm:p-6">
-        <SectionTitle icon={<MapPin className="h-4 w-4 text-neon-pink" />} title={t('reservations')} />
-
-        <div className="space-y-3 md:hidden">
-          <div className="rounded-2xl border border-border bg-background/25 p-4 shadow-card">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="truncate font-display text-sm font-bold">—</div>
-                <div className="mt-1 text-xs text-muted-foreground">{t('noReservations')}</div>
-              </div>
-              <StatusBadge status="pending" t={t} muted />
-            </div>
-            <div className="mt-3 grid gap-3">
-              <MobileInfoRow label={t('sportComplex')} value="—" />
-              <MobileInfoRow label={t('reservationFlow')} value={t('noReservations')} />
-              <MobileInfoRow label={t('paymentStatusSummary')} value="—" />
-            </div>
-          </div>
-        </div>
-
-        <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
-          <table className="w-full table-fixed text-sm">
-            <colgroup>
-              <col className="w-[28%]" />
-              <col className="w-[38%]" />
-              <col className="w-[16%]" />
-              <col className="w-[18%]" />
-            </colgroup>
-            <thead>
-              <tr className="border-b border-border bg-background/30 text-left text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                <th className="px-5 py-3">{t('reservations')}</th>
-                <th className="px-5 py-3">{t('reservationFlow')}</th>
-                <th className="px-5 py-3">{t('paymentStatusSummary')}</th>
-                <th className="px-5 py-3">{t('actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="px-5 py-4">
-                  <div className="truncate font-semibold text-foreground">—</div>
-                  <div className="mt-0.5 truncate text-xs text-muted-foreground">{t('sportComplex')}</div>
-                </td>
-                <td className="px-5 py-4 text-sm text-muted-foreground">
-                  {t('noReservations')}
-                </td>
-                <td className="px-5 py-4">
-                  <StatusBadge status="pending" t={t} muted />
-                </td>
-                <td className="px-5 py-4">
-                  <span className="text-xs text-muted-foreground">—</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <PaginationFooter
-          page={reservationsPage}
-          totalPages={reservationsTotalPages}
-          totalItems={reservationsTotalItems}
-          label={t('reservations')}
-          onPrevious={() => undefined}
-          onNext={() => undefined}
-        />
-      </section>
     </div>
   );
 };

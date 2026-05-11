@@ -117,7 +117,7 @@ const AdminApprovals = () => {
           <button
             key={value}
             type="button"
-            onClick={() => setFilter(value)}
+            onClick={() => { setFilter(value); setPage(1); }}
             className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] transition-smooth ${
               filter === value
                 ? 'border-primary/50 bg-primary/10 text-foreground shadow-glow'
@@ -196,27 +196,32 @@ const AdminApprovals = () => {
           ))}
         </div>
       )}
-      <div className="flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={() => setPage(page - 1)}
-          disabled={page <= 1}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
-          aria-label="Página anterior"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
-        <button
-          type="button"
-          onClick={() => setPage(page + 1)}
-          disabled={page >= totalPages}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
-          aria-label="Próxima página"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      </div>
+      {!isLoading && approvals.length > 0 && (
+        <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage(page - 1)}
+              disabled={page <= 1}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+              aria-label="Página anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
+            <button
+              type="button"
+              onClick={() => setPage(page + 1)}
+              disabled={page >= totalPages}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+              aria-label="Próxima página"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+          <span className="text-xs text-muted-foreground">{data?.total ?? 0} solicitações</span>
+        </div>
+      )}
     </div>
   );
 };

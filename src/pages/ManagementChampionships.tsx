@@ -83,19 +83,24 @@ const ManagementChampionships = () => {
           <div className="space-y-3 md:hidden">
             {championships.map((c) => (
               <article key={c.id} className="rounded-2xl border border-border bg-background/40 p-4">
-                <div className="mb-3 flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="truncate font-display text-sm font-bold uppercase tracking-[0.12em] text-foreground">{c.name}</div>
-                    {(c.start_at || c.end_at) && (
-                      <div className="mt-1 truncate text-xs text-muted-foreground">
-                        {formatDateRange(c.start_at, c.end_at)}
-                      </div>
-                    )}
-                  </div>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] ${STATUS_COLORS[c.status] ?? STATUS_COLORS.draft}`}>
+                <div className="font-display text-sm font-bold uppercase tracking-[0.12em] text-foreground">{c.name}</div>
+                <div className="mt-2">
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] ${STATUS_COLORS[c.status] ?? STATUS_COLORS.draft}`}>
                     {STATUS_LABELS[c.status] ?? c.status}
                   </span>
                 </div>
+                {(c.start_at || c.end_at) && (
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    <span className="font-semibold text-muted-foreground/60 uppercase tracking-[0.1em] text-[9px]">{t('eventDate')}: </span>
+                    {formatDateRange(c.start_at, c.end_at)}
+                  </div>
+                )}
+                {c.registration_deadline_at && (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    <span className="font-semibold text-muted-foreground/60 uppercase tracking-[0.1em] text-[9px]">{t('registrationDeadline')}: </span>
+                    {fmtDate(c.registration_deadline_at)}
+                  </div>
+                )}
                 <div className="mt-4 flex gap-2 border-t border-border/50 pt-3">
                   <button
                     type="button"
@@ -121,7 +126,7 @@ const ManagementChampionships = () => {
           {/* Desktop table */}
           <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
             <div className="min-w-[860px]">
-              <div className="grid grid-cols-[minmax(0,2fr)_140px_minmax(0,1.2fr)_160px_200px] gap-4 border-b border-border bg-background/30 px-5 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
+              <div className="grid grid-cols-[minmax(0,2fr)_180px_minmax(0,1.2fr)_160px_200px] gap-4 border-b border-border bg-background/30 px-5 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
                 <div>{t('tournamentName')}</div>
                 <div>Status</div>
                 <div>{t('eventDate')}</div>
@@ -131,7 +136,7 @@ const ManagementChampionships = () => {
               {championships.map((c, index) => (
                 <div
                   key={c.id}
-                  className={`grid grid-cols-[minmax(0,2fr)_140px_minmax(0,1.2fr)_160px_200px] gap-4 px-5 py-4 transition-smooth hover:bg-primary/5 sm:px-6 ${index !== championships.length - 1 ? 'border-b border-border/70' : ''}`}
+                  className={`grid grid-cols-[minmax(0,2fr)_180px_minmax(0,1.2fr)_160px_200px] gap-4 px-5 py-4 transition-smooth hover:bg-primary/5 sm:px-6 ${index !== championships.length - 1 ? 'border-b border-border/70' : ''}`}
                 >
                   <div className="min-w-0">
                     <div className="truncate font-display text-xs font-bold uppercase tracking-[0.14em] text-foreground">{c.name}</div>
@@ -170,27 +175,29 @@ const ManagementChampionships = () => {
             </div>
           </div>
 
-          <div className="mt-5 flex items-center justify-start gap-2">
-            <button
-              type="button"
-              onClick={() => setPage(page - 1)}
-              disabled={page <= 1}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
-              aria-label="Página anterior"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
-            <button
-              type="button"
-              onClick={() => setPage(page + 1)}
-              disabled={page >= totalPages}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
-              aria-label="Próxima página"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-            <span className="ml-2 text-xs text-muted-foreground">{totalItems} {t('championships').toLowerCase()}</span>
+          <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage(page - 1)}
+                disabled={page <= 1}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+                aria-label="Página anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
+              <button
+                type="button"
+                onClick={() => setPage(page + 1)}
+                disabled={page >= totalPages}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+                aria-label="Próxima página"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+            <span className="text-xs text-muted-foreground">{totalItems} {t('championships').toLowerCase()}</span>
           </div>
         </div>
       ) : (

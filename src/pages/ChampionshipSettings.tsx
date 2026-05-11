@@ -253,7 +253,7 @@ const ChampionshipSettings = () => {
         notes: notes.trim() || null,
         uniform_included: uniformIncluded,
         image_offset_x: Math.round(imageOffsetX),
-        image_offset_y: imageOffsetY,
+        image_offset_y: Math.round(imageOffsetY),
         image_zoom: imageZoom,
         timezone: timezone || null,
         start_at: startDate ? localToUtcIso(startDate, startTime, timezone) : null,
@@ -282,7 +282,7 @@ const ChampionshipSettings = () => {
       await queryClient.invalidateQueries({ queryKey: ['championships'] });
       if (isEditing) await queryClient.invalidateQueries({ queryKey: ['championship', championshipId] });
 
-      notify.success(isEditing ? t('saveChanges') : t('tournamentPublished'), saved.name);
+      notify.success(isEditing ? t('championshipUpdated') : t('tournamentPublished'), saved.name);
       if (!isEditing) navigate(`/management/championships/${saved.id}/edit`);
     } catch {
       notify.error('Erro ao salvar campeonato');

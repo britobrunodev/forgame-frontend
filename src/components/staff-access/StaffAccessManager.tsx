@@ -124,7 +124,7 @@ export const StaffAccessManager = ({
     setSaving(true);
     try {
       const updated = await accessControlApi.updateAssignments(token, {
-        sport_complex_id: Number(selectedComplexId),
+        complex_id: Number(selectedComplexId),
         assignments,
       });
 
@@ -335,7 +335,7 @@ const buildAssignmentsIndex = (assignments: ComplexRoleAssignment[]) =>
     const role = assignment.role as AssignableRole;
     if (!ROLE_ORDER.includes(role)) return acc;
 
-    const complexKey = String(assignment.sport_complex_id);
+    const complexKey = String(assignment.complex_id);
     const userKey = String(assignment.user_id);
     const byComplex = acc[complexKey] ?? {};
     const userRoles = byComplex[userKey] ?? { ...EMPTY_ROLES };

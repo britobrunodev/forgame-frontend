@@ -93,9 +93,24 @@ const SportComplexSettings = () => {
     });
   };
 
+  const translateImageError = (err: unknown): string => {
+    if (err instanceof Error) {
+      const msg = err.message.toLowerCase();
+      if (msg.includes('too large') || msg.includes('entity too large') || msg.includes('413')) {
+        return 'Imagem anexada muito grande.';
+      }
+      if (msg.includes('invalid image') || msg.includes('invalid file')) {
+        return 'Arquivo de imagem inválido.';
+      }
+      return err.message;
+    }
+    return 'Erro ao enviar imagem.';
+  };
+
   const handleSubmit = async () => {
     if (!complexName.trim()) return;
     setSubmitting(true);
+    const hasNewImage = selectedBackgroundImage.startsWith('data:');
     try {
       const payload = {
         name: complexName.trim(),
@@ -111,13 +126,32 @@ const SportComplexSettings = () => {
         image_zoom: selectedBackgroundZoom,
         available_sports: selectedSports,
       };
-      const saved = isEditing
-        ? await sportComplexApi.update(token!, complexId!, payload)
-        : await sportComplexApi.create(token!, payload);
-      if (selectedBackgroundImage && selectedBackgroundImage.startsWith('data:')) {
-        const { url } = await sportComplexApi.uploadImage(token!, saved.id, selectedBackgroundImage);
-        setSelectedBackgroundImage(url);
+
+      if (isEditing) {
+        if (hasNewImage) {
+          try {
+            const { url } = await sportComplexApi.uploadImage(token!, complexId!, selectedBackgroundImage);
+            setSelectedBackgroundImage(url);
+          } catch (imgErr) {
+            notify.error('Erro na imagem', translateImageError(imgErr));
+            return;
+          }
+        }
+        await sportComplexApi.update(token!, complexId!, payload);
+      } else {
+        const saved = await sportComplexApi.create(token!, payload);
+        if (hasNewImage) {
+          try {
+            const { url } = await sportComplexApi.uploadImage(token!, saved.id, selectedBackgroundImage);
+            setSelectedBackgroundImage(url);
+          } catch (imgErr) {
+            await sportComplexApi.delete(token!, saved.id).catch(() => {});
+            notify.error('Erro na imagem', translateImageError(imgErr));
+            return;
+          }
+        }
       }
+
       await queryClient.invalidateQueries({ queryKey: ['complexes'] });
       await queryClient.invalidateQueries({ queryKey: ['complexes-public'] });
       if (complexId) {

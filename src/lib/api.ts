@@ -1,5 +1,11 @@
 const API_BASE = import.meta.env.API_URL ?? "/api/v1";
 
+let _onUnauthorized: (() => void) | null = null;
+
+export const setUnauthorizedHandler = (fn: () => void) => {
+  _onUnauthorized = fn;
+};
+
 export class ApiError extends Error {
   status: number;
 
@@ -53,7 +59,7 @@ export interface AccessControlUser {
 }
 
 export interface ComplexRoleAssignment {
-  sport_complex_id: number;
+  complex_id: number;
   user_id: number;
   role: string;
 }
@@ -84,8 +90,17 @@ const json = (token?: string) => ({
 
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
+    if (res.status === 401) {
+      _onUnauthorized?.();
+    }
+    if (res.status === 413) {
+      throw new ApiError('Image too large', 413);
+    }
     const body = await res.json().catch(() => ({ detail: res.statusText }));
     throw new ApiError((body as { detail?: string }).detail ?? res.statusText, res.status);
+  }
+  if (res.status === 204 || res.headers.get('content-length') === '0') {
+    return undefined as unknown as T;
   }
   return res.json() as Promise<T>;
 }
@@ -276,6 +291,12 @@ export const sportComplexApi = {
       (r) => handle<Array<{ id: number; name: string; city: string | null }>>(r),
     ),
 
+  delete: (token: string, complexId: number | string) =>
+    fetch(`${API_BASE}/complexes/${complexId}`, {
+      method: 'DELETE',
+      headers: json(token),
+    }).then((r) => handle<void>(r)),
+
   uploadImage: async (
     token: string,
     complexId: number | string,
@@ -436,7 +457,7 @@ export const accessControlApi = {
   updateAssignments: (
     token: string,
     payload: {
-      sport_complex_id: number;
+      complex_id: number;
       assignments: Array<{ user_id: number; role: string }>;
     },
   ) =>
@@ -452,6 +473,20 @@ export const authApi = {
     fetch(`${API_BASE}/auth/me`, { headers: json(token) }).then((r) =>
       handle<AuthUser>(r),
     ),
+
+  sendVerification: (email: string) =>
+    fetch(`${API_BASE}/auth/send-verification`, {
+      method: "POST",
+      headers: json(),
+      body: JSON.stringify({ email }),
+    }).then((r) => handle<void>(r)),
+
+  verifyCode: (email: string, code: string) =>
+    fetch(`${API_BASE}/auth/verify-code`, {
+      method: "POST",
+      headers: json(),
+      body: JSON.stringify({ email, code }),
+    }).then((r) => handle<{ verified: boolean }>(r)),
 
   register: (
     name: string,
@@ -701,4 +736,26 @@ export const paymentsApi = {
       headers: json(token),
       body: JSON.stringify({ method }),
     }).then((r) => handle<PaymentData>(r)),
+};
+
+export interface AdminComplex {
+  id: number;
+  name: string;
+  city: string | null;
+  country: string | null;
+  is_active: boolean;
+  image_url: string | null;
+}
+
+export const adminApi = {
+  listComplexes: (token: string) =>
+    fetch(`${API_BASE}/admin/complexes`, { headers: json(token) }).then(
+      (r) => handle<AdminComplex[]>(r),
+    ),
+
+  deleteComplex: (token: string, complexId: number | string) =>
+    fetch(`${API_BASE}/admin/complexes/${complexId}`, {
+      method: 'DELETE',
+      headers: json(token),
+    }).then((r) => handle<void>(r)),
 };

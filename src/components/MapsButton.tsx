@@ -21,7 +21,8 @@ export const MapsButton = ({ url, className = '', compact = false }: Props) => {
       <span
         aria-disabled="true"
         title="Google Maps"
-        className={`inline-flex items-center justify-center rounded-lg border border-neon-cyan/18 bg-neon-cyan/8 text-neon-cyan/35 ${sharedClasses} ${className}`}
+        onClick={e => e.stopPropagation()}
+        className={`inline-flex items-center justify-center rounded-lg border border-neon-cyan/18 bg-neon-cyan/8 text-neon-cyan/35 cursor-default ${sharedClasses} ${className}`}
       >
         {icon}
       </span>
@@ -35,6 +36,7 @@ export const MapsButton = ({ url, className = '', compact = false }: Props) => {
       rel="noreferrer"
       aria-label="Google Maps"
       title="Google Maps"
+      onClick={e => e.stopPropagation()}
       className={`inline-flex items-center justify-center rounded-lg border border-neon-cyan/40 bg-neon-cyan/12 text-neon-cyan transition-smooth hover:bg-neon-cyan/18 hover:shadow-[0_0_14px_hsl(var(--neon-cyan)/0.14)] ${sharedClasses} ${className}`}
     >
       {icon}

@@ -84,7 +84,7 @@ const Dashboard = () => {
 
       <section className="grid grid-cols-3 gap-3 sm:grid-cols-3">
         <QuickAction icon={<Trophy className="h-4 w-4 text-neon-cyan sm:h-5 sm:w-5" />} label={t('championships')} onClick={() => navigate('/championships')} />
-        <QuickAction icon={<MapPin className="h-4 w-4 text-neon-pink sm:h-5 sm:w-5" />} label={t('reservations')} onClick={() => navigate('/reservations')} />
+        <QuickAction icon={<MapPin className="h-4 w-4 text-neon-pink sm:h-5 sm:w-5" />} label={t('reservations')} onClick={() => navigate('/reservations')} disabled />
         <QuickAction icon={<ClipboardList className="h-4 w-4 text-live sm:h-5 sm:w-5" />} label={t('mySchedule')} onClick={() => navigate('/bookings')} />
       </section>
     </div>
@@ -98,11 +98,12 @@ const StatBlock = ({ label, value, accent }: { label: string; value: string; acc
   </div>
 );
 
-const QuickAction = ({ icon, label, onClick }: { icon: ReactNode; label: string; onClick: () => void }) => (
+const QuickAction = ({ icon, label, onClick, disabled }: { icon: ReactNode; label: string; onClick: () => void; disabled?: boolean }) => (
   <button
     type="button"
-    onClick={onClick}
-    className="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-gradient-card p-2.5 text-center transition-smooth hover:border-primary/30 hover:bg-secondary/60 sm:gap-2 sm:p-3"
+    onClick={disabled ? undefined : onClick}
+    disabled={disabled}
+    className={`flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-gradient-card p-2.5 text-center transition-smooth sm:gap-2 sm:p-3 ${disabled ? 'cursor-not-allowed opacity-40 select-none' : 'hover:border-primary/30 hover:bg-secondary/60'}`}
   >
     <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-background/40 sm:h-10 sm:w-10">
       {icon}

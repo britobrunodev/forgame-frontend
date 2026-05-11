@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 
 type CoverBounds = {
   maxOffsetX: number;
@@ -14,6 +14,7 @@ type Props = {
   className?: string;
   imgClassName?: string;
   onBoundsChange?: (bounds: CoverBounds) => void;
+  children?: ReactNode;
 };
 
 export const PositionedCoverImage = ({
@@ -25,6 +26,7 @@ export const PositionedCoverImage = ({
   className = '',
   imgClassName = '',
   onBoundsChange,
+  children,
 }: Props) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -74,13 +76,7 @@ export const PositionedCoverImage = ({
 
   return (
     <div ref={containerRef} className={className}>
-      {/* Spinner — shown until image is revealed */}
-      {!visible && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/15 border-t-white/60" />
-        </div>
-      )}
-
+      {/* img uses transform → always a GPU compositor layer. Pin it at z=0. */}
       <img
         src={src}
         alt={alt}
@@ -92,9 +88,7 @@ export const PositionedCoverImage = ({
           });
           setImgLoaded(true);
         }}
-        // transition-none while hidden prevents the transform from animating
-        // before the image is in its final position.
-        className={`${imgClassName} ${visible ? 'opacity-100' : 'opacity-0 [transition:none!important]'}`}
+        className={`${imgClassName} ${visible ? 'opacity-100' : 'opacity-0'}`}
         style={{
           position: 'absolute',
           left: '50%',
@@ -103,8 +97,26 @@ export const PositionedCoverImage = ({
           height: `${bounds.height}px`,
           maxWidth: 'none',
           transform: `translate(calc(-50% + ${safeOffsetX}px), calc(-50% + ${safeOffsetY}px))`,
+          zIndex: 0,
+          transition: visible ? 'opacity 0.5s' : 'none',
         }}
       />
+
+      {/* Overlay wrapper — own GPU layer via translateZ(0) at z=1, always above img */}
+      {children && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 1, transform: 'translateZ(0)' }}>
+          {children}
+        </div>
+      )}
+
+      {/* Loading spinner — above everything at z=2 until image is positioned */}
+      {!visible && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 2 }}
+          className="flex items-center justify-center bg-secondary/80 backdrop-blur-sm"
+        >
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/15 border-t-white/60" />
+        </div>
+      )}
     </div>
   );
 };

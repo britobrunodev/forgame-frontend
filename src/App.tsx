@@ -28,6 +28,9 @@ import ChampionshipSettings from "./pages/ChampionshipSettings.tsx";
 import ManagementUsers from "./pages/ManagementUsers.tsx";
 import ManagementAdminAccess from "./pages/ManagementAdminAccess.tsx";
 import AdminApprovals from "./pages/AdminApprovals.tsx";
+import AdminExclusions from "./pages/AdminExclusions.tsx";
+import ManagementHub from "./pages/ManagementHub.tsx";
+import AdminHub from "./pages/AdminHub.tsx";
 import TournamentSettings from "./pages/TournamentSettings.tsx";
 import SportComplexesManagement from "./pages/SportComplexesManagement.tsx";
 import SportComplexSettings from "./pages/SportComplexSettings.tsx";
@@ -35,6 +38,7 @@ import CourtCreate from "./pages/CourtCreate.tsx";
 import ComplexPreferences from "./pages/ComplexPreferences.tsx";
 import StudentsManagement from "./pages/StudentsManagement.tsx";
 import ProfileSettings from "./pages/ProfileSettings.tsx";
+import Landing from "./pages/Landing.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import { SessionProvider } from "./session.tsx";
 
@@ -56,10 +60,10 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <SessionProvider>
-          <BrowserRouter>
+        <BrowserRouter>
+          <SessionProvider>
             <Routes>
-              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/pending-approval" element={<PendingApproval />} />
@@ -76,7 +80,7 @@ const App = () => (
                 <Route path="/schedule" element={<Navigate to="/bookings" replace />} />
                 <Route path="/bookings" element={<Bookings />} />
                 <Route path="/profile" element={<ProfileSettings />} />
-                <Route path="/management" element={<Navigate to="/management/courts" replace />} />
+                <Route path="/management" element={<ManagementHub />} />
                 <Route path="/management/courts" element={<ManagementDashboard />} />
                 <Route path="/management/approvals" element={<ManagementApprovals />} />
                 <Route path="/management/championships" element={<ManagementChampionships />} />
@@ -89,7 +93,9 @@ const App = () => (
                 <Route path="/management/championships/:championshipId/edit" element={<ChampionshipSettings />} />
                 <Route path="/management/users" element={<ManagementUsers />} />
                 <Route path="/admin/access" element={<ManagementAdminAccess />} />
+                <Route path="/admin" element={<AdminHub />} />
                 <Route path="/admin/approvals" element={<AdminApprovals />} />
+                <Route path="/admin/exclusions" element={<AdminExclusions />} />
                 <Route path="/management/payments" element={<ManagementPayments />} />
                 <Route path="/management/complexes" element={<SportComplexesManagement />} />
                 <Route path="/management/complexes/new" element={<SportComplexSettings />} />
@@ -100,8 +106,8 @@ const App = () => (
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-        </SessionProvider>
+          </SessionProvider>
+        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
   </AppProviders>

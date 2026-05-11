@@ -11,10 +11,8 @@ import {
   ChevronDown,
   LogOut,
   Receipt,
-  Settings,
   GraduationCap,
   Users,
-  ShieldCheck,
   ClipboardList,
 } from 'lucide-react';
 import { LanguageSelector } from './LanguageSelector';
@@ -51,10 +49,10 @@ export const TopBar = () => {
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
   const navItems = [
-    { to: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
-    { to: '/championships', label: t('championships'), icon: Trophy },
-    { to: '/reservations', label: t('reservations'), icon: MapPin },
-    { to: '/bookings', label: t('mySchedule'), icon: ClipboardList },
+    { to: '/dashboard', label: t('dashboard'), icon: LayoutDashboard, disabled: false },
+    { to: '/championships', label: t('championships'), icon: Trophy, disabled: false },
+    { to: '/reservations', label: t('reservations'), icon: MapPin, disabled: true },
+    { to: '/bookings', label: t('mySchedule'), icon: ClipboardList, disabled: false },
   ];
 
   return (
@@ -69,7 +67,7 @@ export const TopBar = () => {
 
         <SheetContent side="left" className="w-[88vw] max-w-sm border-r border-border bg-sidebar/95 p-0 backdrop-blur-xl">
           <div className="flex h-full flex-col">
-            <div className="border-b border-border px-5 pb-3 pt-12">
+            <div className="flex h-20 items-center justify-center border-b border-border">
               <SheetTitle className="sr-only">Forgame</SheetTitle>
               <Logo />
             </div>
@@ -80,7 +78,16 @@ export const TopBar = () => {
               </div>
 
               <div className="space-y-1">
-                {navItems.map(({ to, label, icon: Icon }) => (
+                {navItems.map(({ to, label, icon: Icon, disabled }) =>
+                  disabled ? (
+                    <span
+                      key={to}
+                      className="grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold cursor-not-allowed opacity-40 text-sidebar-foreground select-none"
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{label}</span>
+                    </span>
+                  ) : (
                   <NavLink
                     key={to}
                     to={to}
@@ -95,7 +102,8 @@ export const TopBar = () => {
                     <Icon className="h-4 w-4 shrink-0" />
                     <span className="truncate">{label}</span>
                   </NavLink>
-                ))}
+                  ),
+                )}
 
                 {canManage && (
                   <>
@@ -140,17 +148,10 @@ export const TopBar = () => {
                           <span className="truncate">{t('championships')}</span>
                         </NavLink>
 
-                        <NavLink
-                          to="/management/classes"
-                          onClick={closeMobileMenu}
-                          className={({ isActive }) =>
-                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                            }`
-                          }
-                        >
+                        <span className="grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm cursor-not-allowed select-none opacity-40 text-sidebar-foreground">
                           <Calendar className="h-4 w-4 shrink-0 text-neon-cyan" />
                           <span className="truncate">{t('managementClasses')}</span>
-                        </NavLink>
+                        </span>
 
                         <NavLink
                           to="/management/students"
@@ -223,19 +224,6 @@ export const TopBar = () => {
             </div>
 
             <div className="border-t border-border">
-              <button
-                type="button"
-                onClick={() => {
-                  closeMobileMenu();
-                  navigate('/settings');
-                }}
-                className="flex w-full items-center gap-3 px-4 py-3 text-sm text-sidebar-foreground transition-smooth hover:bg-sidebar-accent"
-              >
-                <Settings className="h-4 w-4" /> {t('settings')}
-              </button>
-
-              <div className="h-px bg-border/80" />
-
               <SheetClose asChild>
                 <button
                   type="button"

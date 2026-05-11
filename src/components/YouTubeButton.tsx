@@ -21,7 +21,8 @@ export const YouTubeButton = ({ url, compact = false, className = '' }: Props) =
       <span
         aria-disabled="true"
         title="YouTube"
-        className={`inline-flex items-center justify-center rounded-lg border border-live/18 bg-live/8 text-live/35 ${sharedClasses} ${className}`}
+        onClick={e => e.stopPropagation()}
+        className={`inline-flex items-center justify-center rounded-lg border border-live/18 bg-live/8 text-live/35 cursor-default ${sharedClasses} ${className}`}
       >
         {icon}
       </span>
@@ -35,6 +36,7 @@ export const YouTubeButton = ({ url, compact = false, className = '' }: Props) =
       rel="noreferrer"
       aria-label="YouTube"
       title="YouTube"
+      onClick={e => e.stopPropagation()}
       className={`inline-flex items-center justify-center rounded-lg border border-live/45 bg-live/14 text-live transition-smooth hover:bg-live/22 hover:shadow-[0_0_14px_hsl(var(--live)/0.16)] ${sharedClasses} ${className}`}
     >
       {icon}

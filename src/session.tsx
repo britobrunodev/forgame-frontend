@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CURRENT_USER } from '@/data/mock';
-import { ApiError, authApi, type AuthUser } from '@/lib/api';
+import { ApiError, authApi, setUnauthorizedHandler, type AuthUser } from '@/lib/api';
 import type { GestorRole, User, UserProfile, UserRole } from '@/types';
 
 type SessionContextValue = {
@@ -81,6 +82,7 @@ const clearStoredSession = () => {
 };
 
 export const SessionProvider = ({ children }: { children: ReactNode }) => {
+  const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState<User>(() => {
     const stored = window.localStorage.getItem(userStorageKey);
     if (stored) {
@@ -157,6 +159,18 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
     setAvailableGestorRolesState(defaultGestorRoles);
     setActiveGestorRoleState(defaultGestorRoles[0] ?? 'owner');
   };
+
+  const resetSessionRef = useRef(resetSession);
+  resetSessionRef.current = resetSession;
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      resetSessionRef.current();
+      navigateRef.current('/login');
+    });
+  }, []);
 
   useEffect(() => {
     if (!token) return;
