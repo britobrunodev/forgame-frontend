@@ -1,5 +1,6 @@
 import heroImg from "@website/assets/hero-athlete.jpg";
 import { ArrowUpRight, Play } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export function Hero() {
   return (
@@ -26,14 +27,12 @@ export function Hero() {
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a
-              href="https://app.dev.forgame.com.br/login"
-              target="_blank"
-              rel="noreferrer"
+            <Link
+              to="/login"
               className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:translate-y-[-1px]"
             >
               Começar agora <ArrowUpRight className="h-4 w-4" />
-            </a>
+            </Link>
             <a
               href="#features"
               className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/60 px-5 py-3.5 text-sm font-semibold text-foreground backdrop-blur transition hover:bg-surface"

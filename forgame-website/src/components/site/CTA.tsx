@@ -1,4 +1,5 @@
 import { ArrowUpRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { WHATSAPP_NUMBER, WHATSAPP_MESSAGE } from "@website/lib/contact";
 
 export function CTA() {
@@ -27,14 +28,12 @@ export function CTA() {
               >
                 Chamar no WhatsApp <ArrowUpRight className="h-4 w-4" />
               </a>
-              <a
-                href="https://app.dev.forgame.com.br/login"
-                target="_blank"
-                rel="noreferrer"
+              <Link
+                to="/login"
                 className="inline-flex items-center gap-2 rounded-full border border-background/40 px-6 py-3.5 text-sm font-semibold text-primary-foreground transition hover:bg-background/10"
               >
                 Acessar plataforma
-              </a>
+              </Link>
             </div>
           </div>
         </div>
