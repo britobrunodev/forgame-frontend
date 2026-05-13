@@ -245,38 +245,30 @@ export const StaffAccessManager = ({
               })}
             </div>
 
-            <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
-              <table className="w-full table-fixed text-sm">
-                <colgroup>
-                  <col className="w-[36%]" />
-                  <col className="w-[28%]" />
-                  <col className="w-[16%]" />
-                  <col className="w-[20%]" />
-                </colgroup>
-                <thead>
-                  <tr className="border-b border-border bg-background/30 text-left text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                    <th className="px-5 py-3">{t('fullName')}</th>
-                    <th className="px-5 py-3">{t('sportComplex')}</th>
-                    <th className="px-5 py-3">{t('role')}</th>
-                    <th className="px-5 py-3">{t('actions')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
+            <div className="hidden overflow-x-auto md:block">
+              <div className="min-w-[860px]">
+                <div className="grid grid-cols-[36%_28%_16%_20%] border-b border-border px-5 py-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                  <div className="text-center">{t('fullName')}</div>
+                  <div className="text-center">{t('sportComplex')}</div>
+                  <div className="text-center">{t('role')}</div>
+                  <div className="text-center">{t('actions')}</div>
+                </div>
+                <div className="mt-2 space-y-2">
                   {users.map((user) => {
                     const assignment = assignmentsByComplex[selectedComplexId]?.[user.id] ?? EMPTY_ROLES;
                     const activeRoles = ROLE_ORDER.filter((role) => assignment[role]);
                     const complexName = complexes.find((complex) => String(complex.id) === selectedComplexId)?.name ?? '-';
                     return (
-                      <tr key={user.id} className="transition-smooth hover:bg-primary/5">
-                        <td className="px-5 py-4">
+                      <div key={user.id} className="grid grid-cols-[36%_28%_16%_20%] items-center rounded-xl border border-border px-5 py-4 transition-smooth hover:bg-primary/5">
+                        <div className="text-center">
                           <div className="truncate font-semibold text-foreground">{user.name}</div>
                           <div className="mt-0.5 truncate text-xs text-muted-foreground">{user.email}</div>
-                        </td>
-                        <td className="px-5 py-4">
+                        </div>
+                        <div className="text-center">
                           <span className="block truncate text-sm text-muted-foreground">{complexName}</span>
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2">
+                        </div>
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-2">
                             {allowedRoles.includes('professor') ? (
                               <RoleIconToggle active={assignment.professor} icon={<GraduationCap className="h-4 w-4" />} tone="cyan" title={t('professor')} onClick={() => toggleRole(user.id, 'professor')} />
                             ) : null}
@@ -287,21 +279,21 @@ export const StaffAccessManager = ({
                               <RoleIconToggle active={assignment.scorer} icon={<Target className="h-4 w-4" />} tone="amber" title={t('scorer')} onClick={() => toggleRole(user.id, 'scorer')} />
                             ) : null}
                           </div>
-                        </td>
-                        <td className="px-5 py-4">
+                        </div>
+                        <div className="text-center">
                           <StatusBadge activeRoles={activeRoles} t={t} />
-                        </td>
-                      </tr>
+                        </div>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
+                </div>
+              </div>
             </div>
           </>
         )}
 
         {users.length > 0 && selectedComplexId ? (
-          <div className="mt-5 flex items-center justify-between gap-4">
+          <div className="mt-5 flex items-center justify-between gap-4 border-t border-border pt-4">
             <div className="flex items-center gap-2">
               <button
                 type="button"

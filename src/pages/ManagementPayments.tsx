@@ -134,37 +134,38 @@ const ManagementPayments = () => {
           </div>
         </div>
 
-        <div className="hidden overflow-hidden rounded-2xl border border-border bg-background/20 md:block">
-          <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_36px_110px_90px_48px] gap-4 border-b border-border bg-background/25 px-4 py-3 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
-            <div>{t('fullName')}</div>
-            <div>{t('paymentSource')}</div>
+        <div className="hidden overflow-x-auto md:block">
+          <div className="min-w-[860px]">
+          <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_36px_110px_90px_48px] gap-4 border-b border-border px-4 py-3 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+            <div className="text-center">{t('fullName')}</div>
+            <div className="text-center">{t('paymentSource')}</div>
             <div />
-            <div>{t('paymentStatusSummary')}</div>
-            <div>{t('paidAmount')}</div>
+            <div className="text-center">{t('paymentStatusSummary')}</div>
+            <div className="text-center">{t('paidAmount')}</div>
             <div />
           </div>
 
-          <div className="divide-y divide-border">
+          <div className="mt-2 space-y-2">
             {visibleRows.map((row) => {
               const isOpen = openRows.includes(String(row.id));
               return (
-                <div key={row.id}>
+                <div key={row.id} className="rounded-xl border border-border">
                   <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_36px_110px_90px_48px] items-center gap-4 px-4 py-3">
-                    <div>
+                    <div className="text-center">
                       <div className="font-display text-sm font-bold">{row.user_name}</div>
                       <div className="mt-0.5 text-xs text-muted-foreground">{row.user_email}</div>
                     </div>
-                    <div>
+                    <div className="text-center">
                       <div className="font-semibold text-foreground">{row.source_name}</div>
                       <div className="mt-0.5 text-xs text-muted-foreground">{formatDateValue(row.source_date, language)}</div>
                     </div>
-                    <div><TypeIcon type={row.source_type} /></div>
-                    <div><RowStatusBadge status={row.status} t={t} /></div>
-                    <div>
+                    <div className="flex justify-center"><TypeIcon type={row.source_type} /></div>
+                    <div className="flex justify-center"><RowStatusBadge status={row.status} t={t} /></div>
+                    <div className="text-center">
                       <div className="text-sm font-semibold text-foreground">{formatCurrency(row.paid_amount, language)}</div>
                       <div className="text-xs text-muted-foreground">/ {formatCurrency(row.total_amount, language)}</div>
                     </div>
-                    <div className="flex justify-end">
+                    <div className="flex justify-center">
                       <button
                         type="button"
                         onClick={() => toggleRow(String(row.id), setOpenRows)}
@@ -184,6 +185,7 @@ const ManagementPayments = () => {
                 <Receipt className="mx-auto h-10 w-10 text-muted-foreground/30" />
               </div>
             ) : null}
+          </div>
           </div>
         </div>
 
@@ -267,8 +269,8 @@ const TransactionsPanel = ({
       {row.transactions.length} {t('paymentAttemptsLabel')}
     </div>
     <div className="space-y-1">
-      {row.transactions.map((transaction, index) => (
-        <TransactionRow key={transaction.id} transaction={transaction} index={index} t={t} language={language} />
+      {row.transactions.map((transaction) => (
+        <TransactionRow key={transaction.id} transaction={transaction} language={language} />
       ))}
     </div>
   </div>
@@ -276,29 +278,21 @@ const TransactionsPanel = ({
 
 const TransactionRow = ({
   transaction,
-  index,
-  t,
   language,
 }: {
   transaction: PaymentTransactionData;
-  index: number;
-  t: (key: string) => string;
   language: 'en' | 'pt-BR';
 }) => (
-  <div className="flex items-center gap-3 rounded-md border border-border/60 bg-background/20 px-3 py-1.5">
-    <span className="shrink-0 text-xs font-semibold text-foreground">{t('paymentAttempt')} {index + 1}</span>
-    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-      <span className="hidden md:inline">{transaction.reference} · {transaction.method} · </span>
-      {formatDateTimeValue(transaction.paid_at, language)}
-    </span>
+  <div className="flex items-center gap-3 rounded-md border border-border/60 px-3 py-1.5">
+    <div className="min-w-0 flex flex-1 items-center gap-2">
+      <div className="shrink-0 text-xs font-semibold text-foreground">
+        {formatTransactionMethod(transaction.method)}
+      </div>
+      <div className="min-w-0 truncate text-xs text-muted-foreground">
+        {formatTransactionStatus(transaction.status)} · {formatTransactionDateTime(transaction, language)}
+      </div>
+    </div>
     <span className="shrink-0 text-xs font-semibold text-foreground">{formatCurrency(transaction.amount, language)}</span>
-    <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold ${transaction.status === 'paid' ? 'text-neon-cyan' : transaction.status === 'failed' ? 'text-live' : 'text-neon-pink'}`}>
-      {transaction.status === 'paid'
-        ? <CircleCheckBig className="h-3 w-3" />
-        : transaction.status === 'failed'
-          ? <CircleAlert className="h-3 w-3" />
-          : <Receipt className="h-3 w-3" />}
-    </span>
   </div>
 );
 
@@ -346,6 +340,53 @@ const formatCurrency = (value: number, language: 'en' | 'pt-BR') =>
     currency: 'BRL',
   }).format(value);
 
+const formatTransactionMethod = (method: string) => {
+  const labels: Record<string, string> = {
+    CREDIT_CARD: 'Cartão de Crédito',
+    credit_card: 'Cartão de Crédito',
+    DEBIT_CARD: 'Cartão de Débito',
+    debit_card: 'Cartão de Débito',
+    PIX: 'PIX',
+    pix: 'PIX',
+    PAY_ON_SITE: 'No Local',
+    pay_on_site: 'No Local',
+    BOLETO: 'Boleto',
+    boleto: 'Boleto',
+  };
+  return labels[method] ?? method.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const formatTransactionStatus = (status: string) => {
+  const labels: Record<string, string> = {
+    paid: 'Paid',
+    pending: 'Pending',
+    failed: 'Failed',
+    received: 'Received',
+    confirmed: 'Confirmed',
+  };
+  return labels[status] ?? status.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const formatTransactionDateTime = (
+  transaction: PaymentTransactionData,
+  language: 'en' | 'pt-BR',
+) => {
+  const legacyPaidAt = (transaction as PaymentTransactionData & { paidAt?: string }).paidAt;
+  const rawValue = legacyPaidAt ?? transaction.created_at;
+  if (!rawValue) return '—';
+
+  const parsed = new Date(rawValue.includes('T') ? rawValue : rawValue.replace(' ', 'T'));
+  if (Number.isNaN(parsed.getTime())) return rawValue;
+
+  return parsed.toLocaleString(language === 'pt-BR' ? 'pt-BR' : 'en-US', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 const formatDateValue = (dateValue: string | null, language: 'en' | 'pt-BR') => {
   if (!dateValue) return '—';
   return new Date(`${dateValue}T12:00:00`).toLocaleDateString(language === 'pt-BR' ? 'pt-BR' : 'en-US', {
@@ -353,11 +394,6 @@ const formatDateValue = (dateValue: string | null, language: 'en' | 'pt-BR') => 
     month: '2-digit',
     year: 'numeric',
   });
-};
-
-const formatDateTimeValue = (dateValue: string | null, language: 'en' | 'pt-BR') => {
-  if (!dateValue) return '—';
-  return new Date(dateValue).toLocaleString(language === 'pt-BR' ? 'pt-BR' : 'en-US');
 };
 
 export default ManagementPayments;

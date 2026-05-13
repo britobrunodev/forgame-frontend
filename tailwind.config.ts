@@ -85,9 +85,12 @@ export default {
         elevated: 'var(--shadow-elevated)',
       },
       borderRadius: {
+        sm: "0.25rem",
+        md: "0.3125rem",
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        xl: "var(--radius)",
+        "2xl": "0.5rem",
+        "3xl": "0.75rem",
       },
       keyframes: {
         "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },

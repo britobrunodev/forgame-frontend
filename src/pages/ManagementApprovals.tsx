@@ -63,19 +63,19 @@ const ManagementApprovals = () => {
           <table className="w-full text-sm">
             <thead className="border-b border-border bg-card/60">
               <tr>
-                <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                   {t('fullName')}
                 </th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                   {t('email')}
                 </th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                   {t('role')}
                 </th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                   {t('requestedAt')}
                 </th>
-                <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                   {t('actions')}
                 </th>
               </tr>
@@ -83,19 +83,19 @@ const ManagementApprovals = () => {
             <tbody className="divide-y divide-border">
               {approvals.map((req) => (
                 <tr key={req.id} className="bg-card/30 transition-colors hover:bg-card/60">
-                  <td className="px-4 py-3 font-medium">{req.user_name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{req.user_email}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-center font-medium">{req.user_name}</td>
+                  <td className="px-4 py-3 text-center text-muted-foreground">{req.user_email}</td>
+                  <td className="px-4 py-3 text-center">
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.15em] text-neon-cyan">
                       <Clock className="h-3 w-3" />
                       {req.requested_role}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-4 py-3 text-center text-muted-foreground">
                     {new Date(req.created_at).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => approveMutation.mutate(req.id)}
                         disabled={isPending}

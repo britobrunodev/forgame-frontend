@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, ClipboardList, Loader2, Pencil, Receipt, ShieldCheck, Trophy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardList, Loader2, Pencil } from 'lucide-react';
 import { championshipSubscriptionsApi } from '@/lib/api';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
@@ -32,7 +32,7 @@ const Bookings = () => {
       </header>
 
       <section className="rounded-[2rem] border border-border bg-gradient-card p-4 shadow-card sm:p-6">
-        <SectionTitle icon={<Trophy className="h-4 w-4 text-neon-cyan" />} title={t('championshipRegistrations')} />
+        <SectionTitle title={t('championshipRegistrations')} />
 
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
@@ -44,7 +44,7 @@ const Bookings = () => {
           </div>
         ) : (
           <>
-            <div className="space-y-3 md:hidden">
+            <div className="space-y-2 md:hidden">
               {items.map((subscription) => {
                 const categoryLabel = `${t(subscription.category_slug ?? '')}${subscription.audience_slug ? ` · ${t(subscription.audience_slug)}` : ''}`;
                 const effectiveStatus = subscription.payment_status === 'paid' || subscription.payment_status === 'confirmed' ? 'paid' : subscription.status;
@@ -54,15 +54,15 @@ const Bookings = () => {
                 const canEdit = effectiveStatus === 'draft';
                 const canReceipt = effectiveStatus === 'paid' && !!subscription.payment_id;
                 return (
-                  <div key={subscription.id} className="rounded-2xl border border-border bg-background/25 p-4 shadow-card">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
+                  <div key={subscription.id} className="rounded-2xl border border-border bg-background/25 p-2.5 shadow-card">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
                         <div className="truncate font-display text-sm font-bold">{subscription.championship_name}</div>
-                        <div className="mt-1 text-xs text-muted-foreground">{subscription.complex_name ?? '—'}</div>
+                        <div className="mt-0.5 text-[11px] text-muted-foreground">{subscription.complex_name ?? '—'}</div>
                       </div>
-                      <StatusBadge status={effectiveStatus} t={t} />
+                      <StatusBadge status={effectiveStatus} t={t} compact />
                     </div>
-                    <div className="mt-3 grid gap-3">
+                    <div className="mt-1.5 grid gap-1.5">
                       <MobileInfoRow label={t('subscriptionCategory')} value={categoryLabel} />
                       <MobileInfoRow label={t('subscriptionTeam')} value={`${teamCount} ${t('playersLabel')}`} />
                       <MobileInfoRow
@@ -71,7 +71,7 @@ const Bookings = () => {
                       />
                     </div>
                     {(canEdit || canPay || canReceipt) ? (
-                      <div className="mt-4 flex gap-2 border-t border-border/50 pt-3">
+                      <div className="mt-2 flex gap-1.5 border-t border-border/50 pt-1.5">
                         {canEdit && (
                           <EditButton onClick={() => navigateToEdit(navigate, subscription)} />
                         )}
@@ -94,25 +94,16 @@ const Bookings = () => {
               ) : null}
             </div>
 
-            <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
-              <table className="w-full table-fixed text-sm">
-                <colgroup>
-                  <col className="w-[26%]" />
-                  <col className="w-[20%]" />
-                  <col className="w-[15%]" />
-                  <col className="w-[18%]" />
-                  <col className="w-[21%]" />
-                </colgroup>
-                <thead>
-                  <tr className="border-b border-border bg-background/30 text-left text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                    <th className="px-5 py-3">{t('championships')}</th>
-                    <th className="px-5 py-3">{t('subscriptionCategory')}</th>
-                    <th className="px-5 py-3">{t('subscriptionTeam')}</th>
-                    <th className="px-5 py-3">{t('paymentStatusSummary')}</th>
-                    <th className="px-5 py-3">{t('actions')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
+            <div className="hidden overflow-x-auto md:block">
+              <div className="min-w-[860px]">
+                <div className="grid grid-cols-[32%_20%_15%_17%_16%] border-b border-border px-5 py-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                  <div className="text-center">{t('championships')}</div>
+                  <div className="text-center">{t('subscriptionCategory')}</div>
+                  <div className="text-center">{t('subscriptionTeam')}</div>
+                  <div className="text-center">{t('paymentStatusSummary')}</div>
+                  <div className="text-center">{t('actions')}</div>
+                </div>
+                <div className="mt-2 space-y-2">
                   {items.map((subscription) => {
                     const categoryLabel = `${t(subscription.category_slug ?? '')}${subscription.audience_slug ? ` · ${t(subscription.audience_slug)}` : ''}`;
                     const effectiveStatus = subscription.payment_status === 'paid' || subscription.payment_status === 'confirmed' ? 'paid' : subscription.status;
@@ -122,22 +113,22 @@ const Bookings = () => {
                     const canEdit = effectiveStatus === 'draft';
                     const canReceipt = effectiveStatus === 'paid' && !!subscription.payment_id;
                     return (
-                      <tr key={subscription.id} className="transition-smooth hover:bg-primary/5">
-                        <td className="px-5 py-4">
+                      <div key={subscription.id} className="grid grid-cols-[32%_20%_15%_17%_16%] items-center rounded-xl border border-border px-5 py-4 transition-smooth hover:bg-primary/5">
+                        <div className="text-center">
                           <div className="truncate font-semibold text-foreground">{subscription.championship_name}</div>
                           <div className="mt-0.5 truncate text-xs text-muted-foreground">{subscription.complex_name ?? '—'}</div>
-                        </td>
-                        <td className="px-5 py-4">
+                        </div>
+                        <div className="text-center">
                           <span className="block text-sm text-foreground">{categoryLabel}</span>
-                        </td>
-                        <td className="px-5 py-4">
+                        </div>
+                        <div className="text-center">
                           <span className="block text-sm text-foreground">{teamCount} {t('playersLabel')}</span>
-                        </td>
-                        <td className="px-5 py-4">
+                        </div>
+                        <div className="text-center">
                           <StatusBadge status={effectiveStatus} t={t} />
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="flex gap-2">
+                        </div>
+                        <div className="text-center">
+                          <div className="flex justify-center gap-2">
                             {canEdit && (
                               <EditButton onClick={() => navigateToEdit(navigate, subscription)} />
                             )}
@@ -148,20 +139,18 @@ const Bookings = () => {
                               <ReceiptButton onClick={() => navigate(`/payment/${subscription.payment_id}/success`)} />
                             )}
                           </div>
-                        </td>
-                      </tr>
+                        </div>
+                      </div>
                     );
                   })}
 
                   {items.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-10 text-center">
-                        <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground/30" />
-                      </td>
-                    </tr>
+                    <div className="py-10 text-center">
+                      <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground/30" />
+                    </div>
                   ) : null}
-                </tbody>
-              </table>
+                </div>
+              </div>
             </div>
 
             <PaginationFooter
@@ -180,17 +169,16 @@ const Bookings = () => {
   );
 };
 
-const SectionTitle = ({ icon, title }: { icon: ReactNode; title: string }) => (
-  <div className="mb-5 flex items-center gap-2">
-    {icon}
+const SectionTitle = ({ title }: { title: string }) => (
+  <div className="mb-5 flex items-center">
     <h2 className="font-display text-lg font-bold">{title}</h2>
   </div>
 );
 
 const MobileInfoRow = ({ label, value }: { label: string; value: string }) => (
-  <div className="rounded-xl border border-border bg-background/30 p-3">
-    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
-    <div className="mt-1 font-semibold text-foreground">{value}</div>
+  <div className="rounded-xl border border-border bg-background/30 p-2">
+    <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
+    <div className="mt-px text-sm font-semibold text-foreground">{value}</div>
   </div>
 );
 
@@ -209,8 +197,8 @@ const PaginationFooter = ({
   onPrevious: () => void;
   onNext: () => void;
 }) => (
-  <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <div className="flex items-center justify-center gap-2 sm:justify-start">
+  <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
+    <div className="flex items-center gap-2">
       <button
         type="button"
         onClick={onPrevious}
@@ -231,7 +219,7 @@ const PaginationFooter = ({
         <ChevronRight className="h-4 w-4" />
       </button>
     </div>
-    <div className="text-center text-xs text-muted-foreground sm:text-right">
+    <div className="text-xs text-muted-foreground">
       {totalItems} {label.toLowerCase()}
     </div>
   </div>
@@ -241,9 +229,9 @@ const EditButton = ({ onClick }: { onClick: () => void }) => (
   <button
     type="button"
     onClick={onClick}
-    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+    className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-border bg-background/40 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
   >
-    <Pencil className="h-4 w-4" />
+    <Pencil className="h-3 w-3" />
     EDITAR
   </button>
 );
@@ -252,9 +240,8 @@ const PayButton = ({ onClick }: { onClick: () => void }) => (
   <button
     type="button"
     onClick={onClick}
-    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary/25 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary-glow transition-smooth hover:border-primary/40 hover:bg-primary/15"
+    className="inline-flex flex-1 items-center justify-center rounded-lg border border-border bg-background/40 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
   >
-    <Receipt className="h-4 w-4" />
     PAGAR
   </button>
 );
@@ -263,9 +250,8 @@ const ReceiptButton = ({ onClick }: { onClick: () => void }) => (
   <button
     type="button"
     onClick={onClick}
-    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+    className="inline-flex flex-1 items-center justify-center rounded-lg border border-border bg-background/40 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
   >
-    <ShieldCheck className="h-4 w-4" />
     COMPROVANTE
   </button>
 );
@@ -274,12 +260,18 @@ const StatusBadge = ({
   status,
   t,
   muted = false,
+  compact = false,
 }: {
   status: string;
   t: (key: string) => string;
   muted?: boolean;
+  compact?: boolean;
 }) => (
-  <div className={`flex w-full items-center justify-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${
+  <div className={`flex items-center justify-center rounded-full border font-bold uppercase ${
+    compact
+      ? 'shrink-0 whitespace-nowrap px-2 py-0.5 text-[10px] tracking-[0.08em]'
+      : 'w-full px-1.5 py-0.5 text-[9px] tracking-[0.12em]'
+  } ${
     muted
       ? 'border-border bg-background/40 text-muted-foreground'
       : status === 'paid'
@@ -288,7 +280,6 @@ const StatusBadge = ({
           ? 'border-border bg-background/40 text-muted-foreground'
           : 'border-neon-pink/20 bg-neon-pink/10 text-neon-pink'
   }`}>
-    <Trophy className="h-3 w-3" />
     {muted ? '—' : status === 'paid' ? t('confirmedSubscriptionStatus') : status === 'draft' ? 'Rascunho' : t('pendingStatus')}
   </div>
 );

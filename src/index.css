@@ -41,7 +41,7 @@
     --input: 240 14% 14%;
     --ring: 270 30% 52%;
 
-    --radius: 0.75rem;
+    --radius: 0.375rem;
 
     --gradient-primary: linear-gradient(135deg, hsl(270 30% 48%), hsl(320 30% 52%));
     --gradient-neon: linear-gradient(135deg, hsl(190 80% 55%), hsl(270 35% 55%) 50%, hsl(320 40% 58%));
@@ -140,6 +140,12 @@
 
   .auth-card-flip-register {
     animation: auth-flip-register 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@layer utilities {
+  .rounded-\[2rem\] {
+    border-radius: 1rem;
   }
 }
 

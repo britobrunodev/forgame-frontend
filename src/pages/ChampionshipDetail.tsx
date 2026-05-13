@@ -310,7 +310,7 @@ const GroupCard = ({ group, t }: { group: GroupData; t: (k: string) => string })
     <table className="w-full">
       <thead>
         <tr className="border-b border-border/50">
-          <th className="pb-1.5 text-left text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Equipe</th>
+          <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Equipe</th>
           <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">V</th>
           <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">D</th>
           <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Pts</th>
@@ -319,8 +319,8 @@ const GroupCard = ({ group, t }: { group: GroupData; t: (k: string) => string })
       <tbody>
         {group.standings.map((row, i) => (
           <tr key={row.team.id} className={i < 2 ? '' : 'opacity-50'}>
-            <td className="py-1.5 pr-2">
-              <div className="flex items-center gap-1.5">
+            <td className="py-1.5 pr-2 text-center">
+              <div className="flex items-center justify-center gap-1.5">
                 {i < 2 && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-neon-cyan shadow-[0_0_6px_hsl(var(--neon-cyan))]" />}
                 <span className={`text-xs leading-tight ${i < 2 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
                   {row.team.name.replace(/^\d+ - /, '')}

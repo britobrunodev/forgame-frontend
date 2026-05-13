@@ -265,21 +265,21 @@ const ManagementClasses = () => {
                   <col className="w-[8%]" />
                 </colgroup>
                 <thead>
-                  <tr className="border-b border-border bg-background/30 text-left text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                    <th className="px-4 py-3">{t('classes')}</th>
-                    <th className="px-4 py-3">{t('professor')}</th>
-                    <th className="px-4 py-3">{t('weekSchedule')}</th>
-                    <th className="px-4 py-3">{t('startTime')} / {t('reservationEndTime')}</th>
-                    <th className="px-4 py-3">{t('spots')}</th>
-                    <th className="px-4 py-3">{t('sportComplex')}</th>
-                    <th className="px-4 py-3" />
+                  <tr className="border-b border-border bg-background/30 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                    <th className="px-4 py-3 text-center">{t('classes')}</th>
+                    <th className="px-4 py-3 text-center">{t('professor')}</th>
+                    <th className="px-4 py-3 text-center">{t('weekSchedule')}</th>
+                    <th className="px-4 py-3 text-center">{t('startTime')} / {t('reservationEndTime')}</th>
+                    <th className="px-4 py-3 text-center">{t('spots')}</th>
+                    <th className="px-4 py-3 text-center">{t('sportComplex')}</th>
+                    <th className="px-4 py-3 text-center" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {pagedClasses.map((slot) => (
                     <tr key={slot.id} className="transition-smooth hover:bg-primary/5">
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2.5">
+                      <td className="px-4 py-4 text-center">
+                        <div className="flex items-center justify-center gap-2.5 text-center">
                           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-neon-cyan/20 bg-neon-cyan/10">
                             <SportIcon sportId={slot.sport as SportId} className="h-3.5 w-3.5 text-neon-cyan" />
                           </div>
@@ -291,30 +291,30 @@ const ManagementClasses = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-4 text-center">
                         <span className="truncate text-foreground">{slot.professorName}</span>
                       </td>
-                      <td className="px-4 py-4 text-muted-foreground">{slot.date}</td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-1 text-foreground">
+                      <td className="px-4 py-4 text-center text-muted-foreground">{slot.date}</td>
+                      <td className="px-4 py-4 text-center">
+                        <div className="flex items-center justify-center gap-1 text-foreground">
                           <Clock className="h-3 w-3 shrink-0 text-muted-foreground" />
                           <span className="font-semibold">{slot.startTime}</span>
                           <span className="text-muted-foreground">–{slot.endTime}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-1 text-xs">
+                      <td className="px-4 py-4 text-center">
+                        <div className="flex items-center justify-center gap-1 text-xs">
                           <span className="font-bold text-neon-cyan">{slot.bookedSpots}</span>
                           <span className="text-muted-foreground">/{slot.maxSpots}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <td className="px-4 py-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5 text-muted-foreground">
                           <MapPin className="h-3.5 w-3.5 shrink-0" />
                           <span className="truncate text-sm">{slot.complexName}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-4 text-center">
                         <button
                           type="button"
                           onClick={() => navigate(`/management/classes/${slot.id}/edit`)}

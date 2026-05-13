@@ -105,17 +105,17 @@ const ManagementChampionships = () => {
                   <button
                     type="button"
                     onClick={() => navigate(`/management/championships/${c.id}/edit`)}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-background/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
                   >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className="h-3.5 w-3.5" />
                     {t('edit')}
                   </button>
                   <button
                     type="button"
                     onClick={() => navigate(`/management/payments?type=championship&id=${c.id}`)}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-background/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
                   >
-                    <Receipt className="h-4 w-4" />
+                    <Receipt className="h-3.5 w-3.5" />
                     {t('payments')}
                   </button>
                 </div>
@@ -124,56 +124,58 @@ const ManagementChampionships = () => {
           </div>
 
           {/* Desktop table */}
-          <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
+          <div className="hidden overflow-x-auto md:block">
             <div className="min-w-[860px]">
-              <div className="grid grid-cols-[minmax(0,2fr)_180px_minmax(0,1.6fr)_200px] gap-4 border-b border-border bg-background/30 px-5 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
-                <div>{t('tournamentName')}</div>
-                <div>Status</div>
-                <div>{t('eventDate')} / {t('registrationDeadline')}</div>
-                <div className="text-right">{t('settings')}</div>
+              <div className="grid grid-cols-[minmax(0,2fr)_180px_minmax(0,1.6fr)_200px] gap-4 border-b border-border px-5 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
+                <div className="text-center">{t('tournamentName')}</div>
+                <div className="text-center">Status</div>
+                <div className="text-center">{t('eventDate')} / {t('registrationDeadline')}</div>
+                <div className="text-center">{t('settings')}</div>
               </div>
-              {championships.map((c, index) => (
-                <div
-                  key={c.id}
-                  className={`grid grid-cols-[minmax(0,2fr)_180px_minmax(0,1.6fr)_200px] gap-4 px-5 py-4 transition-smooth hover:bg-primary/5 sm:px-6 ${index !== championships.length - 1 ? 'border-b border-border/70' : ''}`}
-                >
-                  <div className="min-w-0">
-                    <div className="truncate font-display text-xs font-bold uppercase tracking-[0.14em] text-foreground">{c.name}</div>
-                  </div>
-                  <div>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] ${STATUS_COLORS[c.status] ?? STATUS_COLORS.draft}`}>
-                      {STATUS_LABELS[c.status] ?? c.status}
-                    </span>
-                  </div>
-                  <div className="min-w-0 flex flex-col gap-0.5">
-                    <span className="truncate text-sm text-muted-foreground">{formatDateRange(c.start_at, c.end_at)}</span>
-                    {c.registration_deadline_at && (
-                      <span className="truncate text-[11px] text-muted-foreground/60">
-                        <span className="font-semibold uppercase tracking-[0.08em]">{t('registrationDeadline')}: </span>
-                        {fmtDate(c.registration_deadline_at)}
+              <div className="mt-2 space-y-2">
+                {championships.map((c) => (
+                  <div
+                    key={c.id}
+                    className="grid grid-cols-[minmax(0,2fr)_180px_minmax(0,1.6fr)_200px] items-center gap-4 rounded-xl border border-border px-5 py-4 text-center transition-smooth hover:bg-primary/5 sm:px-6"
+                  >
+                    <div className="min-w-0 self-center">
+                      <div className="truncate font-display text-xs font-bold uppercase tracking-[0.14em] text-foreground">{c.name}</div>
+                    </div>
+                    <div className="self-center">
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] ${STATUS_COLORS[c.status] ?? STATUS_COLORS.draft}`}>
+                        {STATUS_LABELS[c.status] ?? c.status}
                       </span>
-                    )}
+                    </div>
+                    <div className="min-w-0 flex flex-col items-center justify-center gap-0.5 self-center text-center">
+                      <span className="truncate text-sm text-muted-foreground">{formatDateRange(c.start_at, c.end_at)}</span>
+                      {c.registration_deadline_at && (
+                        <span className="truncate text-[11px] text-muted-foreground/60">
+                          <span className="font-semibold uppercase tracking-[0.08em]">{t('registrationDeadline')}: </span>
+                          {fmtDate(c.registration_deadline_at)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex justify-center gap-3 self-center">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/management/championships/${c.id}/edit`)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        {t('edit')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/management/payments?type=championship&id=${c.id}`)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
+                      >
+                        <Receipt className="h-3.5 w-3.5" />
+                        {t('payments')}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex justify-end gap-3">
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/management/championships/${c.id}/edit`)}
-                      className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
-                    >
-                      <Pencil className="h-4 w-4" />
-                      {t('edit')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/management/payments?type=championship&id=${c.id}`)}
-                      className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
-                    >
-                      <Receipt className="h-4 w-4" />
-                      {t('payments')}
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 

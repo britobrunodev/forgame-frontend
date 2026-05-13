@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, ChevronLeft, ChevronRight, Loader2, Trash2, ShieldCheck, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Trash2, ShieldCheck, Check } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { notify } from '@/lib/notify';
 import { useSession } from '@/session';
@@ -59,32 +59,21 @@ const AdminComplexes = () => {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8">
+    <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-8">
       <header>
-        <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-violet-400">Admin</p>
-        <h1 className="font-display text-2xl font-black">Complexos</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-violet-400">Complexos</p>
+        <p className="mt-3 text-sm text-muted-foreground">
           Gerencie complexos, configure o repasse e remova complexos e tudo associado a eles.
         </p>
       </header>
 
-      <section className="rounded-[2rem] border border-border bg-gradient-card p-4 shadow-card sm:p-6">
-        <div className="mb-5 flex items-center gap-2">
-          <Building2 className="h-4 w-4 text-violet-400" />
-          <h2 className="font-display text-lg font-bold">Complexos</h2>
-          {!isLoading && (
-            <span className="ml-1 rounded-full border border-border bg-background/40 px-2 py-0.5 text-[11px] font-bold text-muted-foreground">
-              {complexes.length}
-            </span>
-          )}
-        </div>
-
+      <section className="space-y-5">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : complexes.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-background/25 px-5 py-10 text-center text-sm text-muted-foreground">
+          <div className="px-5 py-10 text-center text-sm text-muted-foreground">
             Nenhum complexo cadastrado.
           </div>
         ) : (
@@ -92,7 +81,7 @@ const AdminComplexes = () => {
             {/* Mobile cards */}
             <div className="space-y-3 md:hidden">
               {pageItems.map((c) => (
-                <div key={c.id} className="rounded-2xl border border-border bg-background/25 p-4">
+                <div key={c.id} className="rounded-xl border border-border px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="truncate font-semibold">{c.name}</div>
@@ -119,85 +108,75 @@ const AdminComplexes = () => {
             </div>
 
             {/* Desktop table */}
-            <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
-              <table className="w-full table-fixed text-sm">
-                <colgroup>
-                  <col className="w-[5%]" />
-                  <col className="w-[26%]" />
-                  <col className="w-[20%]" />
-                  <col className="w-[11%]" />
-                  <col className="w-[18%]" />
-                  <col className="w-[20%]" />
-                </colgroup>
-                <thead>
-                  <tr className="border-b border-border bg-background/30 text-left text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                    <th className="px-5 py-3">ID</th>
-                    <th className="px-5 py-3">Nome</th>
-                    <th className="px-5 py-3">Cidade</th>
-                    <th className="px-5 py-3">Status</th>
-                    <th className="px-5 py-3">Repasse (%)</th>
-                    <th className="px-5 py-3">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {pageItems.map((c) => (
-                    <tr key={c.id} className="transition-smooth hover:bg-primary/5">
-                      <td className="px-5 py-4 text-xs text-muted-foreground">{c.id}</td>
-                      <td className="px-5 py-4">
-                        <div className="truncate font-semibold">{c.name}</div>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-muted-foreground">
-                        {c.city ?? '—'}{c.country ? ` · ${c.country}` : ''}
-                      </td>
-                      <td className="px-5 py-4">
-                        <StatusBadge active={c.is_active} />
-                      </td>
-                      <td className="px-5 py-4">
-                        <SplitInput complexId={c.id} complexName={c.name} initialValue={c.split_percentage} token={token!} />
-                      </td>
-                      <td className="px-5 py-4">
-                        <DeleteButton
-                          id={c.id}
-                          name={c.name}
-                          confirmId={confirmId}
-                          deletingId={deletingId}
-                          onDelete={handleDelete}
-                          onCancel={() => setConfirmId(null)}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {complexes.length > 0 && (
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center justify-center gap-2 sm:justify-start">
-                  <button
-                    type="button"
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => p - 1)}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
-                    aria-label="Página anterior"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
-                  <button
-                    type="button"
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
-                    aria-label="Próxima página"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
+            <div className="hidden overflow-x-auto md:block">
+              <div className="min-w-[860px]">
+                <div className="grid grid-cols-[5%_26%_20%_11%_18%_20%] border-b border-border px-5 py-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                  <div className="text-center">ID</div>
+                  <div className="text-center">Nome</div>
+                  <div className="text-center">Cidade</div>
+                  <div className="text-center">Status</div>
+                  <div className="text-center">Repasse (%)</div>
+                  <div className="text-center">Ações</div>
                 </div>
-                <div className="text-center text-xs text-muted-foreground sm:text-right">
-                  {complexes.length} complexos
+                <div className="mt-2 space-y-2">
+                  {pageItems.map((c) => (
+                    <div key={c.id} className="grid grid-cols-[5%_26%_20%_11%_18%_20%] items-center rounded-xl border border-border px-5 py-4 transition-smooth hover:bg-primary/5">
+                      <div className="text-center text-xs text-muted-foreground">{c.id}</div>
+                      <div className="text-center">
+                        <div className="truncate font-semibold">{c.name}</div>
+                      </div>
+                      <div className="text-center text-sm text-muted-foreground">
+                        {c.city ?? '—'}{c.country ? ` · ${c.country}` : ''}
+                      </div>
+                      <div className="text-center">
+                        <StatusBadge active={c.is_active} />
+                      </div>
+                      <div className="text-center">
+                        <div className="flex justify-center">
+                          <SplitInput complexId={c.id} complexName={c.name} initialValue={c.split_percentage} token={token!} />
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="flex justify-center">
+                          <DeleteButton
+                            id={c.id}
+                            name={c.name}
+                            confirmId={confirmId}
+                            deletingId={deletingId}
+                            onDelete={handleDelete}
+                            onCancel={() => setConfirmId(null)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            )}
+            </div>
+            <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage(page - 1)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+                  aria-label="Página anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
+                <button
+                  type="button"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(page + 1)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+                  aria-label="Próxima página"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+              <span className="text-xs text-muted-foreground">{complexes.length} complexos</span>
+            </div>
           </>
         )}
       </section>

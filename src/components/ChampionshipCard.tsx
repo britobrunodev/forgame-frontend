@@ -27,11 +27,11 @@ type ChampionshipCardData = {
 };
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
-  live:     { label: 'Ao vivo',               className: 'border-lime-400/30 bg-lime-400/10 text-lime-400 animate-status-pulse' },
-  open:     { label: 'Inscrições abertas',    className: 'border-neon-cyan/30 bg-neon-cyan/10 text-neon-cyan' },
-  closed:   { label: 'Inscrições encerradas', className: 'border-neon-pink/30 bg-neon-pink/10 text-neon-pink' },
-  finished: { label: 'Finalizado',            className: 'border-border bg-background/60 text-muted-foreground' },
-  draft:    { label: 'Rascunho',              className: 'border-border bg-background/60 text-muted-foreground' },
+  live:     { label: 'Ao vivo',               className: 'border-lime-300/70 bg-lime-400/22 text-lime-100 shadow-[0_0_14px_rgba(163,230,53,0.16)] animate-status-pulse' },
+  open:     { label: 'Inscrições abertas',    className: 'border-neon-cyan/70 bg-neon-cyan/22 text-white shadow-[0_0_14px_hsl(var(--neon-cyan)/0.16)]' },
+  closed:   { label: 'Inscrições encerradas', className: 'border-neon-pink/65 bg-neon-pink/22 text-white shadow-[0_0_14px_hsl(var(--neon-pink)/0.14)]' },
+  finished: { label: 'Finalizado',            className: 'border-white/18 bg-black/72 text-white/88' },
+  draft:    { label: 'Rascunho',              className: 'border-white/18 bg-black/72 text-white/88' },
 };
 
 const Overlay = ({
@@ -63,22 +63,22 @@ const Overlay = ({
 
       {/* Status badge — top right */}
       <div className="absolute right-3 top-3">
-        <span className={`inline-flex items-center rounded-lg border px-2 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md ${badge.className}`}>
+        <span className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] backdrop-blur-md ${badge.className}`}>
           {badge.label}
         </span>
       </div>
 
       {/* Sport badge — top left */}
       <div className="absolute left-3 top-3">
-        <span className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-black/50 px-1.5 py-0.5 text-xs font-bold uppercase leading-none tracking-wider text-white/90 backdrop-blur-md">
-          {sport && <SportIcon sportId={sport.id} className="h-3.5 w-3.5 translate-y-[0.5px]" />}
+        <span className="inline-flex items-center gap-1 rounded-md border border-white/18 bg-black/72 px-2 py-1 text-[10px] font-bold uppercase leading-none tracking-[0.16em] text-white backdrop-blur-md shadow-[0_10px_24px_-18px_rgba(0,0,0,0.9)]">
+          {sport && sport.id !== 'footvolley' && <SportIcon sportId={sport.id} className="h-3.5 w-3.5 translate-y-[0.5px]" />}
           <span className="translate-y-[0.5px] leading-none">{sport ? sportName(sport.id) : t('championships')}</span>
         </span>
       </div>
 
       {/* Name + meta — flush to bottom */}
       <div className="absolute bottom-0 left-0 right-0 px-3 pb-2 sm:px-4 sm:pb-2.5">
-        <h3 className="line-clamp-2 font-display text-sm font-bold leading-tight text-white drop-shadow transition-smooth group-hover:text-primary-glow sm:text-base">
+        <h3 className="line-clamp-2 font-display text-sm font-bold leading-tight text-white drop-shadow transition-smooth sm:text-base">
           {c.name}
         </h3>
         <div className="mt-0.5 flex items-center justify-between gap-2">
@@ -137,7 +137,7 @@ export const ChampionshipCard = ({ c }: { c: ChampionshipCardData }) => {
   return (
     <article
       onClick={handleCardClick}
-      className={`group relative overflow-hidden rounded-2xl border border-border bg-gradient-card ${isClickable ? 'cursor-pointer transition-smooth hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-neon' : 'cursor-default'}`}
+      className={`group relative overflow-hidden rounded-2xl border border-border bg-gradient-card ${isClickable ? 'cursor-pointer transition-smooth hover:-translate-y-0.5 hover:border-background hover:shadow-none' : 'cursor-default'}`}
     >
       <div className="relative aspect-[3/2] overflow-hidden bg-secondary">
         {c.image ? (

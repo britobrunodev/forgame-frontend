@@ -205,13 +205,13 @@ const ClassSchedule = ({ embedded = false }: { embedded?: boolean }) => {
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border text-left text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                    <th className="px-5 py-3">{t('sport')}</th>
-                    <th className="px-5 py-3">{t('startTime')}</th>
-                    <th className="px-5 py-3">{t('professor')}</th>
-                    <th className="hidden px-5 py-3 md:table-cell">{t('sportComplex')}</th>
-                    <th className="px-5 py-3">{t('spots')}</th>
-                    <th className="px-5 py-3" />
+                  <tr className="border-b border-border text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                    <th className="px-5 py-3 text-center">{t('sport')}</th>
+                    <th className="px-5 py-3 text-center">{t('startTime')}</th>
+                    <th className="px-5 py-3 text-center">{t('professor')}</th>
+                    <th className="hidden px-5 py-3 text-center md:table-cell">{t('sportComplex')}</th>
+                    <th className="px-5 py-3 text-center">{t('spots')}</th>
+                    <th className="px-5 py-3 text-center" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -222,8 +222,8 @@ const ClassSchedule = ({ embedded = false }: { embedded?: boolean }) => {
 
                     return (
                       <tr key={slot.id} className="transition-smooth hover:bg-primary/5">
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
+                        <td className="px-5 py-4 text-center">
+                          <div className="flex items-center justify-center gap-3 text-center">
                             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neon-cyan/20 bg-neon-cyan/10">
                               <SportIcon sportId={slot.sport} className="h-4 w-4 text-neon-cyan" />
                             </div>
@@ -235,25 +235,25 @@ const ClassSchedule = ({ embedded = false }: { embedded?: boolean }) => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-1.5 text-foreground">
+                        <td className="px-5 py-4 text-center">
+                          <div className="flex items-center justify-center gap-1.5 text-foreground">
                             <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                             <span className="font-semibold">{slot.startTime}</span>
                             <span className="text-muted-foreground">–</span>
                             <span className="text-muted-foreground">{slot.endTime}</span>
                           </div>
                         </td>
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-4 text-center">
                           <div className="text-sm text-foreground">{slot.professorName}</div>
                         </td>
-                        <td className="hidden px-5 py-4 md:table-cell">
-                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <td className="hidden px-5 py-4 text-center md:table-cell">
+                          <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
                             <MapPin className="h-3.5 w-3.5 shrink-0" />
                             <span>{slot.complexName}</span>
                           </div>
                         </td>
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-1.5">
+                        <td className="px-5 py-4 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
                             <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                             {isFull ? (
                               <span className="text-xs font-semibold text-live">{t('full')}</span>
@@ -265,7 +265,7 @@ const ClassSchedule = ({ embedded = false }: { embedded?: boolean }) => {
                             )}
                           </div>
                         </td>
-                        <td className="px-5 py-4 text-right">
+                        <td className="px-5 py-4 text-center">
                           {isEnrolled ? (
                             <div className="inline-flex items-center gap-1.5 rounded-lg border border-neon-cyan/30 bg-neon-cyan/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-neon-cyan">
                               <Check className="h-3 w-3" />
