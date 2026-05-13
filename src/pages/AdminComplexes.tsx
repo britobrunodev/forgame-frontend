@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, ChevronLeft, ChevronRight, Loader2, Trash2, ShieldCheck } from 'lucide-react';
+import { Building2, ChevronLeft, ChevronRight, Loader2, Trash2, ShieldCheck, Check } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { notify } from '@/lib/notify';
 import { useSession } from '@/session';
 
 const PER_PAGE = 12;
 
-const AdminExclusions = () => {
+const AdminComplexes = () => {
   const { token, currentUser } = useSession();
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -62,9 +62,9 @@ const AdminExclusions = () => {
     <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8">
       <header>
         <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-violet-400">Admin</p>
-        <h1 className="font-display text-2xl font-black">Exclusões</h1>
+        <h1 className="font-display text-2xl font-black">Complexos</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Remove um complexo e tudo associado a ele: quadras, campeonatos e vínculos de usuários.
+          Gerencie complexos, configure o repasse e remova complexos e tudo associado a eles.
         </p>
       </header>
 
@@ -101,6 +101,10 @@ const AdminExclusions = () => {
                     <StatusBadge active={c.is_active} />
                   </div>
                   <div className="mt-3">
+                    <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Repasse ao Complexo</div>
+                    <SplitInput complexId={c.id} complexName={c.name} initialValue={c.split_percentage} token={token!} />
+                  </div>
+                  <div className="mt-3">
                     <DeleteButton
                       id={c.id}
                       name={c.name}
@@ -118,11 +122,12 @@ const AdminExclusions = () => {
             <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
               <table className="w-full table-fixed text-sm">
                 <colgroup>
-                  <col className="w-[6%]" />
-                  <col className="w-[32%]" />
-                  <col className="w-[24%]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[24%]" />
+                  <col className="w-[5%]" />
+                  <col className="w-[26%]" />
+                  <col className="w-[20%]" />
+                  <col className="w-[11%]" />
+                  <col className="w-[18%]" />
+                  <col className="w-[20%]" />
                 </colgroup>
                 <thead>
                   <tr className="border-b border-border bg-background/30 text-left text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
@@ -130,6 +135,7 @@ const AdminExclusions = () => {
                     <th className="px-5 py-3">Nome</th>
                     <th className="px-5 py-3">Cidade</th>
                     <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3">Repasse (%)</th>
                     <th className="px-5 py-3">Ações</th>
                   </tr>
                 </thead>
@@ -147,6 +153,9 @@ const AdminExclusions = () => {
                         <StatusBadge active={c.is_active} />
                       </td>
                       <td className="px-5 py-4">
+                        <SplitInput complexId={c.id} complexName={c.name} initialValue={c.split_percentage} token={token!} />
+                      </td>
+                      <td className="px-5 py-4">
                         <DeleteButton
                           id={c.id}
                           name={c.name}
@@ -162,32 +171,111 @@ const AdminExclusions = () => {
               </table>
             </div>
             {complexes.length > 0 && (
-              <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-4">
-                <div className="flex items-center gap-2">
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center justify-center gap-2 sm:justify-start">
                   <button
                     type="button"
-                    disabled={page === 1}
+                    disabled={page <= 1}
                     onClick={() => setPage((p) => p - 1)}
                     className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+                    aria-label="Página anterior"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
                   <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
                   <button
                     type="button"
-                    disabled={page === totalPages}
+                    disabled={page >= totalPages}
                     onClick={() => setPage((p) => p + 1)}
                     className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background/60 transition-smooth disabled:opacity-40 hover:border-primary/40 hover:bg-secondary"
+                    aria-label="Próxima página"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
-                <span className="text-xs text-muted-foreground">{complexes.length} complexos</span>
+                <div className="text-center text-xs text-muted-foreground sm:text-right">
+                  {complexes.length} complexos
+                </div>
               </div>
             )}
           </>
         )}
       </section>
+    </div>
+  );
+};
+
+const SplitInput = ({
+  complexId,
+  complexName,
+  initialValue,
+  token,
+}: {
+  complexId: number;
+  complexName: string;
+  initialValue: number | null;
+  token: string;
+}) => {
+  const savedRef = useRef<string>(initialValue !== null ? String(initialValue) : '');
+  const [draft, setDraft] = useState<string>(initialValue !== null ? String(initialValue) : '');
+  const [error, setError] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const isDirty = draft !== savedRef.current && draft !== '';
+
+  const handleChange = (raw: string) => {
+    setDraft(raw);
+    const n = Number(raw);
+    setError(raw !== '' && (isNaN(n) || n < 0 || n > 100));
+  };
+
+  const handleSave = async () => {
+    const val = Number(draft);
+    if (isNaN(val) || val < 0 || val > 100) {
+      setError(true);
+      return;
+    }
+    setError(false);
+    setSaving(true);
+    try {
+      await adminApi.updateComplexSplit(token, complexId, val);
+      savedRef.current = draft;
+      setDraft(draft);
+      notify.success('Repasse salvo', `${val}% para o ${complexName}.`);
+    } catch (err) {
+      notify.error('Erro ao salvar', err instanceof Error ? err.message : 'Tente novamente.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-1.5">
+        <input
+          type="number"
+          min="0"
+          max="100"
+          step="0.1"
+          value={draft}
+          onChange={(e) => handleChange(e.target.value)}
+          placeholder="90"
+          className={`w-16 rounded-lg border bg-background/60 px-2 py-1 text-center font-mono text-sm transition-smooth focus:outline-none ${
+            error ? 'border-destructive/60 text-destructive' : 'border-border focus:border-primary/40'
+          }`}
+        />
+        <span className="text-xs text-muted-foreground">%</span>
+        {isDirty && !error && (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-neon-cyan/30 bg-neon-cyan/10 text-neon-cyan transition-smooth hover:bg-neon-cyan/20 disabled:opacity-40"
+          >
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+          </button>
+        )}
+      </div>
+      {error && <p className="text-[10px] text-destructive">0 – 100</p>}
     </div>
   );
 };
@@ -264,4 +352,4 @@ const DeleteButton = ({
   );
 };
 
-export default AdminExclusions;
+export default AdminComplexes;

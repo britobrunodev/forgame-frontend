@@ -14,6 +14,7 @@ import Championships from "./pages/Championships.tsx";
 import Reservations from "./pages/Reservations.tsx";
 import ReservationDetail from "./pages/ReservationDetail.tsx";
 import Payment from "./pages/Payment.tsx";
+import PaymentSuccess from "./pages/PaymentSuccess.tsx";
 import ClassSchedule from "./pages/ClassSchedule.tsx";
 import ChampionshipRegistration from "./pages/ChampionshipRegistration.tsx";
 import Bookings from "./pages/Bookings.tsx";
@@ -28,7 +29,7 @@ import ChampionshipSettings from "./pages/ChampionshipSettings.tsx";
 import ManagementUsers from "./pages/ManagementUsers.tsx";
 import ManagementAdminAccess from "./pages/ManagementAdminAccess.tsx";
 import AdminApprovals from "./pages/AdminApprovals.tsx";
-import AdminExclusions from "./pages/AdminExclusions.tsx";
+import AdminComplexes from "./pages/AdminComplexes.tsx";
 import ManagementHub from "./pages/ManagementHub.tsx";
 import AdminHub from "./pages/AdminHub.tsx";
 import TournamentSettings from "./pages/TournamentSettings.tsx";
@@ -77,6 +78,7 @@ const App = () => (
                 <Route path="/reservations/complexes/:complexId" element={<ReservationDetail />} />
                 <Route path="/payment" element={<Payment />} />
                 <Route path="/payment/:paymentId" element={<Payment />} />
+                <Route path="/payment/:paymentId/success" element={<PaymentSuccess />} />
                 <Route path="/schedule" element={<Navigate to="/bookings" replace />} />
                 <Route path="/bookings" element={<Bookings />} />
                 <Route path="/profile" element={<ProfileSettings />} />
@@ -95,7 +97,7 @@ const App = () => (
                 <Route path="/admin/access" element={<ManagementAdminAccess />} />
                 <Route path="/admin" element={<AdminHub />} />
                 <Route path="/admin/approvals" element={<AdminApprovals />} />
-                <Route path="/admin/exclusions" element={<AdminExclusions />} />
+                <Route path="/admin/complexes" element={<AdminComplexes />} />
                 <Route path="/management/payments" element={<ManagementPayments />} />
                 <Route path="/management/complexes" element={<SportComplexesManagement />} />
                 <Route path="/management/complexes/new" element={<SportComplexSettings />} />

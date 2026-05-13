@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Trophy, Calendar, GraduationCap, Users, Receipt } from 'lucide-react';
+import { BookOpen, Building2, CalendarDays, GraduationCap, Receipt, Trophy, Users } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 
 const ManagementHub = () => {
@@ -17,24 +17,9 @@ const ManagementHub = () => {
 
       <section className="grid grid-cols-3 gap-3 sm:grid-cols-4">
         <QuickAction
-          icon={<Building2 className="h-4 w-4 text-neon-pink sm:h-5 sm:w-5" />}
-          label={t('courtManagement')}
-          onClick={() => navigate('/management/courts')}
-        />
-        <QuickAction
           icon={<Trophy className="h-4 w-4 text-neon-cyan sm:h-5 sm:w-5" />}
           label={t('championships')}
           onClick={() => navigate('/management/championships')}
-        />
-        <QuickAction
-          icon={<Calendar className="h-4 w-4 text-neon-cyan sm:h-5 sm:w-5" />}
-          label={t('managementClasses')}
-          onClick={() => navigate('/management/classes')}
-        />
-        <QuickAction
-          icon={<GraduationCap className="h-4 w-4 text-neon-cyan sm:h-5 sm:w-5" />}
-          label={t('students')}
-          onClick={() => navigate('/management/students')}
         />
         <QuickAction
           icon={<Users className="h-4 w-4 text-neon-cyan sm:h-5 sm:w-5" />}
@@ -51,16 +36,46 @@ const ManagementHub = () => {
           label={t('sportComplexes')}
           onClick={() => navigate('/management/complexes')}
         />
+        <QuickAction
+          icon={<CalendarDays className="h-4 w-4 text-muted-foreground sm:h-5 sm:w-5" />}
+          label={t('courtManagement')}
+          disabled
+        />
+        <QuickAction
+          icon={<BookOpen className="h-4 w-4 text-muted-foreground sm:h-5 sm:w-5" />}
+          label={t('managementClasses')}
+          disabled
+        />
+        <QuickAction
+          icon={<GraduationCap className="h-4 w-4 text-muted-foreground sm:h-5 sm:w-5" />}
+          label={t('students')}
+          disabled
+        />
       </section>
     </div>
   );
 };
 
-const QuickAction = ({ icon, label, onClick }: { icon: ReactNode; label: string; onClick: () => void }) => (
+const QuickAction = ({
+  icon,
+  label,
+  onClick,
+  disabled,
+}: {
+  icon: ReactNode;
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+}) => (
   <button
     type="button"
-    onClick={onClick}
-    className="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-gradient-card p-2.5 text-center transition-smooth hover:border-primary/30 hover:bg-secondary/60 sm:gap-2 sm:p-3"
+    onClick={disabled ? undefined : onClick}
+    disabled={disabled}
+    className={`flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-gradient-card p-2.5 text-center transition-smooth sm:gap-2 sm:p-3 ${
+      disabled
+        ? 'cursor-not-allowed opacity-40 pointer-events-none'
+        : 'hover:border-primary/30 hover:bg-secondary/60'
+    }`}
   >
     <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-background/40 sm:h-10 sm:w-10">
       {icon}

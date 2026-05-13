@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Building2, ChevronLeft, ChevronRight, GraduationCap, MapPin, Save, Search, ShieldCheck, Target, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, GraduationCap, MapPin, Save, Search, ShieldCheck, Target, Users } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { notify } from '@/lib/notify';
@@ -35,6 +35,7 @@ export const StaffAccessManager = ({
   const { currentUser, token } = useSession();
   const [selectedComplexId, setSelectedComplexId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
   const [saving, setSaving] = useState(false);
   const [snapshot, setSnapshot] = useState<AccessControlSnapshot | null>(null);
@@ -44,13 +45,22 @@ export const StaffAccessManager = ({
   const canView = adminOnly ? currentUser.isAdmin : (currentUser.isAdmin || currentUser.roles?.includes('owner'));
 
   useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
+  useEffect(() => {
     if (!token || !canView) return;
 
     let cancelled = false;
 
     const load = async () => {
       try {
-        const data = await accessControlApi.getSnapshot(token, page, PAGE_SIZE, searchQuery);
+        const data = await accessControlApi.getSnapshot(token, page, PAGE_SIZE, debouncedSearch);
         if (cancelled) return;
 
         setSnapshot(data);
@@ -71,7 +81,7 @@ export const StaffAccessManager = ({
     return () => {
       cancelled = true;
     };
-  }, [token, canView, page, searchQuery]);
+  }, [token, canView, page, debouncedSearch]);
 
   const allowedRoles = useMemo(
     () => (snapshot?.assignable_roles ?? []).filter((role): role is AssignableRole => ROLE_ORDER.includes(role as AssignableRole)),
@@ -82,10 +92,6 @@ export const StaffAccessManager = ({
   const complexes = snapshot?.complexes ?? [];
   const totalPages = snapshot?.total_pages ?? 1;
   const totalUsers = snapshot?.total ?? 0;
-
-  useEffect(() => {
-    setPage(1);
-  }, [searchQuery]);
 
   const toggleRole = (userId: string, role: AssignableRole) => {
     if (!selectedComplexId) return;
@@ -143,7 +149,7 @@ export const StaffAccessManager = ({
 
   if (!canView) {
     return (
-      <div className="mx-auto w-full max-w-3xl">
+      <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))]">
         <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
           <div className="inline-flex items-center gap-2 rounded-full border border-live/30 bg-live/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-live">
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -157,7 +163,7 @@ export const StaffAccessManager = ({
   }
 
   return (
-    <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
+    <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-8">
       <header>
         <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{title}</p>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{intro}</p>
@@ -197,13 +203,11 @@ export const StaffAccessManager = ({
 
         {!selectedComplexId ? (
           <div className="rounded-2xl border border-border bg-background/25 p-10 text-center">
-            <Building2 className="mx-auto h-10 w-10 text-muted-foreground/30" />
-            <p className="mt-3 text-sm text-muted-foreground">{t('noSportComplexesDescription')}</p>
+            <Users className="mx-auto h-10 w-10 text-muted-foreground/30" />
           </div>
         ) : users.length === 0 ? (
           <div className="rounded-2xl border border-border bg-background/25 p-10 text-center">
             <Users className="mx-auto h-10 w-10 text-muted-foreground/30" />
-            <p className="mt-3 text-sm text-muted-foreground">{t('noUsersFound')}</p>
           </div>
         ) : (
           <>

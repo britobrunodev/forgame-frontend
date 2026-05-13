@@ -2,7 +2,7 @@ import type { Config } from "tailwindcss";
 
 export default {
   darkMode: ["class"],
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}", "./forgame-website/src/**/*.{ts,tsx}"],
   prefix: "",
   theme: {
     container: {
@@ -51,6 +51,10 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        surface: {
+          DEFAULT: "hsl(var(--surface))",
+          foreground: "hsl(var(--surface-foreground))",
+        },
         neon: {
           cyan: "hsl(var(--neon-cyan))",
           pink: "hsl(var(--neon-pink))",
@@ -72,11 +76,13 @@ export default {
         'gradient-primary': 'var(--gradient-primary)',
         'gradient-neon': 'var(--gradient-neon)',
         'gradient-card': 'var(--gradient-card)',
+        'hero': 'var(--gradient-hero)',
       },
       boxShadow: {
         neon: 'var(--shadow-neon)',
         glow: 'var(--shadow-glow)',
         card: 'var(--shadow-card)',
+        elevated: 'var(--shadow-elevated)',
       },
       borderRadius: {
         lg: "var(--radius)",

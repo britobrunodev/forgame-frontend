@@ -117,6 +117,7 @@ export interface PlayerProfile {
   phone_number: string | null;
   country: string | null;
   uniform_size: string | null;
+  gender: string | null;
   level: string | null;
   preferred_sports: string[] | null;
   preferred_complexes: number[] | null;
@@ -124,6 +125,13 @@ export interface PlayerProfile {
   losses: number;
   draws: number;
   sport_characteristics: Record<string, string[]> | null;
+  address_street: string | null;
+  address_number: string | null;
+  address_complement: string | null;
+  address_neighborhood: string | null;
+  address_city: string | null;
+  address_state: string | null;
+  address_zip: string | null;
 }
 
 export interface PlayerProfileUpdateInput {
@@ -136,10 +144,18 @@ export interface PlayerProfileUpdateInput {
   phone_number: string | null;
   country: string | null;
   uniform_size: string | null;
+  gender: string | null;
   level: string | null;
   preferred_sports: string[] | null;
   preferred_complexes: number[] | null;
   sport_characteristics: Record<string, string[]> | null;
+  address_street: string | null;
+  address_number: string | null;
+  address_complement: string | null;
+  address_neighborhood: string | null;
+  address_city: string | null;
+  address_state: string | null;
+  address_zip: string | null;
 }
 
 export interface CategoryData {
@@ -152,9 +168,11 @@ export interface CategoryData {
 export interface PlayerListItem {
   id: number;
   name: string;
+  nickname: string | null;
   email: string;
   picture_url: string | null;
   level: string | null;
+  gender: string | null;
 }
 
 export interface ChampionshipSubscriptionData {
@@ -194,7 +212,7 @@ export interface PaymentTransactionData {
   amount: number;
   method: string;
   status: string;
-  paid_at: string | null;
+  created_at: string;
 }
 
 export interface PaymentData {
@@ -206,6 +224,8 @@ export interface PaymentData {
   source_id: number;
   source_name: string;
   source_date: string | null;
+  category_start_date: string | null;
+  category_start_time: string | null;
   status: string;
   total_amount: number;
   paid_amount: number;
@@ -350,8 +370,8 @@ export const usersApi = {
       body: JSON.stringify(profile),
     }).then((r) => handle<PlayerProfile>(r)),
 
-  listPlayers: (token: string, page = 1, perPage = 20, search = '') =>
-    fetch(`${API_BASE}/users/players?page=${page}&per_page=${perPage}&search=${encodeURIComponent(search)}`, {
+  listPlayers: (token: string, page = 1, perPage = 20, search = '', gender = '') =>
+    fetch(`${API_BASE}/users/players?page=${page}&per_page=${perPage}&search=${encodeURIComponent(search)}${gender ? `&gender=${encodeURIComponent(gender)}` : ''}`, {
       headers: json(token),
     }).then((r) => handle<PaginatedResponse<PlayerListItem>>(r)),
 };
@@ -361,6 +381,23 @@ export const categoriesApi = {
     fetch(`${API_BASE}/categories`, {
       headers: json(token),
     }).then((r) => handle<CategoryData[]>(r)),
+};
+
+export interface ChampionshipFormatData {
+  id: number;
+  sport_id: number;
+  name: string;
+  slug: string;
+  config_json: Record<string, unknown> | null;
+}
+
+export const championshipFormatsApi = {
+  list: (token: string, sportId?: number) => {
+    const url = sportId
+      ? `${API_BASE}/championship-formats?sport_id=${sportId}`
+      : `${API_BASE}/championship-formats`;
+    return fetch(url, { headers: json(token) }).then((r) => handle<ChampionshipFormatData[]>(r));
+  },
 };
 
 export interface SportData {
@@ -548,11 +585,25 @@ export const authApi = {
 
 export interface ChampionshipCategoryData {
   id?: number;
+  format_id: number | null;
   format_slug: string;
   category_slug: string;
   audience_slug: string;
   entry_fee: number | null;
   players_per_team: number;
+  max_subscriptions: number | null;
+  auto_generate_matches: boolean;
+  start_date: string | null;
+  start_time: string | null;
+}
+
+export interface ChampionshipCategoryInput {
+  format_id: number | null;
+  category_slug: string;
+  audience_slug: string;
+  entry_fee: number | null;
+  max_subscriptions: number | null;
+  auto_generate_matches: boolean;
   start_date: string | null;
   start_time: string | null;
 }
@@ -567,7 +618,6 @@ export interface ChampionshipData {
   id: number;
   name: string;
   sport_id: number | null;
-  format_id: number | null;
   complex_id: number | null;
   complex_name: string | null;
   complex_city: string | null;
@@ -577,11 +627,11 @@ export interface ChampionshipData {
   registration_deadline_at: string | null;
   timezone: string | null;
   status: 'draft' | 'open' | 'subscription_ended' | 'live' | 'ended' | string;
-  bracket_size: number | null;
   transmission_url: string | null;
   address_url: string | null;
   notes: string | null;
   uniform_included: boolean;
+  auto_generate_status: boolean;
   image_url: string | null;
   image_offset_x: number;
   image_offset_y: number;
@@ -595,23 +645,22 @@ export interface ChampionshipData {
 export interface ChampionshipInput {
   name: string;
   sport_id?: number | null;
-  format_id?: number | null;
   complex_id?: number | null;
   start_at?: string | null;
   end_at?: string | null;
   registration_deadline_at?: string | null;
   timezone?: string | null;
   status?: string;
-  bracket_size?: number | null;
   transmission_url?: string | null;
   address_url?: string | null;
   notes?: string | null;
   uniform_included?: boolean;
+  auto_generate_status?: boolean;
   image_offset_x?: number;
   image_offset_y?: number;
   image_zoom?: number;
   config_json?: Record<string, unknown> | null;
-  categories?: ChampionshipCategoryData[];
+  categories?: ChampionshipCategoryInput[];
 }
 
 export const championshipApi = {
@@ -691,6 +740,52 @@ export const championshipSubscriptionsApi = {
     fetch(`${API_BASE}/championship-subscriptions/me?page=${page}&per_page=${perPage}`, {
       headers: json(token),
     }).then((r) => handle<PaginatedResponse<ChampionshipSubscriptionListItem>>(r)),
+
+  update: (token: string, subscriptionId: number, body: { category_id: number; player_ids: number[] }) =>
+    fetch(`${API_BASE}/championship-subscriptions/me/${subscriptionId}`, {
+      method: 'PATCH',
+      headers: json(token),
+      body: JSON.stringify(body),
+    }).then((r) => handle<ChampionshipSubscriptionData>(r)),
+};
+
+export interface ComplexPreferenceData {
+  complex_id: number;
+  asaas_wallet_id: string | null;
+  split_percentage: number;
+  week_schedule: unknown[];
+  holidays: unknown[];
+  payment_methods: string[];
+  classes_payment_methods: string[];
+  rental_payment_methods: string[];
+  championship_payment_methods: string[];
+  pricing_rules: unknown[];
+}
+
+export interface PixChargeData {
+  charge_id: string;
+  qr_code_image: string;
+  qr_code_payload: string;
+  expiration_date: string | null;
+}
+
+export interface PayPaymentResponse {
+  payment: { id: number; status: string; total_amount: number };
+  pix_charge: PixChargeData | null;
+}
+
+export const complexPreferencesApi = {
+  get: (token: string, complexId: number) =>
+    fetch(`${API_BASE}/complexes/${complexId}/preferences`, {
+      headers: json(token),
+    }).then((r) => handle<ComplexPreferenceData>(r)),
+
+  update: (token: string, complexId: number, data: Partial<ComplexPreferenceData>) =>
+    fetch(`${API_BASE}/complexes/${complexId}/preferences`, {
+      method: 'PUT',
+      headers: json(token),
+      body: JSON.stringify(data),
+    }).then((r) => handle<ComplexPreferenceData>(r)),
 };
 
 export const paymentsApi = {
@@ -730,12 +825,30 @@ export const paymentsApi = {
       headers: json(token),
     }).then((r) => handle<PaymentData>(r)),
 
-  pay: (token: string, paymentId: number | string, method: string) =>
+  pay: (
+    token: string,
+    paymentId: number | string,
+    method: string,
+    billing?: {
+      cpf?: string;
+      card_name?: string;
+      card_number?: string;
+      card_expiry?: string;
+      card_cvv?: string;
+      address_street?: string;
+      address_number?: string;
+      address_complement?: string;
+      address_neighborhood?: string;
+      address_city?: string;
+      address_state?: string;
+      address_zip?: string;
+    },
+  ) =>
     fetch(`${API_BASE}/payments/${paymentId}/pay`, {
       method: 'POST',
       headers: json(token),
-      body: JSON.stringify({ method }),
-    }).then((r) => handle<PaymentData>(r)),
+      body: JSON.stringify({ method, ...billing }),
+    }).then((r) => handle<PayPaymentResponse>(r)),
 };
 
 export interface AdminComplex {
@@ -745,6 +858,7 @@ export interface AdminComplex {
   country: string | null;
   is_active: boolean;
   image_url: string | null;
+  split_percentage: number | null;
 }
 
 export const adminApi = {
@@ -752,6 +866,13 @@ export const adminApi = {
     fetch(`${API_BASE}/admin/complexes`, { headers: json(token) }).then(
       (r) => handle<AdminComplex[]>(r),
     ),
+
+  updateComplexSplit: (token: string, complexId: number, splitPercentage: number) =>
+    fetch(`${API_BASE}/admin/complexes/${complexId}/preferences`, {
+      method: 'PATCH',
+      headers: json(token),
+      body: JSON.stringify({ split_percentage: splitPercentage }),
+    }).then((r) => handle<{ ok: boolean }>(r)),
 
   deleteComplex: (token: string, complexId: number | string) =>
     fetch(`${API_BASE}/admin/complexes/${complexId}`, {

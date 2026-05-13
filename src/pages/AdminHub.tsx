@@ -38,7 +38,7 @@ const AdminHub = () => {
         <QuickAction
           icon={<Trash2 className="h-4 w-4 text-violet-300 sm:h-5 sm:w-5" />}
           label="Exclusões"
-          onClick={() => navigate('/admin/exclusions')}
+          onClick={() => navigate('/admin/complexes')}
         />
       </section>
     </div>

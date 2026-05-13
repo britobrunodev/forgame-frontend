@@ -61,30 +61,28 @@ const Championships = () => {
   const closed = filteredChampionships.filter((championship) => championship.status === 'closed');
 
   return (
-    <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-10">
-      <section>
-        <div className="mb-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('championships')}</p>
-          </div>
-          <div className="w-full max-w-xs">
-            <Select value={selectedSport} onValueChange={setSelectedSport}>
-              <SelectTrigger className="border-border bg-secondary/70 text-sm font-semibold">
-                <SelectValue placeholder={t('allSports')} />
-              </SelectTrigger>
-              <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                <SelectItem value="all">{t('allSports')}</SelectItem>
-                {sports.map((sport) => (
-                  <SelectItem key={sport.id} value={sport.slug}>
-                    {mapSportSlug(sport.slug) ? sportName(mapSportSlug(sport.slug)!) : sport.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-8">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('championships')}</p>
+          <p className="mt-3 text-sm text-muted-foreground">{t('allChampionships')}</p>
         </div>
-        <p className="mt-3 text-sm text-muted-foreground">{t('allChampionships')}</p>
-      </section>
+        <div className="w-full max-w-xs">
+          <Select value={selectedSport} onValueChange={setSelectedSport}>
+            <SelectTrigger className="border-border bg-secondary/70 text-sm font-semibold">
+              <SelectValue placeholder={t('allSports')} />
+            </SelectTrigger>
+            <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+              <SelectItem value="all">{t('allSports')}</SelectItem>
+              {sports.map((sport) => (
+                <SelectItem key={sport.id} value={sport.slug}>
+                  {mapSportSlug(sport.slug) ? sportName(mapSportSlug(sport.slug)!) : sport.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </header>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
@@ -96,9 +94,9 @@ const Championships = () => {
             {error instanceof Error ? error.message : t('googleAuthError')}
           </p>
         </div>
-      ) : filteredChampionships.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
-          <p className="text-sm font-semibold text-muted-foreground">{t('noChampionshipsYet')}</p>
+      ) : championships.length === 0 ? (
+        <div className="rounded-2xl border border-border bg-gradient-card p-10 shadow-card text-center">
+          <Trophy className="mx-auto h-10 w-10 text-muted-foreground/30" />
         </div>
       ) : (
         <>

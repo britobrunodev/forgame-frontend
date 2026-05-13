@@ -49,7 +49,9 @@ const Login = () => {
         navigate(result.pending_approval ? '/pending-approval' : '/dashboard');
       })
       .catch((err) => {
-        setEmailError(err instanceof Error ? err.message : t('googleAuthError'));
+        const msg = err instanceof Error ? err.message : '';
+        const isCredentialError = msg.toLowerCase().includes('invalid email or password') || msg.toLowerCase().includes('invalid username');
+        setEmailError(isCredentialError ? 'E-mail ou senha inválidos.' : (msg || t('googleAuthError')));
       })
       .finally(() => {
         setEmailLoading(false);

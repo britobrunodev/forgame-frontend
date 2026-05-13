@@ -42,7 +42,7 @@ const ManagementChampionships = () => {
 
   if (!canManage) {
     return (
-      <div className="mx-auto w-full max-w-3xl">
+      <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))]">
         <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
           <div className="inline-flex items-center gap-2 rounded-full border border-live/30 bg-live/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-live">
             {t('ownerOnlyTitle')}
@@ -57,7 +57,7 @@ const ManagementChampionships = () => {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
+    <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('championships')}</p>
@@ -126,17 +126,16 @@ const ManagementChampionships = () => {
           {/* Desktop table */}
           <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
             <div className="min-w-[860px]">
-              <div className="grid grid-cols-[minmax(0,2fr)_180px_minmax(0,1.2fr)_160px_200px] gap-4 border-b border-border bg-background/30 px-5 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
+              <div className="grid grid-cols-[minmax(0,2fr)_180px_minmax(0,1.6fr)_200px] gap-4 border-b border-border bg-background/30 px-5 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
                 <div>{t('tournamentName')}</div>
                 <div>Status</div>
-                <div>{t('eventDate')}</div>
-                <div>{t('registrationDeadline')}</div>
+                <div>{t('eventDate')} / {t('registrationDeadline')}</div>
                 <div className="text-right">{t('settings')}</div>
               </div>
               {championships.map((c, index) => (
                 <div
                   key={c.id}
-                  className={`grid grid-cols-[minmax(0,2fr)_180px_minmax(0,1.2fr)_160px_200px] gap-4 px-5 py-4 transition-smooth hover:bg-primary/5 sm:px-6 ${index !== championships.length - 1 ? 'border-b border-border/70' : ''}`}
+                  className={`grid grid-cols-[minmax(0,2fr)_180px_minmax(0,1.6fr)_200px] gap-4 px-5 py-4 transition-smooth hover:bg-primary/5 sm:px-6 ${index !== championships.length - 1 ? 'border-b border-border/70' : ''}`}
                 >
                   <div className="min-w-0">
                     <div className="truncate font-display text-xs font-bold uppercase tracking-[0.14em] text-foreground">{c.name}</div>
@@ -146,11 +145,14 @@ const ManagementChampionships = () => {
                       {STATUS_LABELS[c.status] ?? c.status}
                     </span>
                   </div>
-                  <div className="min-w-0 truncate text-sm text-muted-foreground">
-                    {formatDateRange(c.start_at, c.end_at)}
-                  </div>
-                  <div className="min-w-0 truncate text-sm text-muted-foreground">
-                    {c.registration_deadline_at ? fmtDate(c.registration_deadline_at) : '-'}
+                  <div className="min-w-0 flex flex-col gap-0.5">
+                    <span className="truncate text-sm text-muted-foreground">{formatDateRange(c.start_at, c.end_at)}</span>
+                    {c.registration_deadline_at && (
+                      <span className="truncate text-[11px] text-muted-foreground/60">
+                        <span className="font-semibold uppercase tracking-[0.08em]">{t('registrationDeadline')}: </span>
+                        {fmtDate(c.registration_deadline_at)}
+                      </span>
+                    )}
                   </div>
                   <div className="flex justify-end gap-3">
                     <button

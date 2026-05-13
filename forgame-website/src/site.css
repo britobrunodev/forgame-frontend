@@ -1,0 +1,78 @@
+/*
+ * Scoped CSS variables for the marketing website.
+ * All variables are scoped to .forgame-site so they don't
+ * affect the main app's Tailwind theme.
+ *
+ * Values are HSL-channel format (e.g. "240 20% 14%") so that
+ * Tailwind v3's hsl(var(--x)) utilities work correctly.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&display=swap');
+
+.forgame-site {
+  --background:        240 20% 14%;
+  --foreground:        240  5% 95%;
+  --surface:           245 21% 17%;
+  --surface-foreground: 240  5% 95%;
+  --card:              245 21% 17%;
+  --card-foreground:   240  5% 95%;
+  --popover:           245 21% 17%;
+  --popover-foreground: 240  5% 95%;
+  --primary:            31 88% 55%;
+  --primary-foreground: 240 15% 12%;
+  --secondary:          244 18% 21%;
+  --secondary-foreground: 240  5% 95%;
+  --muted:              244 16% 20%;
+  --muted-foreground:   240  5% 65%;
+  --accent:             31 88% 55%;
+  --accent-foreground:  240 15% 12%;
+  --destructive:         0 65% 52%;
+  --destructive-foreground: 240  5% 95%;
+  --border:             240 10% 22%;
+  --input:              240 12% 20%;
+  --ring:               31 88% 55%;
+  --whatsapp:           150 60% 44%;
+
+  /* Full color values for use in multi-stop gradients */
+  --surface-color: hsl(245, 21%, 17%);
+  --primary-color: hsl(31, 88%, 55%);
+
+  --gradient-hero: radial-gradient(ellipse at 70% 30%, hsl(245 22% 24%) 0%, hsl(240 20% 11%) 60%);
+  --gradient-primary: linear-gradient(135deg, hsl(31 90% 58%), hsl(22 90% 48%));
+  --shadow-glow: 0 20px 60px -15px hsl(31 88% 55% / 0.45);
+  --shadow-elevated: 0 30px 80px -20px hsl(0 0% 0% / 0.6);
+
+  font-family: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+/* Custom utilities used by website components */
+
+/* ring-frame: base card style — surface fill + subtle border.
+   Must come BEFORE bg-gradient-primary/bg-hero so those can override background. */
+.forgame-site .ring-frame {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: var(--surface-color);
+}
+
+/* bg-gradient-primary overrides ring-frame's background-color when both are present */
+.forgame-site .bg-gradient-primary {
+  background: var(--gradient-primary);
+}
+
+.forgame-site .bg-hero {
+  background: var(--gradient-hero);
+}
+
+.forgame-site .shadow-glow {
+  box-shadow: var(--shadow-glow);
+}
+
+.forgame-site .shadow-elevated {
+  box-shadow: var(--shadow-elevated);
+}
+
+.forgame-site .font-display {
+  font-family: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}

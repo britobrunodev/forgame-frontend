@@ -60,7 +60,7 @@ const ManagementPayments = () => {
 
   if (!canManage) {
     return (
-      <div className="mx-auto w-full max-w-3xl">
+      <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))]">
         <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
           <div className="inline-flex items-center gap-2 rounded-full border border-live/30 bg-live/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-live">
             {t('ownerOnlyTitle')}
@@ -75,8 +75,8 @@ const ManagementPayments = () => {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[min(108rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(116rem,calc(100vw-3rem))]">
-      <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+    <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-8">
+      <header>
         <div>
           <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('managementPayments')}</p>
           <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('managementPaymentsIntro')}</p>
@@ -180,7 +180,9 @@ const ManagementPayments = () => {
             })}
 
             {!isLoading && visibleRows.length === 0 ? (
-              <div className="px-4 py-6 text-sm text-muted-foreground">{t('noPaymentsDescription')}</div>
+              <div className="px-4 py-10 text-center">
+                <Receipt className="mx-auto h-10 w-10 text-muted-foreground/30" />
+              </div>
             ) : null}
           </div>
         </div>
@@ -214,8 +216,8 @@ const ManagementPayments = () => {
             );
           })}
           {!isLoading && visibleRows.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-background/20 px-4 py-6 text-sm text-muted-foreground">
-              {t('noPaymentsDescription')}
+            <div className="rounded-2xl border border-border bg-background/20 px-4 py-10 text-center">
+              <Receipt className="mx-auto h-10 w-10 text-muted-foreground/30" />
             </div>
           ) : null}
         </div>

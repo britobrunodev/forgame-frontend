@@ -62,10 +62,11 @@ const AdminApprovals = () => {
 
   const approveMutation = useMutation({
     mutationFn: (requestId: number) => authApi.approveRequest(token!, requestId),
-    onSuccess: () => {
+    onSuccess: (_data, requestId) => {
+      const email = approvals.find((a) => a.id === requestId)?.user_email;
       queryClient.invalidateQueries({ queryKey: ['admin-approvals'] });
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
-      notify.success(t('approvalApproved'));
+      notify.success(t('approvalApproved'), email);
     },
     onError: (err) => notify.error(err instanceof Error ? err.message : t('googleAuthError')),
   });

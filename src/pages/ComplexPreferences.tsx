@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Calendar, Clock3, Plus, Save, Settings2, X } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock3, Plus, Save, X } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DragSelectField } from '@/components/DragSelectField';
 import { useLanguage } from '@/i18n';
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { createHolidaySchedule, getComplexPreference, paymentMethodOptions, saveComplexPreference, weekDayOrder } from '@/lib/complex-preferences-store';
-import { sportComplexApi } from '@/lib/api';
+import { complexPreferencesApi, sportComplexApi } from '@/lib/api';
 
 import type { DaySchedule, HolidaySchedule, PaymentMethod, PricingRule } from '@/types';
 import { getAllCourts } from '@/lib/courts-store';
@@ -80,6 +80,19 @@ const ComplexPreferences = () => {
   const [dateSectionOpen, setDateSectionOpen] = useState(false);
   const [pricingSectionOpen, setPricingSectionOpen] = useState(false);
   const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
+  const [integrationSectionOpen, setIntegrationSectionOpen] = useState(false);
+  const [asaasWalletId, setAsaasWalletId] = useState('');
+
+  const complexIdNumber = selectedPlace ? selectedPlace.id : null;
+  useQuery({
+    queryKey: ['complex-preferences', complexIdNumber],
+    queryFn: async () => {
+      const data = await complexPreferencesApi.get(token!, complexIdNumber!);
+      setAsaasWalletId(data.asaas_wallet_id ?? '');
+      return data;
+    },
+    enabled: !!token && complexIdNumber != null,
+  });
   const ownedCourts = useMemo(
     () => getAllCourts().filter((court) => court.complexId === selectedComplexKey),
     [selectedComplexKey],
@@ -151,7 +164,7 @@ const ComplexPreferences = () => {
           <p className="mt-0.5 text-xs text-muted-foreground">{t('complexPreferencesIntro')}</p>
         </div>
       </header>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_320px]">
+      <div className="grid gap-6">
         <section className="rounded-[2rem] border border-border bg-gradient-card p-5 shadow-card sm:p-6">
           <div className="space-y-6">
             <div className="space-y-2">
@@ -473,6 +486,21 @@ const ComplexPreferences = () => {
                 />
               </div>
             </PreferencePanel>
+
+            <PreferencePanel title="Integração de Pagamento" isOpen={integrationSectionOpen} onToggle={() => setIntegrationSectionOpen((current) => !current)}>
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Asaas Wallet ID</Label>
+                  <Input
+                    value={asaasWalletId}
+                    onChange={(e) => setAsaasWalletId(e.target.value)}
+                    placeholder="wallet_xxxxxxxxxxxxxxxx"
+                    className="border-border bg-background/60 font-mono text-sm"
+                  />
+                  <p className="text-[10px] text-muted-foreground">ID da carteira Asaas para receber repasses automáticos via split de pagamento.</p>
+                </div>
+              </div>
+            </PreferencePanel>
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -490,6 +518,18 @@ const ComplexPreferences = () => {
                   championshipPaymentMethods,
                   pricingRules,
                 });
+                if (token && complexIdNumber != null) {
+                  complexPreferencesApi.update(token, complexIdNumber, {
+                    asaas_wallet_id: asaasWalletId || null,
+                    week_schedule: weekSchedule as unknown[],
+                    holidays: holidays as unknown[],
+                    payment_methods: paymentMethods,
+                    classes_payment_methods: classesPaymentMethods,
+                    rental_payment_methods: rentalPaymentMethods,
+                    championship_payment_methods: championshipPaymentMethods,
+                    pricing_rules: pricingRules as unknown[],
+                  }).catch(() => {});
+                }
                 notify.success(t('preferencesSaved'), selectedPlace.name);
               }}
               disabled={!selectedPlace}
@@ -500,59 +540,11 @@ const ComplexPreferences = () => {
           </div>
         </section>
 
-        <aside className="rounded-2xl border border-border bg-gradient-card p-5 shadow-card">
-          <div className="mb-4 flex items-center gap-2">
-            <Settings2 className="h-4 w-4 text-neon-cyan" />
-            <h2 className="font-display text-sm font-bold uppercase tracking-[0.2em]">{t('quickPreview')}</h2>
-          </div>
-
-          <div className="space-y-3 text-sm">
-            <PreviewRow label={t('sportComplex')} value={selectedPlace?.name ?? '-'} />
-            <PreviewRow
-              label={t('openDays')}
-              value={weekSchedule.filter((day) => !day.isClosed).map((day) => `${t(day.day)} ${day.openTime}-${day.closeTime}`).join(' · ') || '-'}
-            />
-            <PreviewRow
-              label={t('closedDays')}
-              value={weekSchedule.filter((day) => day.isClosed).map((day) => t(day.day)).join(' · ') || '-'}
-            />
-            <PreviewRow
-              label={t('holidays')}
-              value={holidays.length > 0 ? holidays.map((holiday) => (
-                `${formatDateValue(holiday.date)} ${holiday.isClosed ? `(${t('closed')})` : `${holiday.openTime}-${holiday.closeTime}`}`
-              )).join(' · ') : '-'}
-            />
-            <PreviewRow
-              label={t('paymentMethods')}
-              value={paymentMethods.length > 0 ? paymentMethods.map((method) => paymentMethodLabel(t, method)).join(' · ') : '-'}
-            />
-            <PreviewRow
-              label={t('pricingRules')}
-              value={pricingRules.length > 0
-                ? pricingRules.map((rule) => `${formatDateValue(rule.startDate)} - ${formatDateValue(rule.endDate)} · ${describePricingRuleCourts(t, rule.courtIds, ownedCourts)} · R$${rule.price}`).join(' · ')
-                : '-'}
-            />
-          </div>
-
-          <div className="mt-5 rounded-xl border border-border bg-background/30 p-4 text-sm text-muted-foreground">
-            <div className="mb-2 inline-flex items-center gap-2 font-semibold text-foreground">
-              <Clock3 className="h-4 w-4 text-neon-cyan" />
-              {t('complexCalendar')}
-            </div>
-            <p>{t('complexCalendarHint')}</p>
-          </div>
-        </aside>
       </div>
     </div>
   );
 };
 
-const PreviewRow = ({ label, value }: { label: string; value: string }) => (
-  <div className="rounded-xl border border-border bg-background/30 p-3">
-    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{label}</div>
-    <div className="mt-1 font-semibold text-foreground">{value}</div>
-  </div>
-);
 
 const PreferencePanel = ({
   title,

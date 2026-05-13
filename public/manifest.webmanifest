@@ -1,0 +1,18 @@
+{
+  "name": "Forgame",
+  "short_name": "Forgame",
+  "description": "Manage footvolley, beach tennis and more. Live tournaments, brackets and court reservations.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0b13",
+  "theme_color": "#0b0b13",
+  "icons": [
+    {
+      "src": "/forgame_logo_without_letters.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

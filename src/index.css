@@ -202,3 +202,13 @@
 .animate-loading-bar {
   animation: loading-bar-fill 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
+
+@page {
+  margin: 0;
+}
+
+@media print {
+  body {
+    padding: 1.5cm;
+  }
+}

@@ -124,17 +124,10 @@ export const TopBar = () => {
 
                     {managementOpen && (
                       <div className="ml-3 space-y-1 border-l border-border pl-3">
-                        <NavLink
-                          to="/management/courts"
-                          onClick={closeMobileMenu}
-                          className={({ isActive }) =>
-                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                            }`
-                          }
-                        >
+                        <span className="grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm cursor-not-allowed select-none opacity-40 text-sidebar-foreground">
                           <Building2 className="h-4 w-4 shrink-0 text-neon-pink" />
                           <span className="truncate">{t('courtManagement')}</span>
-                        </NavLink>
+                        </span>
 
                         <NavLink
                           to="/management/championships"
@@ -153,17 +146,10 @@ export const TopBar = () => {
                           <span className="truncate">{t('managementClasses')}</span>
                         </span>
 
-                        <NavLink
-                          to="/management/students"
-                          onClick={closeMobileMenu}
-                          className={({ isActive }) =>
-                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                            }`
-                          }
-                        >
+                        <span className="grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm cursor-not-allowed select-none opacity-40 text-sidebar-foreground">
                           <GraduationCap className="h-4 w-4 shrink-0 text-neon-cyan" />
                           <span className="truncate">{t('students')}</span>
-                        </NavLink>
+                        </span>
 
                         <NavLink
                           to="/management/users"

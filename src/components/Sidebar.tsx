@@ -11,8 +11,9 @@ export const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useLanguage();
-  const { isGestorMode, currentUser, logout } = useSession();
+  const { isGestorMode, currentUser, logout, activeGestorRole } = useSession();
   const canManage = isGestorMode || currentUser.isAdmin;
+  const canManageUsers = currentUser.isAdmin || activeGestorRole === 'owner';
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) !== 'false');
   const [managementOpen, setManagementOpen] = useState(
     location.pathname.startsWith('/management'),
@@ -51,12 +52,17 @@ export const Sidebar = () => {
     >
       {/* Logo area — h-10 wrapper matches TopBar content height so border-b aligns */}
       <div className="relative flex items-center justify-center border-b border-border px-3 py-3 sm:py-4">
-        <div className="flex h-10 items-center justify-center">
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+          className="flex h-10 items-center justify-center"
+        >
           {collapsed
             ? <img src="/forgame_logo_tab.png" alt="Forgame" className="h-9 w-9 object-contain" />
             : <Logo className="h-9" />
           }
-        </div>
+        </button>
         <button
           type="button"
           onClick={toggleCollapsed}
@@ -121,25 +127,20 @@ export const Sidebar = () => {
             </button>
             {managementOpen && (
               <div className="ml-3 space-y-1 border-l border-border pl-3">
-                <NavLink to="/management/courts" className={({ isActive }) => subLinkClass(isActive)}>
-                  <Building2 className="h-4 w-4 text-neon-pink" />
-                  {t('courtManagement')}
-                </NavLink>
+                {canManageUsers ? (
+                  <NavLink to="/management/users" className={({ isActive }) => subLinkClass(isActive)}>
+                    <Users className="h-4 w-4 text-neon-cyan" />
+                    {t('users')}
+                  </NavLink>
+                ) : (
+                  <span className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm cursor-not-allowed select-none opacity-40 text-sidebar-foreground">
+                    <Users className="h-4 w-4 text-neon-cyan" />
+                    {t('users')}
+                  </span>
+                )}
                 <NavLink to="/management/championships" className={({ isActive }) => subLinkClass(isActive)}>
                   <Trophy className="h-4 w-4 text-neon-cyan" />
                   {t('championships')}
-                </NavLink>
-                <span className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm cursor-not-allowed select-none opacity-40 text-sidebar-foreground">
-                  <Calendar className="h-4 w-4 text-neon-cyan" />
-                  {t('managementClasses')}
-                </span>
-                <NavLink to="/management/students" className={({ isActive }) => subLinkClass(isActive)}>
-                  <GraduationCap className="h-4 w-4 text-neon-cyan" />
-                  {t('students')}
-                </NavLink>
-                <NavLink to="/management/users" className={({ isActive }) => subLinkClass(isActive)}>
-                  <Users className="h-4 w-4 text-neon-cyan" />
-                  {t('users')}
                 </NavLink>
                 <NavLink to="/management/payments" className={({ isActive }) => subLinkClass(isActive)}>
                   <Receipt className="h-4 w-4 text-neon-pink" />
@@ -149,6 +150,18 @@ export const Sidebar = () => {
                   <Building2 className="h-4 w-4 text-neon-pink" />
                   {t('sportComplexes')}
                 </NavLink>
+                <span className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm cursor-not-allowed select-none opacity-40 text-sidebar-foreground">
+                  <Building2 className="h-4 w-4 text-neon-pink" />
+                  {t('courtManagement')}
+                </span>
+                <span className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm cursor-not-allowed select-none opacity-40 text-sidebar-foreground">
+                  <Calendar className="h-4 w-4 text-neon-cyan" />
+                  {t('managementClasses')}
+                </span>
+                <span className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm cursor-not-allowed select-none opacity-40 text-sidebar-foreground">
+                  <GraduationCap className="h-4 w-4 text-neon-cyan" />
+                  {t('students')}
+                </span>
               </div>
             )}
           </>
@@ -190,9 +203,9 @@ export const Sidebar = () => {
                   <ClipboardList className="h-4 w-4 text-violet-300" />
                   Aprovações
                 </NavLink>
-                <NavLink to="/admin/exclusions" className={({ isActive }) => subLinkClass(isActive)}>
+                <NavLink to="/admin/complexes" className={({ isActive }) => subLinkClass(isActive)}>
                   <Building2 className="h-4 w-4 text-violet-300" />
-                  Exclusões
+                  Complexos
                 </NavLink>
               </div>
             )}

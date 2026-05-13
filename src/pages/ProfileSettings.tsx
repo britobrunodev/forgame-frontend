@@ -56,8 +56,16 @@ const ProfileSettings = () => {
     currentUser.documentType === 'cpf' ? formatCpf(currentUser.documentNumber ?? '') : (currentUser.documentNumber ?? ''),
   );
   const [uniformSize, setUniformSize] = useState<UniformSize | ''>(currentUser.uniformSize ?? '');
+  const [gender, setGender] = useState<string>(currentUser.gender ?? '');
   const [preferredComplexIds, setPreferredComplexIds] = useState<number[]>(currentUser.preferredComplexes ?? []);
   const [preferredComplexSearch, setPreferredComplexSearch] = useState('');
+  const [addressStreet, setAddressStreet] = useState('');
+  const [addressNumber, setAddressNumber] = useState('');
+  const [addressComplement, setAddressComplement] = useState('');
+  const [addressNeighborhood, setAddressNeighborhood] = useState('');
+  const [addressCity, setAddressCity] = useState('');
+  const [addressState, setAddressState] = useState('');
+  const [addressZip, setAddressZip] = useState('');
   const [cropSource, setCropSource] = useState('');
   const [cropImageSize, setCropImageSize] = useState({ width: 1, height: 1 });
   const [cropPreviewSize, setCropPreviewSize] = useState(320);
@@ -75,9 +83,17 @@ const ProfileSettings = () => {
     documentType: currentUser.documentType ?? 'cpf',
     documentNumber: currentUser.documentNumber ?? '',
     uniformSize: currentUser.uniformSize ?? '',
+    gender: currentUser.gender ?? '',
     selectedSports: currentUser.preferences,
     sportCharacteristics: currentUser.sportCharacteristics ?? {},
     preferredComplexIds: currentUser.preferredComplexes ?? [],
+    addressStreet: '',
+    addressNumber: '',
+    addressComplement: '',
+    addressNeighborhood: '',
+    addressCity: '',
+    addressState: '',
+    addressZip: '',
   }));
 
   const { data: sportsData = [] } = useQuery({
@@ -200,9 +216,17 @@ const ProfileSettings = () => {
     documentType,
     documentNumber,
     uniformSize,
+    gender,
     selectedSports,
     sportCharacteristics,
     preferredComplexIds,
+    addressStreet,
+    addressNumber,
+    addressComplement,
+    addressNeighborhood,
+    addressCity,
+    addressState,
+    addressZip,
   }), [
     name,
     nickname,
@@ -213,9 +237,17 @@ const ProfileSettings = () => {
     documentType,
     documentNumber,
     uniformSize,
+    gender,
     selectedSports,
     sportCharacteristics,
     preferredComplexIds,
+    addressStreet,
+    addressNumber,
+    addressComplement,
+    addressNeighborhood,
+    addressCity,
+    addressState,
+    addressZip,
   ]);
   const hasUnsavedChanges = currentProfileState !== lastSavedState;
 
@@ -239,11 +271,19 @@ const ProfileSettings = () => {
         setDocumentType(nextDocumentType);
         setDocumentNumber(nextDocumentType === 'cpf' ? formatCpf(profile.document_number ?? '') : (profile.document_number ?? ''));
         setUniformSize((profile.uniform_size as UniformSize | null) ?? '');
+        setGender(profile.gender ?? '');
         const nextSportCharacteristics = (profile.sport_characteristics ?? {}) as Partial<Record<SportId, PlayerCharacteristic[]>>;
         const nextSelectedSports = (profile.preferred_sports ?? []) as SportId[];
         setSportCharacteristics(nextSportCharacteristics);
         setSelectedSports(nextSelectedSports);
         setPreferredComplexIds(profile.preferred_complexes ?? []);
+        setAddressStreet(profile.address_street ?? '');
+        setAddressNumber(profile.address_number ?? '');
+        setAddressComplement(profile.address_complement ?? '');
+        setAddressNeighborhood(profile.address_neighborhood ?? '');
+        setAddressCity(profile.address_city ?? '');
+        setAddressState(profile.address_state ?? '');
+        setAddressZip(profile.address_zip ?? '');
         setLastSavedState(serializeProfileState({
           name: profile.name,
           nickname: profile.nickname ?? '',
@@ -254,9 +294,17 @@ const ProfileSettings = () => {
           documentType: nextDocumentType,
           documentNumber: profile.document_number ?? '',
           uniformSize: (profile.uniform_size as UniformSize | null) ?? '',
+          gender: profile.gender ?? '',
           selectedSports: nextSelectedSports,
           sportCharacteristics: nextSportCharacteristics,
           preferredComplexIds: profile.preferred_complexes ?? [],
+          addressStreet: profile.address_street ?? '',
+          addressNumber: profile.address_number ?? '',
+          addressComplement: profile.address_complement ?? '',
+          addressNeighborhood: profile.address_neighborhood ?? '',
+          addressCity: profile.address_city ?? '',
+          addressState: profile.address_state ?? '',
+          addressZip: profile.address_zip ?? '',
         }));
 
         updateCurrentUser({
@@ -269,6 +317,7 @@ const ProfileSettings = () => {
           documentType: (profile.document_type as DocumentType | null) ?? undefined,
           documentNumber: profile.document_number ?? undefined,
           uniformSize: (profile.uniform_size as UniformSize | null) ?? undefined,
+          gender: profile.gender ?? undefined,
           level: (profile.level as PlayerLevel | null) ?? 'beginner',
           preferences: nextSelectedSports,
           sportCharacteristics: nextSportCharacteristics,
@@ -337,12 +386,20 @@ const ProfileSettings = () => {
           phone_number: phoneNumber || null,
           country: nationality || null,
           uniform_size: uniformSize || null,
+          gender: gender || null,
           level: null,
           preferred_sports: selectedSports.length > 0 ? selectedSports : null,
           sport_characteristics: Object.keys(sportCharacteristics).length > 0
             ? (sportCharacteristics as Record<string, string[]>)
             : null,
           preferred_complexes: preferredComplexIds.length > 0 ? preferredComplexIds : null,
+          address_street: addressStreet.trim() || null,
+          address_number: addressNumber.trim() || null,
+          address_complement: addressComplement.trim() || null,
+          address_neighborhood: addressNeighborhood.trim() || null,
+          address_city: addressCity.trim() || null,
+          address_state: addressState.trim() || null,
+          address_zip: addressZip.trim() || null,
         });
       }
       const nextName = profile?.name ?? name;
@@ -353,6 +410,7 @@ const ProfileSettings = () => {
       const nextDocumentType = (profile?.document_type as DocumentType | null) ?? documentType;
       const nextDocumentNumber = profile?.document_number ?? documentNumber;
       const nextUniformSize = (profile?.uniform_size as UniformSize | null) ?? uniformSize;
+      const nextGender = profile?.gender ?? gender;
       const nextPhoneCountry = profile?.phone_country ?? phoneCountry;
       const nextPhoneNumber = profile?.phone_number ?? phoneNumber;
       const nextSportCharacteristics = (profile?.sport_characteristics as Partial<Record<SportId, PlayerCharacteristic[]>> | null)
@@ -365,6 +423,7 @@ const ProfileSettings = () => {
       setDocumentType(nextDocumentType);
       setDocumentNumber(nextDocumentType === 'cpf' ? formatCpf(nextDocumentNumber) : nextDocumentNumber);
       setUniformSize(nextUniformSize);
+      setGender(nextGender);
       setLastSavedState(serializeProfileState({
         name: nextName,
         nickname: nextNickname,
@@ -375,9 +434,17 @@ const ProfileSettings = () => {
         documentType: nextDocumentType,
         documentNumber: nextDocumentNumber,
         uniformSize: nextUniformSize,
+        gender: nextGender,
         selectedSports,
         sportCharacteristics: nextSportCharacteristics,
         preferredComplexIds,
+        addressStreet,
+        addressNumber,
+        addressComplement,
+        addressNeighborhood,
+        addressCity,
+        addressState,
+        addressZip,
       }));
       updateCurrentUser({
         name: nextName,
@@ -392,11 +459,13 @@ const ProfileSettings = () => {
         documentType: nextDocumentType,
         documentNumber: nextDocumentNumber,
         uniformSize: nextUniformSize || undefined,
+        gender: nextGender || undefined,
         preferredComplexes: preferredComplexIds.length > 0 ? preferredComplexIds : undefined,
         wins: profile?.wins ?? currentUser.wins,
         losses: profile?.losses ?? currentUser.losses,
         draws: profile?.draws ?? currentUser.draws,
       });
+      notify.success(t('changesSaved'), nextName);
     } catch (err) {
       notify.error(t('profileSaveError'), err instanceof Error ? err.message : undefined);
     } finally {
@@ -562,6 +631,19 @@ const ProfileSettings = () => {
               </Select>
             </Field>
 
+            <Field label={t('gender')}>
+              <Select value={gender} onValueChange={setGender}>
+                <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                  <SelectItem value="male">{t('male')}</SelectItem>
+                  <SelectItem value="female">{t('female')}</SelectItem>
+                  <SelectItem value="other">{t('other')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+
             <Field label={t('phoneNumber')}>
               <div className="grid gap-3 sm:grid-cols-[110px_minmax(0,1fr)]">
                 <CountrySelect
@@ -584,6 +666,43 @@ const ProfileSettings = () => {
                 </div>
               </div>
             </Field>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-border bg-background/25 p-4 sm:p-5">
+            <span className="mb-4 block text-xs font-bold uppercase tracking-wider text-muted-foreground">Endereço de Cobrança</span>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Field label="Rua / Logradouro">
+                  <Input value={addressStreet} onChange={(e) => setAddressStreet(e.target.value)} placeholder="Ex: Rua das Flores" className="border-border bg-background/60" />
+                </Field>
+              </div>
+              <Field label="Número">
+                <Input value={addressNumber} onChange={(e) => setAddressNumber(e.target.value)} placeholder="123" className="border-border bg-background/60" />
+              </Field>
+              <Field label="Complemento">
+                <Input value={addressComplement} onChange={(e) => setAddressComplement(e.target.value)} placeholder="Apto 4, Bloco B" className="border-border bg-background/60" />
+              </Field>
+              <Field label="Bairro">
+                <Input value={addressNeighborhood} onChange={(e) => setAddressNeighborhood(e.target.value)} placeholder="Centro" className="border-border bg-background/60" />
+              </Field>
+              <Field label="CEP">
+                <Input
+                  value={addressZip}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
+                    setAddressZip(digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits);
+                  }}
+                  placeholder="00000-000"
+                  className="border-border bg-background/60 font-mono"
+                />
+              </Field>
+              <Field label="Cidade">
+                <Input value={addressCity} onChange={(e) => setAddressCity(e.target.value)} placeholder="São Paulo" className="border-border bg-background/60" />
+              </Field>
+              <Field label="Estado (UF)">
+                <Input value={addressState} onChange={(e) => setAddressState(e.target.value.toUpperCase().slice(0, 2))} placeholder="SP" maxLength={2} className="border-border bg-background/60 uppercase" />
+              </Field>
+            </div>
           </div>
 
           <div className="mt-5">
@@ -918,9 +1037,17 @@ const serializeProfileState = ({
   documentType,
   documentNumber,
   uniformSize,
+  gender,
   selectedSports,
   sportCharacteristics,
   preferredComplexIds,
+  addressStreet,
+  addressNumber,
+  addressComplement,
+  addressNeighborhood,
+  addressCity,
+  addressState,
+  addressZip,
 }: {
   name: string;
   nickname: string;
@@ -931,9 +1058,17 @@ const serializeProfileState = ({
   documentType: DocumentType;
   documentNumber: string;
   uniformSize: UniformSize | '';
+  gender: string;
   selectedSports: SportId[];
   sportCharacteristics: Partial<Record<SportId, PlayerCharacteristic[]>>;
   preferredComplexIds: number[];
+  addressStreet: string;
+  addressNumber: string;
+  addressComplement: string;
+  addressNeighborhood: string;
+  addressCity: string;
+  addressState: string;
+  addressZip: string;
 }) => JSON.stringify({
   name: name.trim(),
   nickname: nickname.trim(),
@@ -944,6 +1079,7 @@ const serializeProfileState = ({
   documentType,
   documentNumber: documentType === 'cpf' ? documentNumber.replace(/\D/g, '') : documentNumber.trim(),
   uniformSize,
+  gender,
   selectedSports,
   sportCharacteristics: Object.fromEntries(
     Object.entries(sportCharacteristics)
@@ -951,6 +1087,13 @@ const serializeProfileState = ({
       .map(([sportId, values]) => [sportId, [...(values ?? [])]]),
   ),
   preferredComplexIds: [...preferredComplexIds].sort((a, b) => a - b),
+  addressStreet: addressStreet.trim(),
+  addressNumber: addressNumber.trim(),
+  addressComplement: addressComplement.trim(),
+  addressNeighborhood: addressNeighborhood.trim(),
+  addressCity: addressCity.trim(),
+  addressState: addressState.trim(),
+  addressZip: addressZip.trim(),
 });
 
 const formatCpf = (value: string) => {

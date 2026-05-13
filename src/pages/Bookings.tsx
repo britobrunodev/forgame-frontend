@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Loader2, Receipt, Trophy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardList, Loader2, Pencil, Receipt, ShieldCheck, Trophy } from 'lucide-react';
 import { championshipSubscriptionsApi } from '@/lib/api';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
@@ -47,9 +47,12 @@ const Bookings = () => {
             <div className="space-y-3 md:hidden">
               {items.map((subscription) => {
                 const categoryLabel = `${t(subscription.category_slug ?? '')}${subscription.audience_slug ? ` · ${t(subscription.audience_slug)}` : ''}`;
-                const canPay = subscription.status !== 'paid' && !!subscription.payment_id;
+                const effectiveStatus = subscription.payment_status === 'paid' || subscription.payment_status === 'confirmed' ? 'paid' : subscription.status;
+                const canPay = effectiveStatus !== 'paid' && effectiveStatus !== 'draft' && !!subscription.payment_id;
                 const teamCount = subscription.team_user_ids?.length ?? subscription.players_per_team ?? 0;
 
+                const canEdit = effectiveStatus === 'draft';
+                const canReceipt = effectiveStatus === 'paid' && !!subscription.payment_id;
                 return (
                   <div key={subscription.id} className="rounded-2xl border border-border bg-background/25 p-4 shadow-card">
                     <div className="flex items-start justify-between gap-3">
@@ -57,22 +60,27 @@ const Bookings = () => {
                         <div className="truncate font-display text-sm font-bold">{subscription.championship_name}</div>
                         <div className="mt-1 text-xs text-muted-foreground">{subscription.complex_name ?? '—'}</div>
                       </div>
-                      <StatusBadge status={subscription.status} t={t} />
+                      <StatusBadge status={effectiveStatus} t={t} />
                     </div>
                     <div className="mt-3 grid gap-3">
                       <MobileInfoRow label={t('subscriptionCategory')} value={categoryLabel} />
                       <MobileInfoRow label={t('subscriptionTeam')} value={`${teamCount} ${t('playersLabel')}`} />
                       <MobileInfoRow
                         label={t('paymentStatusSummary')}
-                        value={subscription.status === 'paid' ? t('paidStatus') : t('pendingStatus')}
+                        value={subscription.status === 'paid' ? t('paidStatus') : subscription.status === 'draft' ? 'Rascunho' : t('pendingStatus')}
                       />
                     </div>
-                    {canPay ? (
-                      <div className="mt-4">
-                        <PayButton
-                          label={t('continuePayment')}
-                          onClick={() => navigateToPayment(navigate, t, subscription, language)}
-                        />
+                    {(canEdit || canPay || canReceipt) ? (
+                      <div className="mt-4 flex gap-2 border-t border-border/50 pt-3">
+                        {canEdit && (
+                          <EditButton onClick={() => navigateToEdit(navigate, subscription)} />
+                        )}
+                        {canPay && (
+                          <PayButton onClick={() => navigateToPayment(navigate, t, subscription, language)} />
+                        )}
+                        {canReceipt && (
+                          <ReceiptButton onClick={() => navigate(`/payment/${subscription.payment_id}/success`)} />
+                        )}
                       </div>
                     ) : null}
                   </div>
@@ -80,8 +88,8 @@ const Bookings = () => {
               })}
 
               {items.length === 0 ? (
-                <div className="rounded-2xl border border-border bg-background/25 px-4 py-8 text-sm text-muted-foreground">
-                  {t('scheduleEmpty')}
+                <div className="rounded-2xl border border-border bg-background/25 px-4 py-10 text-center">
+                  <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground/30" />
                 </div>
               ) : null}
             </div>
@@ -89,11 +97,11 @@ const Bookings = () => {
             <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
               <table className="w-full table-fixed text-sm">
                 <colgroup>
-                  <col className="w-[28%]" />
-                  <col className="w-[24%]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[16%]" />
+                  <col className="w-[26%]" />
+                  <col className="w-[20%]" />
+                  <col className="w-[15%]" />
                   <col className="w-[18%]" />
+                  <col className="w-[21%]" />
                 </colgroup>
                 <thead>
                   <tr className="border-b border-border bg-background/30 text-left text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
@@ -107,9 +115,12 @@ const Bookings = () => {
                 <tbody className="divide-y divide-border">
                   {items.map((subscription) => {
                     const categoryLabel = `${t(subscription.category_slug ?? '')}${subscription.audience_slug ? ` · ${t(subscription.audience_slug)}` : ''}`;
-                    const canPay = subscription.status !== 'paid' && !!subscription.payment_id;
+                    const effectiveStatus = subscription.payment_status === 'paid' || subscription.payment_status === 'confirmed' ? 'paid' : subscription.status;
+                    const canPay = effectiveStatus !== 'paid' && effectiveStatus !== 'draft' && !!subscription.payment_id;
                     const teamCount = subscription.team_user_ids?.length ?? subscription.players_per_team ?? 0;
 
+                    const canEdit = effectiveStatus === 'draft';
+                    const canReceipt = effectiveStatus === 'paid' && !!subscription.payment_id;
                     return (
                       <tr key={subscription.id} className="transition-smooth hover:bg-primary/5">
                         <td className="px-5 py-4">
@@ -123,17 +134,20 @@ const Bookings = () => {
                           <span className="block text-sm text-foreground">{teamCount} {t('playersLabel')}</span>
                         </td>
                         <td className="px-5 py-4">
-                          <StatusBadge status={subscription.status} t={t} />
+                          <StatusBadge status={effectiveStatus} t={t} />
                         </td>
                         <td className="px-5 py-4">
-                          {canPay ? (
-                            <PayButton
-                              label={t('continuePayment')}
-                              onClick={() => navigateToPayment(navigate, t, subscription, language)}
-                            />
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
+                          <div className="flex gap-2">
+                            {canEdit && (
+                              <EditButton onClick={() => navigateToEdit(navigate, subscription)} />
+                            )}
+                            {canPay && (
+                              <PayButton onClick={() => navigateToPayment(navigate, t, subscription, language)} />
+                            )}
+                            {canReceipt && (
+                              <ReceiptButton onClick={() => navigate(`/payment/${subscription.payment_id}/success`)} />
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -141,8 +155,8 @@ const Bookings = () => {
 
                   {items.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-5 py-8 text-sm text-muted-foreground">
-                        {t('scheduleEmpty')}
+                      <td colSpan={5} className="py-10 text-center">
+                        <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground/30" />
                       </td>
                     </tr>
                   ) : null}
@@ -223,14 +237,36 @@ const PaginationFooter = ({
   </div>
 );
 
-const PayButton = ({ label, onClick }: { label: string; onClick: () => void }) => (
+const EditButton = ({ onClick }: { onClick: () => void }) => (
   <button
     type="button"
     onClick={onClick}
-    className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary-glow transition-smooth hover:border-primary/40 hover:bg-primary/15"
+    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+  >
+    <Pencil className="h-4 w-4" />
+    EDITAR
+  </button>
+);
+
+const PayButton = ({ onClick }: { onClick: () => void }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary/25 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary-glow transition-smooth hover:border-primary/40 hover:bg-primary/15"
   >
     <Receipt className="h-4 w-4" />
-    {label}
+    PAGAR
+  </button>
+);
+
+const ReceiptButton = ({ onClick }: { onClick: () => void }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-secondary/70 px-3 py-2 text-sm font-semibold text-neon-cyan transition-smooth hover:border-neon-cyan/40 hover:bg-secondary"
+  >
+    <ShieldCheck className="h-4 w-4" />
+    COMPROVANTE
   </button>
 );
 
@@ -243,18 +279,34 @@ const StatusBadge = ({
   t: (key: string) => string;
   muted?: boolean;
 }) => (
-  <div className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${
+  <div className={`flex w-full items-center justify-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${
     muted
       ? 'border-border bg-background/40 text-muted-foreground'
-      :
-    status === 'paid'
-      ? 'border-neon-cyan/20 bg-neon-cyan/10 text-neon-cyan'
-      : 'border-neon-pink/20 bg-neon-pink/10 text-neon-pink'
+      : status === 'paid'
+        ? 'border-neon-cyan/20 bg-neon-cyan/10 text-neon-cyan'
+        : status === 'draft'
+          ? 'border-border bg-background/40 text-muted-foreground'
+          : 'border-neon-pink/20 bg-neon-pink/10 text-neon-pink'
   }`}>
     <Trophy className="h-3 w-3" />
-    {muted ? '—' : status === 'paid' ? t('paidStatus') : t('pendingStatus')}
+    {muted ? '—' : status === 'paid' ? t('confirmedSubscriptionStatus') : status === 'draft' ? 'Rascunho' : t('pendingStatus')}
   </div>
 );
+
+const navigateToEdit = (
+  navigate: ReturnType<typeof useNavigate>,
+  subscription: { championship_id: number; id: number; category_id: number; team_user_ids: number[] },
+) => {
+  navigate(`/championships/${subscription.championship_id}/register`, {
+    state: {
+      editSubscription: {
+        subscriptionId: subscription.id,
+        categoryId: subscription.category_id,
+        playerIds: subscription.team_user_ids,
+      },
+    },
+  });
+};
 
 const navigateToPayment = (
   navigate: ReturnType<typeof useNavigate>,
@@ -286,6 +338,7 @@ const navigateToPayment = (
       amount: formattedAmount,
       backTo: '/bookings',
       complexId: subscription.complex_id != null ? String(subscription.complex_id) : undefined,
+      sourceType: 'championship',
       summary: [
         { label: t('championships'), value: subscription.championship_name },
         { label: t('subscriptionCategory'), value: categoryLabel },

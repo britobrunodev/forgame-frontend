@@ -68,7 +68,7 @@ const SportComplexSettings = () => {
 
   if (!canManageComplexes) {
     return (
-      <div className="mx-auto w-full max-w-3xl">
+      <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))]">
         <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
           <div className="inline-flex items-center gap-2 rounded-full border border-live/30 bg-live/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-live">
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -158,7 +158,7 @@ const SportComplexSettings = () => {
         await queryClient.invalidateQueries({ queryKey: ['complex', complexId] });
       }
       notify.success(
-        isEditing ? t('saveChanges') : t('sportComplexPublished'),
+        isEditing ? t('changesSaved') : t('sportComplexPublished'),
         `${complexName} · ${street}${addressNumber ? `, ${addressNumber}` : ''} · ${getCountryLabel(country, language)}`,
       );
       navigate('/management/complexes');
@@ -184,7 +184,7 @@ const SportComplexSettings = () => {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-8">
+    <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-8">
       <header className="flex items-center gap-4">
         <button
           type="button"
@@ -279,7 +279,7 @@ const SportComplexSettings = () => {
           </Field>
         </div>
 
-        <div className="mt-5 max-w-[280px] mx-auto md:mx-0">
+        <div className="mt-5 max-w-[280px] mx-auto">
           <BackgroundUploadField
             label={t('complexBackground')}
             buttonLabel={t('selectImage')}
@@ -315,9 +315,9 @@ const SportComplexSettings = () => {
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={submitting || !complexName.trim()}
+            disabled={submitting || !complexName.trim() || !city.trim() || !neighborhood.trim() || !zipCode.trim() || !street.trim() || !addressNumber.trim() || selectedSports.length === 0}
             title={isEditing ? t('saveChanges') : t('createSportComplex')}
-            className={`inline-flex items-center justify-center rounded-xl border transition-smooth disabled:cursor-not-allowed disabled:opacity-60 ${
+            className={`inline-flex items-center justify-center rounded-xl border transition-smooth disabled:cursor-not-allowed disabled:opacity-40 disabled:pointer-events-none ${
               isEditing
                 ? 'h-11 w-11 border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] hover:bg-primary/16'
                 : 'gap-2 border-border bg-background/55 px-4 py-3 text-sm font-semibold text-foreground hover:border-neon-cyan/35 hover:text-neon-cyan'

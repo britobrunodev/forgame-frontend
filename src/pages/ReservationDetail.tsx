@@ -380,6 +380,7 @@ const ReservationDetail = () => {
                     description: t('paymentDescription'),
                     amount: formattedTotal,
                     complexId,
+                    sourceType: 'court',
                     backTo: `/reservations/complexes/${complexId}`,
                     summary: [
                       { label: t('sportComplex'), value: complex.name },

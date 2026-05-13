@@ -41,11 +41,11 @@ export const AppLayout = () => {
   return (
     <>
       <div aria-hidden="true" className="standalone-status-tint" />
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar />
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <TopBar />
-          <main className="flex-1 overflow-y-auto animate-fade-in px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+      <div className="flex h-screen overflow-hidden print:block print:h-auto print:overflow-visible">
+        <div className="print:hidden"><Sidebar /></div>
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden print:block print:overflow-visible">
+          <div className="print:hidden"><TopBar /></div>
+          <main className="flex-1 overflow-y-auto animate-fade-in px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 print:overflow-visible print:p-0">
             <Outlet />
           </main>
         </div>

@@ -231,6 +231,7 @@ export interface User {
   documentType?: DocumentType;
   documentNumber?: string;
   uniformSize?: UniformSize;
+  gender?: string;
   preferredComplexes?: number[];
 }
 

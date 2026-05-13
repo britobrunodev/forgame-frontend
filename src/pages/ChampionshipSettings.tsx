@@ -13,25 +13,29 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { categoriesApi, championshipApi, sportComplexApi } from '@/lib/api';
+import { categoriesApi, championshipApi, championshipFormatsApi, sportComplexApi } from '@/lib/api';
 import type { SportId } from '@/types';
 
 type CategoryEntry = {
   id: string;
-  format_slug: string;
+  format_id: string;
   category_slug: string;
   audience_slug: string;
   entry_fee: string;
-  players_per_team: string;
+  max_subscriptions: string;
+  auto_generate_matches: boolean;
   start_date: string;
   start_time: string;
 };
 
 const AUDIENCE_SLUGS = ['mixed', 'male', 'female'] as const;
-const FORMAT_SLUGS = ['dupla-fechada', 'cumbuca', 'rei-da-praia'] as const;
-const START_TIMES = ['08:00', '09:00', '10:00', '11:00', '13:00', '15:00', '17:00', '19:00'];
+const START_TIMES = [
+  '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
+  '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+  '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
+  '19:00', '19:30', '20:00', '20:30', '21:00', '21:30',
+];
 const STATUS_OPTIONS = ['draft', 'open', 'subscription_ended', 'live', 'ended'] as const;
-const BRACKET_OPTIONS = [8, 16, 32, 64];
 
 const TIMEZONE_OPTIONS = [
   { value: 'America/Sao_Paulo', label: 'São Paulo / Brasília (UTC-3)' },
@@ -106,14 +110,13 @@ const ChampionshipSettings = () => {
   // ── Form state ─────────────────────────────────────────────────────────────
   const [name, setName] = useState('');
   const [sportId, setSportId] = useState<string>('');
-  const [formatId, setFormatId] = useState<string>('');
   const [complexId, setComplexId] = useState<string>('');
   const [status, setStatus] = useState<string>('draft');
-  const [bracketSize, setBracketSize] = useState<string>('16');
   const [transmissionUrl, setTransmissionUrl] = useState('');
   const [addressUrl, setAddressUrl] = useState('');
   const [notes, setNotes] = useState('');
   const [uniformIncluded, setUniformIncluded] = useState(false);
+  const [autoGenerateStatus, setAutoGenerateStatus] = useState(true);
   const [timezone, setTimezone] = useState<string>('America/Sao_Paulo');
   const [startDate, setStartDate] = useState<string | undefined>(undefined);
   const [startTime, setStartTime] = useState<string>('09:00');
@@ -130,19 +133,24 @@ const ChampionshipSettings = () => {
   const [showDelete, setShowDelete] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
+  const { data: formatsCatalog = [] } = useQuery({
+    queryKey: ['championship-formats', sportId],
+    queryFn: () => championshipFormatsApi.list(token!, sportId ? Number(sportId) : undefined),
+    enabled: !!token,
+  });
+
   // Populate form from existing data (edit mode)
   useEffect(() => {
     if (!isEditing || !existing || initialized) return;
     setName(existing.name);
     setSportId(existing.sport_id != null ? String(existing.sport_id) : '');
-    setFormatId(existing.format_id != null ? String(existing.format_id) : '');
     setComplexId(existing.complex_id != null ? String(existing.complex_id) : '');
     setStatus(existing.status);
-    setBracketSize(existing.bracket_size != null ? String(existing.bracket_size) : '16');
     setTransmissionUrl(existing.transmission_url ?? '');
     setAddressUrl(existing.address_url ?? '');
     setNotes(existing.notes ?? '');
     setUniformIncluded(existing.uniform_included);
+    setAutoGenerateStatus(existing.auto_generate_status ?? true);
     const tz = existing.timezone ?? 'America/Sao_Paulo';
     setTimezone(tz);
     if (existing.start_at) {
@@ -163,11 +171,12 @@ const ChampionshipSettings = () => {
     setCategories(
       existing.categories.map((cat) => ({
         id: String(cat.id ?? genId()),
-        format_slug: cat.format_slug,
+        format_id: cat.format_id != null ? String(cat.format_id) : '',
         category_slug: cat.category_slug,
         audience_slug: cat.audience_slug,
         entry_fee: cat.entry_fee != null ? String(cat.entry_fee) : '',
-        players_per_team: String(cat.players_per_team ?? 2),
+        max_subscriptions: cat.max_subscriptions != null ? String(cat.max_subscriptions) : '',
+        auto_generate_matches: cat.auto_generate_matches ?? true,
         start_date: cat.start_date ?? '',
         start_time: cat.start_time ?? '',
       })),
@@ -180,10 +189,11 @@ const ChampionshipSettings = () => {
   }, [existing, isEditing, initialized]);
 
   useEffect(() => {
+    if (isEditing) return;
     if (!sports.length) return;
     if (sportId) return;
     setSportId(String(sports[0].id));
-  }, [sports, sportId]);
+  }, [isEditing, sports, sportId]);
 
   useEffect(() => {
     if (!categoriesCatalog.length) return;
@@ -227,13 +237,20 @@ const ChampionshipSettings = () => {
   // ── Category helpers ───────────────────────────────────────────────────────
   const addCategory = () =>
     setCategories((prev) => [...prev, {
-      id: genId(), format_slug: 'dupla-fechada', category_slug: categoriesCatalog[0]?.slug ?? 'beginner',
-      audience_slug: 'mixed', entry_fee: '', players_per_team: '2', start_date: eventDateOptions[0] ?? '', start_time: '09:00',
+      id: genId(),
+      format_id: formatsCatalog[0]?.id != null ? String(formatsCatalog[0].id) : '',
+      category_slug: categoriesCatalog[0]?.slug ?? 'beginner',
+      audience_slug: 'mixed',
+      entry_fee: '',
+      max_subscriptions: '',
+      auto_generate_matches: true,
+      start_date: eventDateOptions[0] ?? '',
+      start_time: '09:00',
     }]);
 
   const removeCategory = (id: string) => setCategories((prev) => prev.filter((c) => c.id !== id));
 
-  const updateCategory = (id: string, field: keyof Omit<CategoryEntry, 'id'>, value: string) =>
+  const updateCategory = (id: string, field: keyof Omit<CategoryEntry, 'id'>, value: string | boolean) =>
     setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
 
   // ── Save ───────────────────────────────────────────────────────────────────
@@ -244,14 +261,13 @@ const ChampionshipSettings = () => {
       const payload = {
         name: name.trim(),
         sport_id: sportId ? Number(sportId) : null,
-        format_id: formatId ? Number(formatId) : null,
         complex_id: complexId ? Number(complexId) : null,
         status: nextStatus,
-        bracket_size: bracketSize ? Number(bracketSize) : null,
         transmission_url: transmissionUrl.trim() || null,
         address_url: addressUrl.trim() || null,
         notes: notes.trim() || null,
         uniform_included: uniformIncluded,
+        auto_generate_status: autoGenerateStatus,
         image_offset_x: Math.round(imageOffsetX),
         image_offset_y: Math.round(imageOffsetY),
         image_zoom: imageZoom,
@@ -260,11 +276,12 @@ const ChampionshipSettings = () => {
         end_at: endDate ? localToUtcIso(endDate, endTime, timezone) : null,
         registration_deadline_at: deadlineDate ? localToUtcIso(deadlineDate, deadlineTime, timezone) : null,
         categories: categories.map((c) => ({
-          format_slug: c.format_slug,
+          format_id: c.format_id ? Number(c.format_id) : null,
           category_slug: c.category_slug,
           audience_slug: c.audience_slug,
           entry_fee: c.entry_fee ? Number(c.entry_fee) : null,
-          players_per_team: c.players_per_team ? Number(c.players_per_team) : 2,
+          max_subscriptions: c.max_subscriptions ? Number(c.max_subscriptions) : null,
+          auto_generate_matches: c.auto_generate_matches,
           start_date: c.start_date || null,
           start_time: c.start_time || null,
         })),
@@ -306,7 +323,7 @@ const ChampionshipSettings = () => {
   // ── Access guard ───────────────────────────────────────────────────────────
   if (!isGestorMode && !currentUser.isAdmin) {
     return (
-      <div className="mx-auto w-full max-w-3xl">
+      <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))]">
         <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
           <div className="inline-flex items-center gap-2 rounded-full border border-live/30 bg-live/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-live">
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -323,10 +340,18 @@ const ChampionshipSettings = () => {
     return <div className="flex items-center justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
 
-  const isValid = name.trim().length > 0;
+  const isValid =
+    name.trim().length > 0 &&
+    status.length > 0 &&
+    sportId.length > 0 &&
+    complexId.length > 0 &&
+    !!startDate &&
+    !!deadlineDate &&
+    timezone.length > 0 &&
+    categories.length > 0;
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-8">
+    <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-8">
       {/* Header */}
       <header className="flex items-center gap-3">
         <button
@@ -408,34 +433,26 @@ const ChampionshipSettings = () => {
             </Select>
           </Field>
 
-          <Field label={t('bracketSize')}>
-            <Select value={bracketSize} onValueChange={setBracketSize}>
-              <SelectTrigger className="border-border bg-background/60"><SelectValue /></SelectTrigger>
-              <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                {BRACKET_OPTIONS.map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </Field>
-
-          <Field label={t('eventDate')}>
-            <DateTimePicker
-              date={startDate}
-              time={startTime}
-              onChange={(d, t) => { setStartDate(d); setStartTime(t); }}
-              placeholder="-"
-              minDate={today}
-            />
-          </Field>
-
-          <Field label={t('championshipEndTime')}>
-            <DateTimePicker
-              date={endDate}
-              time={endTime}
-              onChange={(d, t) => { setEndDate(d); setEndTime(t); }}
-              placeholder="-"
-              minDate={today}
-            />
-          </Field>
+          {/* Event date range — spans 2 cols so start+end are visually grouped */}
+          <div className="sm:col-span-2">
+            <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('eventDate')}</span>
+            <div className="grid grid-cols-2 gap-3">
+              <DateTimePicker
+                date={startDate}
+                time={startTime}
+                onChange={(d, t) => { setStartDate(d); setStartTime(t); }}
+                placeholder="Início"
+                minDate={today}
+              />
+              <DateTimePicker
+                date={endDate}
+                time={endTime}
+                onChange={(d, t) => { setEndDate(d); setEndTime(t); }}
+                placeholder="Fim"
+                minDate={today}
+              />
+            </div>
+          </div>
 
           <Field label={t('registrationDeadline')}>
             <DateTimePicker
@@ -469,7 +486,7 @@ const ChampionshipSettings = () => {
 
         {/* Image */}
         <div className="mt-6">
-          <div className="mx-auto max-w-[280px] md:mx-0">
+          <div className="mx-auto max-w-[280px]">
             <BackgroundUploadField
               label={t('championshipBackground')}
               buttonLabel={t('selectImage')}
@@ -490,14 +507,21 @@ const ChampionshipSettings = () => {
           </div>
         </div>
 
-        {/* Uniform toggle */}
-        <div className="mt-6">
+        {/* Toggles */}
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <div className="flex items-start justify-between rounded-2xl border border-border bg-background/40 px-4 py-4">
             <div className="pr-4 pt-0.5">
               <div className="font-semibold text-foreground">{t('uniformIncluded')}</div>
               <div className="mt-1 text-xs text-muted-foreground">{uniformIncluded ? t('yes') : t('no')}</div>
             </div>
             <Switch checked={uniformIncluded} onCheckedChange={setUniformIncluded} />
+          </div>
+          <div className="flex items-start justify-between rounded-2xl border border-border bg-background/40 px-4 py-4">
+            <div className="pr-4 pt-0.5">
+              <div className="font-semibold text-foreground">{t('autoGenerateStatus')}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{t('autoGenerateStatusDescription')}</div>
+            </div>
+            <Switch checked={autoGenerateStatus} onCheckedChange={setAutoGenerateStatus} />
           </div>
         </div>
 
@@ -516,14 +540,15 @@ const ChampionshipSettings = () => {
             <div className="space-y-3">
               {categories.map((cat) => (
                 <div key={cat.id} className="rounded-2xl border border-border bg-background/40 p-4">
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                  {/* Row 1: format | category | audience — equal thirds */}
+                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
                     <Field label={t('bracketFormat')}>
-                      <Select value={cat.format_slug} onValueChange={(v) => updateCategory(cat.id, 'format_slug', v)}>
+                      <Select value={cat.format_id} onValueChange={(v) => updateCategory(cat.id, 'format_id', v)}>
                         <SelectTrigger className="border-border bg-background/60"><SelectValue /></SelectTrigger>
                         <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                          <SelectItem value="dupla-fechada">{t('duplaFechada')}</SelectItem>
-                          <SelectItem value="cumbuca">{t('cumbucaFormat')}</SelectItem>
-                          <SelectItem value="rei-da-praia">{t('reiDaPraia')}</SelectItem>
+                          {formatsCatalog.map((f) => (
+                            <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </Field>
@@ -547,26 +572,39 @@ const ChampionshipSettings = () => {
                         </SelectContent>
                       </Select>
                     </Field>
-                    <Field label={t('entryFee')}>
-                      <NumberStepper
-                        value={cat.entry_fee}
-                        onChange={(v) => updateCategory(cat.id, 'entry_fee', v)}
-                        step={10}
-                        min={0}
-                        prefix="R$"
-                      />
-                    </Field>
-                    <Field label={t('players')}>
-                      <NumberStepper
-                        value={cat.players_per_team}
-                        onChange={(v) => updateCategory(cat.id, 'players_per_team', v)}
-                        step={1}
-                        min={1}
-                        max={8}
-                      />
-                    </Field>
                   </div>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+
+                  {/* Row 2: entry fee | max subscriptions | start day | start time (narrow) */}
+                  <div className="mt-3 grid gap-3 grid-cols-2 sm:grid-cols-[1fr_1fr_1fr_76px]">
+                    <Field label={t('entryFee')}>
+                      <div className="flex h-10 overflow-hidden rounded-lg border border-border bg-background/60">
+                        <span className="flex items-center border-r border-border px-2.5 text-xs font-bold text-neon-cyan">R$</span>
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          value={cat.entry_fee}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/[^0-9.]/g, '');
+                            if (/^\d{0,3}(\.\d{0,2})?$/.test(raw)) {
+                              if (raw === '' || parseFloat(raw) <= 999.99) {
+                                updateCategory(cat.id, 'entry_fee', raw);
+                              }
+                            }
+                          }}
+                          placeholder="0.00"
+                          className="h-full border-0 bg-transparent shadow-none focus-visible:ring-0"
+                        />
+                      </div>
+                    </Field>
+                    <Field label={t('maxSubscriptions')}>
+                      <NumberStepper
+                        value={cat.max_subscriptions}
+                        onChange={(v) => updateCategory(cat.id, 'max_subscriptions', v)}
+                        step={1}
+                        min={0}
+                        max={999}
+                      />
+                    </Field>
                     <Field label={t('startDay')}>
                       <Select value={cat.start_date} onValueChange={(v) => updateCategory(cat.id, 'start_date', v)} disabled={eventDateOptions.length === 0}>
                         <SelectTrigger className="border-border bg-background/60"><SelectValue placeholder={t('selectDate')} /></SelectTrigger>
@@ -579,14 +617,22 @@ const ChampionshipSettings = () => {
                         </SelectContent>
                       </Select>
                     </Field>
-                    <Field label={t('startTime')}>
+                    <Field label="Hora">
                       <Select value={cat.start_time} onValueChange={(v) => updateCategory(cat.id, 'start_time', v)}>
-                        <SelectTrigger className="border-border bg-background/60"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="w-full border-border bg-background/60"><SelectValue /></SelectTrigger>
                         <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
                           {START_TIMES.map((h) => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </Field>
+                  </div>
+
+                  {/* Row 3: auto-generate (grows) | delete (last) */}
+                  <div className="mt-3 flex items-center gap-3">
+                    <div className="flex flex-1 items-center justify-between gap-3 rounded-xl border border-border bg-background/30 px-3 h-10">
+                      <span className="text-xs font-semibold text-muted-foreground">{t('autoGenerateMatches')}</span>
+                      <Switch checked={cat.auto_generate_matches} onCheckedChange={(v) => updateCategory(cat.id, 'auto_generate_matches', v)} />
+                    </div>
                     <button type="button" onClick={() => removeCategory(cat.id)} title={t('remove')} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-background/40 text-muted-foreground transition-smooth hover:border-live/40 hover:bg-live/10 hover:text-live">
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -620,7 +666,7 @@ const ChampionshipSettings = () => {
             type="button"
             onClick={() => handleSave(isEditing ? status : 'open')}
             disabled={!isValid || isSaving}
-            className={`inline-flex items-center justify-center rounded-xl border transition-smooth disabled:cursor-not-allowed disabled:opacity-60 ${
+            className={`inline-flex items-center justify-center rounded-xl border transition-smooth ${(!isValid || isSaving) ? 'pointer-events-none cursor-not-allowed opacity-40' : ''} ${
               isEditing
                 ? 'h-11 w-11 border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] hover:bg-primary/16'
                 : 'gap-2 border-border bg-background/55 px-4 py-3 text-sm font-semibold text-foreground hover:border-neon-cyan/35 hover:text-neon-cyan'
@@ -680,7 +726,14 @@ const NumberStepper = ({
         type="text"
         inputMode="numeric"
         value={value}
-        onChange={(e) => onChange(e.target.value.replace(/[^\d]/g, ''))}
+        onChange={(e) => {
+          const stripped = e.target.value.replace(/[^\d]/g, '');
+          if (stripped === '') { onChange(''); return; }
+          const n = Number(stripped);
+          if (min !== undefined && n < min) return;
+          if (max !== undefined && n > max) return;
+          onChange(stripped);
+        }}
         className="h-full border-0 bg-transparent shadow-none focus-visible:ring-0"
       />
       <div className="flex w-9 shrink-0 flex-col border-l border-border">
