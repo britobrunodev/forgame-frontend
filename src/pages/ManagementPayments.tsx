@@ -83,7 +83,7 @@ const ManagementPayments = () => {
         </div>
       </header>
 
-      <section className="rounded-[2rem] p-5 sm:p-6">
+      <section className="space-y-5">
         <div className="mb-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_160px]">
           <div className="space-y-2">
             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('sportComplex')}</div>
@@ -136,7 +136,7 @@ const ManagementPayments = () => {
 
         <div className="hidden overflow-x-auto md:block">
           <div className="min-w-[860px]">
-            <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_36px_110px_90px_48px] gap-4 border-t border-b border-border px-4 py-3 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+          <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_36px_110px_90px_48px] gap-4 border-t border-b border-border px-5 py-3 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
               <div className="text-center">{t('fullName')}</div>
               <div className="text-center">{t('paymentSource')}</div>
               <div />
@@ -149,8 +149,8 @@ const ManagementPayments = () => {
               {visibleRows.map((row) => {
                 const isOpen = openRows.includes(String(row.id));
                 return (
-                  <div key={row.id} className="rounded-xl border border-border">
-                    <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_36px_110px_90px_48px] items-center gap-4 px-4 py-3">
+                <div key={row.id} className="rounded-xl border border-border">
+                  <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_36px_110px_90px_48px] items-center gap-4 px-5 py-3 sm:px-6">
                       <div className="text-center">
                         <div className="font-display text-sm font-bold">{row.user_name}</div>
                         <div className="mt-0.5 text-xs text-muted-foreground">{row.user_email}</div>
@@ -225,7 +225,7 @@ const ManagementPayments = () => {
         </div>
 
         {visibleRows.length > 0 ? (
-          <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-4">
+          <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -265,9 +265,6 @@ const TransactionsPanel = ({
   language: 'en' | 'pt-BR';
 }) => (
   <div className="border-t border-border bg-background/12 px-4 pb-3 pt-2">
-    <div className="mb-1.5 px-1 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-      {row.transactions.length} {t('paymentAttemptsLabel')}
-    </div>
     <div className="space-y-1">
       {row.transactions.map((transaction) => (
         <TransactionRow key={transaction.id} transaction={transaction} language={language} />

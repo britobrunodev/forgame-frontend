@@ -31,7 +31,7 @@ const Bookings = () => {
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('scheduleDescription')}</p>
       </header>
 
-      <section className="rounded-[2rem] p-4 sm:p-6">
+      <section className="space-y-5">
         <SectionTitle title={t('championshipRegistrations')} />
 
         {isLoading ? (
@@ -96,7 +96,7 @@ const Bookings = () => {
 
             <div className="hidden overflow-x-auto md:block">
               <div className="min-w-[860px]">
-                <div className="grid grid-cols-[32%_20%_15%_17%_16%] border-t border-b border-border px-5 py-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                <div className="grid grid-cols-[32%_20%_15%_17%_16%] border-t border-b border-border px-5 py-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
                   <div className="text-center">{t('championships')}</div>
                   <div className="text-center">{t('subscriptionCategory')}</div>
                   <div className="text-center">{t('subscriptionTeam')}</div>
@@ -113,7 +113,7 @@ const Bookings = () => {
                     const canEdit = effectiveStatus === 'draft';
                     const canReceipt = effectiveStatus === 'paid' && !!subscription.payment_id;
                     return (
-                      <div key={subscription.id} className="grid grid-cols-[32%_20%_15%_17%_16%] items-center rounded-xl border border-border px-5 py-4 transition-smooth hover:bg-primary/5">
+                      <div key={subscription.id} className="grid grid-cols-[32%_20%_15%_17%_16%] items-center rounded-xl border border-border px-5 py-4 transition-smooth hover:bg-primary/5 sm:px-6">
                         <div className="text-center">
                           <div className="truncate font-semibold text-foreground">{subscription.championship_name}</div>
                           <div className="mt-0.5 truncate text-xs text-muted-foreground">{subscription.complex_name ?? '—'}</div>
@@ -267,9 +267,9 @@ const StatusBadge = ({
   muted?: boolean;
   compact?: boolean;
 }) => (
-  <div className={`flex items-center justify-center rounded-full border font-bold uppercase ${compact
+  <div className={`inline-flex items-center justify-center rounded-full border font-bold uppercase ${compact
       ? 'shrink-0 whitespace-nowrap px-2 py-0.5 text-[10px] tracking-[0.08em]'
-      : 'w-full px-1.5 py-0.5 text-[9px] tracking-[0.12em]'
+      : 'mx-auto h-[26px] whitespace-nowrap px-2 text-[11px] tracking-[0.08em]'
     } ${muted
       ? 'border-border bg-background/40 text-muted-foreground'
       : status === 'paid'

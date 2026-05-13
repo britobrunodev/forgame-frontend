@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Loader2, Trash2, ShieldCheck, Check } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, Trash2, ShieldCheck, Check } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { notify } from '@/lib/notify';
 import { useSession } from '@/session';
@@ -207,6 +207,13 @@ const SplitInput = ({
     setError(raw !== '' && (isNaN(n) || n < 0 || n > 100));
   };
 
+  const adjustValue = (delta: number) => {
+    const current = Number(draft || '0');
+    const safeCurrent = Number.isNaN(current) ? 0 : current;
+    const next = Math.min(100, Math.max(0, Math.round((safeCurrent + delta) * 10) / 10));
+    handleChange(String(next));
+  };
+
   const handleSave = async () => {
     const val = Number(draft);
     if (isNaN(val) || val < 0 || val > 100) {
@@ -230,24 +237,47 @@ const SplitInput = ({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1.5">
-        <input
-          type="number"
-          min="0"
-          max="100"
-          step="0.1"
-          value={draft}
-          onChange={(e) => handleChange(e.target.value)}
-          placeholder="90"
-          className={`w-16 rounded-lg border bg-background/60 px-2 py-1 text-center font-mono text-sm transition-smooth focus:outline-none ${error ? 'border-destructive/60 text-destructive' : 'border-border focus:border-primary/40'
-            }`}
-        />
+        <div className={`flex h-8 overflow-hidden rounded-lg border bg-background/60 ${error ? 'border-destructive/60 text-destructive' : 'border-border focus-within:border-primary/40'
+          }`}>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={draft}
+            onChange={(e) => {
+              const normalized = e.target.value.replace(',', '.');
+              if (normalized === '' || /^\d+(\.\d{0,1})?$/.test(normalized)) {
+                handleChange(normalized);
+              }
+            }}
+            placeholder="90"
+            className="w-14 border-0 bg-transparent px-2 text-center font-mono text-sm shadow-none outline-none"
+          />
+          <div className="flex w-8 shrink-0 flex-col border-l border-border">
+            <button
+              type="button"
+              onClick={() => adjustValue(0.1)}
+              disabled={Number(draft || '0') >= 100}
+              className="flex h-1/2 items-center justify-center text-muted-foreground transition-smooth hover:bg-secondary/70 hover:text-foreground disabled:opacity-30"
+            >
+              <ChevronUp className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => adjustValue(-0.1)}
+              disabled={Number(draft || '0') <= 0}
+              className="flex h-1/2 items-center justify-center border-t border-border text-muted-foreground transition-smooth hover:bg-secondary/70 hover:text-foreground disabled:opacity-30"
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
         <span className="text-xs text-muted-foreground">%</span>
         {isDirty && !error && (
           <button
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-neon-cyan/30 bg-neon-cyan/10 text-neon-cyan transition-smooth hover:bg-neon-cyan/20 disabled:opacity-40"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110 disabled:opacity-40"
           >
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
           </button>

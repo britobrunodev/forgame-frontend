@@ -169,7 +169,7 @@ export const StaffAccessManager = ({
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{intro}</p>
       </header>
 
-      <div className="rounded-[2rem] p-4 sm:p-6">
+      <div className="space-y-5">
         <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-[280px_minmax(0,1fr)]">
           <div className="space-y-1.5">
             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('sportComplex')}</div>
@@ -247,7 +247,7 @@ export const StaffAccessManager = ({
 
             <div className="hidden overflow-x-auto md:block">
               <div className="min-w-[860px]">
-                <div className="grid grid-cols-[36%_28%_16%_20%] border-t border-b border-border px-5 py-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                <div className="grid grid-cols-[36%_28%_16%_20%] border-t border-b border-border px-5 py-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
                   <div className="text-center">{t('fullName')}</div>
                   <div className="text-center">{t('sportComplex')}</div>
                   <div className="text-center">{t('role')}</div>
@@ -259,7 +259,7 @@ export const StaffAccessManager = ({
                     const activeRoles = ROLE_ORDER.filter((role) => assignment[role]);
                     const complexName = complexes.find((complex) => String(complex.id) === selectedComplexId)?.name ?? '-';
                     return (
-                      <div key={user.id} className="grid grid-cols-[36%_28%_16%_20%] items-center rounded-xl border border-border px-5 py-4 transition-smooth hover:bg-primary/5">
+                      <div key={user.id} className="grid grid-cols-[36%_28%_16%_20%] items-center rounded-xl border border-border px-5 py-4 transition-smooth hover:bg-primary/5 sm:px-6">
                         <div className="text-center">
                           <div className="truncate font-semibold text-foreground">{user.name}</div>
                           <div className="mt-0.5 truncate text-xs text-muted-foreground">{user.email}</div>

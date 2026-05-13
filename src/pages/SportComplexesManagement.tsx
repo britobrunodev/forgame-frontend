@@ -109,8 +109,8 @@ const SportComplexesManagement = () => {
             ))}
           </div>
           <div className="hidden overflow-x-auto md:block">
-            <div className="min-w-[720px]">
-              <div className="grid grid-cols-[minmax(0,2.4fr)_minmax(100px,0.7fr)_minmax(100px,0.7fr)_200px] gap-4 border-t border-b border-border px-5 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
+            <div className="min-w-[860px]">
+              <div className="grid grid-cols-[minmax(0,2.4fr)_minmax(100px,0.7fr)_minmax(100px,0.7fr)_200px] gap-4 border-t border-b border-border px-5 py-3 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
                 <div className="text-center">{t('complexName')}</div>
                 <div>{t('city')}</div>
                 <div>{t('country')}</div>
@@ -120,13 +120,12 @@ const SportComplexesManagement = () => {
                 {complexes.map((complex) => (
                   <div
                     key={complex.id}
-                    className="grid grid-cols-[minmax(0,2.4fr)_minmax(100px,0.7fr)_minmax(100px,0.7fr)_200px] gap-4 rounded-xl border border-border px-5 py-4 transition-smooth hover:bg-primary/5 sm:px-6"
+                    className="grid grid-cols-[minmax(0,2.4fr)_minmax(100px,0.7fr)_minmax(100px,0.7fr)_200px] items-center gap-4 rounded-xl border border-border px-5 py-4 transition-smooth hover:bg-primary/5 sm:px-6"
                   >
                     <div className="min-w-0 text-center">
-                      <div className="truncate font-display text-[11px] font-bold uppercase tracking-[0.14em] text-foreground">{complex.name}</div>
-                      {buildComplexAddress(complex) && (
-                        <div className="mt-0.5 truncate text-xs text-muted-foreground">{buildComplexAddress(complex)}</div>
-                      )}
+                      <div className="truncate font-display text-[11px] font-bold uppercase tracking-[0.14em] text-foreground" title={buildComplexAddress(complex) || complex.name}>
+                        {complex.name}
+                      </div>
                     </div>
                     <div className="min-w-0 truncate text-xs text-muted-foreground self-center">{complex.city || '-'}</div>
                     <div className="min-w-0 truncate text-xs text-muted-foreground self-center">
@@ -155,7 +154,7 @@ const SportComplexesManagement = () => {
               </div>
             </div>
           </div>
-          <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
+          <div className="!mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
             <div className="flex items-center gap-2">
               <button
                 type="button"
