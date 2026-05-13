@@ -62,7 +62,7 @@ const SportComplexesManagement = () => {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : complexes.length > 0 ? (
-        <div className="rounded-[2rem] border border-border bg-gradient-card p-4 shadow-card sm:p-6">
+        <>
           <div className="space-y-3 md:hidden">
             {complexes.map((complex) => (
               <article key={complex.id} className="rounded-2xl border border-border bg-background/40 p-4">
@@ -110,7 +110,7 @@ const SportComplexesManagement = () => {
           </div>
           <div className="hidden overflow-x-auto md:block">
             <div className="min-w-[720px]">
-              <div className="grid grid-cols-[minmax(0,2.4fr)_minmax(100px,0.7fr)_minmax(100px,0.7fr)_200px] gap-4 border-b border-border px-5 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
+              <div className="grid grid-cols-[minmax(0,2.4fr)_minmax(100px,0.7fr)_minmax(100px,0.7fr)_200px] gap-4 border-t border-b border-border px-5 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
                 <div className="text-center">{t('complexName')}</div>
                 <div>{t('city')}</div>
                 <div>{t('country')}</div>
@@ -179,7 +179,7 @@ const SportComplexesManagement = () => {
             </div>
             <span className="text-xs text-muted-foreground">{totalItems} {t('sportComplexes').toLowerCase()}</span>
           </div>
-        </div>
+        </>
       ) : (
         <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
           <Building2 className="mb-4 h-8 w-8 text-muted-foreground/50" />

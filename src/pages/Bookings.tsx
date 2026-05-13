@@ -31,7 +31,7 @@ const Bookings = () => {
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('scheduleDescription')}</p>
       </header>
 
-      <section className="rounded-[2rem] border border-border bg-gradient-card p-4 shadow-card sm:p-6">
+      <section className="rounded-[2rem] p-4 sm:p-6">
         <SectionTitle title={t('championshipRegistrations')} />
 
         {isLoading ? (
@@ -96,7 +96,7 @@ const Bookings = () => {
 
             <div className="hidden overflow-x-auto md:block">
               <div className="min-w-[860px]">
-                <div className="grid grid-cols-[32%_20%_15%_17%_16%] border-b border-border px-5 py-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                <div className="grid grid-cols-[32%_20%_15%_17%_16%] border-t border-b border-border px-5 py-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
                   <div className="text-center">{t('championships')}</div>
                   <div className="text-center">{t('subscriptionCategory')}</div>
                   <div className="text-center">{t('subscriptionTeam')}</div>
@@ -267,19 +267,17 @@ const StatusBadge = ({
   muted?: boolean;
   compact?: boolean;
 }) => (
-  <div className={`flex items-center justify-center rounded-full border font-bold uppercase ${
-    compact
+  <div className={`flex items-center justify-center rounded-full border font-bold uppercase ${compact
       ? 'shrink-0 whitespace-nowrap px-2 py-0.5 text-[10px] tracking-[0.08em]'
       : 'w-full px-1.5 py-0.5 text-[9px] tracking-[0.12em]'
-  } ${
-    muted
+    } ${muted
       ? 'border-border bg-background/40 text-muted-foreground'
       : status === 'paid'
         ? 'border-neon-cyan/20 bg-neon-cyan/10 text-neon-cyan'
         : status === 'draft'
           ? 'border-border bg-background/40 text-muted-foreground'
           : 'border-neon-pink/20 bg-neon-pink/10 text-neon-pink'
-  }`}>
+    }`}>
     {muted ? '—' : status === 'paid' ? t('confirmedSubscriptionStatus') : status === 'draft' ? 'Rascunho' : t('pendingStatus')}
   </div>
 );

@@ -110,7 +110,7 @@ const AdminComplexes = () => {
             {/* Desktop table */}
             <div className="hidden overflow-x-auto md:block">
               <div className="min-w-[860px]">
-                <div className="grid grid-cols-[5%_26%_20%_11%_18%_20%] border-b border-border px-5 py-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                <div className="grid grid-cols-[5%_26%_20%_11%_18%_20%] border-t border-b border-border px-5 py-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
                   <div className="text-center">ID</div>
                   <div className="text-center">Nome</div>
                   <div className="text-center">Cidade</div>
@@ -238,9 +238,8 @@ const SplitInput = ({
           value={draft}
           onChange={(e) => handleChange(e.target.value)}
           placeholder="90"
-          className={`w-16 rounded-lg border bg-background/60 px-2 py-1 text-center font-mono text-sm transition-smooth focus:outline-none ${
-            error ? 'border-destructive/60 text-destructive' : 'border-border focus:border-primary/40'
-          }`}
+          className={`w-16 rounded-lg border bg-background/60 px-2 py-1 text-center font-mono text-sm transition-smooth focus:outline-none ${error ? 'border-destructive/60 text-destructive' : 'border-border focus:border-primary/40'
+            }`}
         />
         <span className="text-xs text-muted-foreground">%</span>
         {isDirty && !error && (
@@ -260,11 +259,10 @@ const SplitInput = ({
 };
 
 const StatusBadge = ({ active }: { active: boolean }) => (
-  <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${
-    active
+  <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${active
       ? 'border-neon-cyan/20 bg-neon-cyan/10 text-neon-cyan'
       : 'border-border bg-background/40 text-muted-foreground'
-  }`}>
+    }`}>
     {active ? 'Ativo' : 'Inativo'}
   </span>
 );

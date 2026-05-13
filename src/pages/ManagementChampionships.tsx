@@ -78,7 +78,7 @@ const ManagementChampionships = () => {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : championships.length > 0 ? (
-        <div className="rounded-[2rem] border border-border bg-gradient-card p-4 shadow-card sm:p-6">
+        <div className="rounded-[2rem] p-4 sm:p-6">
           {/* Mobile cards */}
           <div className="space-y-3 md:hidden">
             {championships.map((c) => (
@@ -126,7 +126,7 @@ const ManagementChampionships = () => {
           {/* Desktop table */}
           <div className="hidden overflow-x-auto md:block">
             <div className="min-w-[860px]">
-              <div className="grid grid-cols-[minmax(0,2fr)_180px_minmax(0,1.6fr)_200px] gap-4 border-b border-border px-5 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
+              <div className="grid grid-cols-[minmax(0,2fr)_180px_minmax(0,1.6fr)_200px] gap-4 border-t border-b border-border px-5 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
                 <div className="text-center">{t('tournamentName')}</div>
                 <div className="text-center">Status</div>
                 <div className="text-center">{t('eventDate')} / {t('registrationDeadline')}</div>

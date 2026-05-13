@@ -83,7 +83,7 @@ const ManagementPayments = () => {
         </div>
       </header>
 
-      <section className="rounded-[2rem] border border-border bg-gradient-card p-5 shadow-card sm:p-6">
+      <section className="rounded-[2rem] p-5 sm:p-6">
         <div className="mb-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_160px]">
           <div className="space-y-2">
             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('sportComplex')}</div>
@@ -136,56 +136,56 @@ const ManagementPayments = () => {
 
         <div className="hidden overflow-x-auto md:block">
           <div className="min-w-[860px]">
-          <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_36px_110px_90px_48px] gap-4 border-b border-border px-4 py-3 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
-            <div className="text-center">{t('fullName')}</div>
-            <div className="text-center">{t('paymentSource')}</div>
-            <div />
-            <div className="text-center">{t('paymentStatusSummary')}</div>
-            <div className="text-center">{t('paidAmount')}</div>
-            <div />
-          </div>
+            <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_36px_110px_90px_48px] gap-4 border-t border-b border-border px-4 py-3 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+              <div className="text-center">{t('fullName')}</div>
+              <div className="text-center">{t('paymentSource')}</div>
+              <div />
+              <div className="text-center">{t('paymentStatusSummary')}</div>
+              <div className="text-center">{t('paidAmount')}</div>
+              <div />
+            </div>
 
-          <div className="mt-2 space-y-2">
-            {visibleRows.map((row) => {
-              const isOpen = openRows.includes(String(row.id));
-              return (
-                <div key={row.id} className="rounded-xl border border-border">
-                  <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_36px_110px_90px_48px] items-center gap-4 px-4 py-3">
-                    <div className="text-center">
-                      <div className="font-display text-sm font-bold">{row.user_name}</div>
-                      <div className="mt-0.5 text-xs text-muted-foreground">{row.user_email}</div>
+            <div className="mt-2 space-y-2">
+              {visibleRows.map((row) => {
+                const isOpen = openRows.includes(String(row.id));
+                return (
+                  <div key={row.id} className="rounded-xl border border-border">
+                    <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_36px_110px_90px_48px] items-center gap-4 px-4 py-3">
+                      <div className="text-center">
+                        <div className="font-display text-sm font-bold">{row.user_name}</div>
+                        <div className="mt-0.5 text-xs text-muted-foreground">{row.user_email}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-semibold text-foreground">{row.source_name}</div>
+                        <div className="mt-0.5 text-xs text-muted-foreground">{formatDateValue(row.source_date, language)}</div>
+                      </div>
+                      <div className="flex justify-center"><TypeIcon type={row.source_type} /></div>
+                      <div className="flex justify-center"><RowStatusBadge status={row.status} t={t} /></div>
+                      <div className="text-center">
+                        <div className="text-sm font-semibold text-foreground">{formatCurrency(row.paid_amount, language)}</div>
+                        <div className="text-xs text-muted-foreground">/ {formatCurrency(row.total_amount, language)}</div>
+                      </div>
+                      <div className="flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => toggleRow(String(row.id), setOpenRows)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary-glow transition-smooth hover:bg-primary/16"
+                        >
+                          <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <div className="font-semibold text-foreground">{row.source_name}</div>
-                      <div className="mt-0.5 text-xs text-muted-foreground">{formatDateValue(row.source_date, language)}</div>
-                    </div>
-                    <div className="flex justify-center"><TypeIcon type={row.source_type} /></div>
-                    <div className="flex justify-center"><RowStatusBadge status={row.status} t={t} /></div>
-                    <div className="text-center">
-                      <div className="text-sm font-semibold text-foreground">{formatCurrency(row.paid_amount, language)}</div>
-                      <div className="text-xs text-muted-foreground">/ {formatCurrency(row.total_amount, language)}</div>
-                    </div>
-                    <div className="flex justify-center">
-                      <button
-                        type="button"
-                        onClick={() => toggleRow(String(row.id), setOpenRows)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary-glow transition-smooth hover:bg-primary/16"
-                      >
-                        <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-                      </button>
-                    </div>
+                    {isOpen ? <TransactionsPanel row={row} t={t} language={language} /> : null}
                   </div>
-                  {isOpen ? <TransactionsPanel row={row} t={t} language={language} /> : null}
-                </div>
-              );
-            })}
+                );
+              })}
 
-            {!isLoading && visibleRows.length === 0 ? (
-              <div className="px-4 py-10 text-center">
-                <Receipt className="mx-auto h-10 w-10 text-muted-foreground/30" />
-              </div>
-            ) : null}
-          </div>
+              {!isLoading && visibleRows.length === 0 ? (
+                <div className="px-4 py-10 text-center">
+                  <Receipt className="mx-auto h-10 w-10 text-muted-foreground/30" />
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -308,8 +308,8 @@ const TypeIcon = ({ type }: { type: string }) => {
     <div className={`inline-flex h-7 w-7 items-center justify-center rounded-full border ${c.border} ${c.bg} ${c.color}`}>
       {type === 'championship' ? <Trophy className="h-3.5 w-3.5" />
         : type === 'wellhub' ? <Receipt className="h-3.5 w-3.5" />
-        : type === 'totalpass' ? <Ticket className="h-3.5 w-3.5" />
-        : <Receipt className="h-3.5 w-3.5" />}
+          : type === 'totalpass' ? <Ticket className="h-3.5 w-3.5" />
+            : <Receipt className="h-3.5 w-3.5" />}
     </div>
   );
 };
