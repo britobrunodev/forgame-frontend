@@ -58,8 +58,8 @@ export const Sidebar = () => {
           className="flex h-full items-center justify-center"
         >
           {collapsed
-            ? <img src="/forgame_logo_without_letters.png" alt="Forgame" className="h-10 w-10 object-contain" />
-            : <img src="/forgame_logo.png" alt="Forgame" className="h-[3.7rem] w-auto object-contain" />
+            ? <img src="/apple-touch-icon.png" alt="Forgame" className="h-10 w-10 object-contain" />
+            : <img src="/forgame_logo.png" alt="Forgame" className="h-[4.44rem] w-auto object-contain" />
           }
         </button>
         <button
