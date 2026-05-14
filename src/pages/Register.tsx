@@ -103,7 +103,7 @@ const Register = () => {
           <button
             type="submit"
             disabled={submitting || code.length < 6}
-            className="w-full rounded-lg bg-gradient-primary py-3 font-display text-sm font-bold uppercase tracking-widest shadow-neon transition-smooth hover:brightness-110 hover:shadow-glow disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full rounded-lg bg-gradient-primary py-3 font-display text-sm font-bold uppercase tracking-widest text-white shadow-neon transition-smooth hover:brightness-110 hover:shadow-glow disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {submitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Criar conta'}
           </button>
@@ -222,7 +222,7 @@ const Register = () => {
         <button
           type="submit"
           disabled={submitting || passwordMismatch}
-          className="w-full rounded-lg bg-gradient-primary py-3 font-display text-sm font-bold uppercase tracking-widest shadow-neon transition-smooth hover:brightness-110 hover:shadow-glow disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full rounded-lg bg-gradient-primary py-3 font-display text-sm font-bold uppercase tracking-widest text-white shadow-neon transition-smooth hover:brightness-110 hover:shadow-glow disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {submitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Continuar'}
         </button>

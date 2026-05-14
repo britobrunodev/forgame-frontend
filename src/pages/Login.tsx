@@ -124,7 +124,7 @@ const Login = () => {
         <button
           type="submit"
           disabled={emailLoading}
-          className="w-full rounded-lg bg-gradient-primary py-2.5 font-display text-sm font-bold uppercase tracking-widest shadow-neon transition-smooth hover:brightness-110 hover:shadow-glow"
+          className="w-full rounded-lg bg-gradient-primary py-2.5 font-display text-sm font-bold uppercase tracking-widest text-white shadow-neon transition-smooth hover:brightness-110 hover:shadow-glow"
         >
           {emailLoading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : t('login')}
         </button>

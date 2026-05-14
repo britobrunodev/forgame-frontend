@@ -64,7 +64,7 @@ const Championships = () => {
     <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-[#39E600]">{t('championships')}</p>
+          <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-primary dark:text-[#39E600]">{t('championships')}</p>
           <p className="mt-3 text-sm text-muted-foreground">{t('allChampionships')}</p>
         </div>
         <div className="w-full max-w-xs">

@@ -27,7 +27,7 @@ type ChampionshipCardData = {
 };
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
-  live:     { label: 'Ao vivo',               className: 'border-lime-300/70 bg-lime-400/22 text-lime-100 shadow-[0_0_14px_rgba(163,230,53,0.16)] animate-status-pulse' },
+  live:     { label: 'Ao vivo',               className: 'border-primary/50 bg-primary/10 text-primary dark:border-lime-300/70 dark:bg-lime-400/22 dark:text-lime-100 dark:shadow-[0_0_14px_rgba(163,230,53,0.16)] animate-status-pulse' },
   open:     { label: 'Inscrições abertas',    className: 'border-neon-cyan/70 bg-neon-cyan/22 text-white shadow-[0_0_14px_hsl(var(--neon-cyan)/0.16)]' },
   closed:   { label: 'Inscrições encerradas', className: 'border-neon-pink/65 bg-neon-pink/22 text-white shadow-[0_0_14px_hsl(var(--neon-pink)/0.14)]' },
   finished: { label: 'Finalizado',            className: 'border-white/18 bg-black/72 text-white/88' },

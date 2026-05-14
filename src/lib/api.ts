@@ -374,6 +374,13 @@ export const usersApi = {
     fetch(`${API_BASE}/users/players?page=${page}&per_page=${perPage}&search=${encodeURIComponent(search)}${gender ? `&gender=${encodeURIComponent(gender)}` : ''}`, {
       headers: json(token),
     }).then((r) => handle<PaginatedResponse<PlayerListItem>>(r)),
+
+  updateTheme: (token: string, theme: 'light' | 'dark' | 'system') =>
+    fetch(`${API_BASE}/users/me/theme`, {
+      method: 'PATCH',
+      headers: json(token),
+      body: JSON.stringify({ theme }),
+    }).then((r) => handle<{ theme: string }>(r)),
 };
 
 export const categoriesApi = {

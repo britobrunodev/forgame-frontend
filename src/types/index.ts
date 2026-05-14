@@ -203,6 +203,7 @@ export interface ReservationPlace {
   active?: boolean;
 }
 
+export type Theme = 'light' | 'dark' | 'system';
 export type DocumentType = "cpf" | "rg" | "cc" | "passport";
 export type UniformSize = "XS" | "S" | "M" | "L" | "XL" | "XXL";
 
@@ -233,6 +234,7 @@ export interface User {
   uniformSize?: UniformSize;
   gender?: string;
   preferredComplexes?: number[];
+  theme?: 'light' | 'dark' | 'system';
 }
 
 export interface ManagedPlayer {

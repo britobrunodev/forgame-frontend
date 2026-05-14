@@ -4,7 +4,9 @@ import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { useSession } from '@/session';
 import { usersApi } from '@/lib/api';
+import { useTheme } from '@/hooks/useTheme';
 import type { DocumentType, PlayerCharacteristic, PlayerLevel, SportId, UniformSize } from '@/types';
+import type { Theme } from '@/hooks/useTheme';
 
 const useProfileSync = () => {
   const { token, updateCurrentUser } = useSession();
@@ -30,6 +32,7 @@ const useProfileSync = () => {
         wins: profile.wins,
         losses: profile.losses,
         draws: profile.draws,
+        theme: (profile.theme as Theme | null) ?? 'system',
       });
     }).catch(() => {});
     return () => { cancelled = true; };
@@ -38,6 +41,7 @@ const useProfileSync = () => {
 
 export const AppLayout = () => {
   useProfileSync();
+  useTheme();
   return (
     <>
       <div aria-hidden="true" className="standalone-status-tint" />

@@ -16,6 +16,7 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import { LanguageSelector } from './LanguageSelector';
+import { ThemeSelector } from './ThemeSelector';
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLanguage } from '@/i18n';
@@ -235,6 +236,7 @@ export const TopBar = () => {
 
       <div className="order-3 flex-1 md:order-none" />
 
+      <ThemeSelector />
       <LanguageSelector />
 
       <button className="relative p-2 rounded-lg hover:bg-secondary/60 transition-smooth">
@@ -265,7 +267,7 @@ export const TopBar = () => {
       >
         <div className="text-right hidden sm:block">
           <div className="text-sm font-bold leading-tight">{currentUser.name}</div>
-          <div className="text-[10px] uppercase tracking-wider text-lime-400 font-semibold">
+          <div className="text-[10px] uppercase tracking-wider text-primary dark:text-lime-400 font-semibold">
             {accessLabel}
           </div>
         </div>

@@ -12,7 +12,7 @@ export const LiveBadge = ({ className = '', status = 'live' }: Props) => {
     status === 'finished'
       ? 'text-neon-cyan'
       : status === 'live'
-        ? 'text-lime-400 animate-status-pulse'
+        ? 'text-primary dark:text-lime-400 animate-status-pulse'
         : 'text-muted-foreground';
 
   return (
