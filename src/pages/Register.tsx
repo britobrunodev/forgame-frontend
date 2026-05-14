@@ -82,6 +82,7 @@ const Register = () => {
           <ShieldCheck className="mb-1 inline h-4 w-4 text-neon-cyan" />
           {' '}Enviamos um código de 6 dígitos para{' '}
           <span className="font-semibold text-foreground">{email}</span>.
+          {' '}Verifique na caixa de spam caso não receba.
         </div>
 
         <form onSubmit={handleVerify} className="space-y-4">

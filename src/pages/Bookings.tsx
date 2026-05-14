@@ -49,7 +49,7 @@ const Bookings = () => {
                 const categoryLabel = `${t(subscription.category_slug ?? '')}${subscription.audience_slug ? ` · ${t(subscription.audience_slug)}` : ''}`;
                 const effectiveStatus = subscription.payment_status === 'paid' || subscription.payment_status === 'confirmed' ? 'paid' : subscription.status;
                 const canPay = effectiveStatus !== 'paid' && effectiveStatus !== 'draft' && !!subscription.payment_id;
-                const teamCount = subscription.team_user_ids?.length ?? subscription.players_per_team ?? 0;
+                const teamCount = subscription.team_user_ids?.length ?? 0;
 
                 const canEdit = effectiveStatus === 'draft';
                 const canReceipt = effectiveStatus === 'paid' && !!subscription.payment_id;
@@ -108,7 +108,7 @@ const Bookings = () => {
                     const categoryLabel = `${t(subscription.category_slug ?? '')}${subscription.audience_slug ? ` · ${t(subscription.audience_slug)}` : ''}`;
                     const effectiveStatus = subscription.payment_status === 'paid' || subscription.payment_status === 'confirmed' ? 'paid' : subscription.status;
                     const canPay = effectiveStatus !== 'paid' && effectiveStatus !== 'draft' && !!subscription.payment_id;
-                    const teamCount = subscription.team_user_ids?.length ?? subscription.players_per_team ?? 0;
+                    const teamCount = subscription.team_user_ids?.length ?? 0;
 
                     const canEdit = effectiveStatus === 'draft';
                     const canReceipt = effectiveStatus === 'paid' && !!subscription.payment_id;
@@ -307,7 +307,6 @@ const navigateToPayment = (
     category_slug: string;
     audience_slug: string;
     team_user_ids: number[];
-    players_per_team: number;
     payment_total_amount: number | null;
     amount: number | null;
   },
@@ -316,7 +315,7 @@ const navigateToPayment = (
   if (!subscription.payment_id) return;
 
   const categoryLabel = `${t(subscription.category_slug ?? '')}${subscription.audience_slug ? ` · ${t(subscription.audience_slug)}` : ''}`;
-  const teamCount = subscription.team_user_ids?.length ?? subscription.players_per_team ?? 0;
+  const teamCount = subscription.team_user_ids?.length ?? 0;
   const formattedAmount = formatCurrency(subscription.payment_total_amount ?? subscription.amount ?? 0, language);
 
   navigate(`/payment/${subscription.payment_id}`, {

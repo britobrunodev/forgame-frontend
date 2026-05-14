@@ -1,15 +1,14 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
-import { CHAMPIONSHIPS, SPORTS } from '@/data/mock';
-import { Bracket, CARD_HEIGHT, PreciseBracketConnector } from '@/components/Bracket';
+import { useQuery } from '@tanstack/react-query';
+import { Loader2, MapPin, Calendar } from 'lucide-react';
+import { Bracket } from '@/components/Bracket';
 import { BracketMobile } from '@/components/BracketMobile';
 import { LiveBadge } from '@/components/LiveBadge';
 import { MapsButton } from '@/components/MapsButton';
+import { MatchCard } from '@/components/MatchCard';
 import { MatchNode } from '@/components/MatchNode';
-import { SportIcon } from '@/components/SportIcon';
 import { YouTubeButton } from '@/components/YouTubeButton';
-import { MapPin, Calendar, Users, Trophy } from 'lucide-react';
-import { useLanguage } from '@/i18n';
 import {
   Select,
   SelectContent,
@@ -17,219 +16,273 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Championship, Match, Team } from '@/types';
+import {
+  championshipApi,
+  type ChampionshipGroupOut,
+  type ChampionshipMatchOut,
+  type ChampionshipMatchesData,
+} from '@/lib/api';
+import { formatUtcDate } from '@/lib/datetime';
+import { useLanguage } from '@/i18n';
+import { useSession } from '@/session';
+import type { Match, SportId } from '@/types';
 
-type TeamCount = number;
-type BracketRounds = Championship['rounds'];
-type FinalsRounds = Array<{ name: string; matches: Match[] }>;
-type BracketFormat = 'dupla-fechada' | 'cumbuca' | 'rei-da-praia';
+type BracketRounds = Array<{ name: string; matches: Match[] }>;
 
-type GroupStandingRow = { team: Team; wins: number; losses: number; points: number };
-type GroupData = { name: string; standings: GroupStandingRow[] };
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-const BRACKET_SIZE_OPTIONS = [8, 16, 32];
+const mapSportSlug = (slug: string | null | undefined): SportId | null => {
+  if (slug === 'footvolley') return 'footvolley';
+  if (slug === 'beach-tennis') return 'beach-tennis';
+  if (slug === 'volleyball') return 'volleyball';
+  return null;
+};
 
-const FOOTVOLLEY_TEAM_POOL = [
-  'Tavinho e Gui BSB',
-  'Amaury e Tavinho',
-  'Arthur Adao e Dudu',
-  'Edson Jr e Gui Nasc',
-  'Jalisson e Rondy',
-  'Bruno B. e Preto',
-  'Joao ET e Neguebi',
-  'Enzo e Lapiseira',
-  'Vinicius e Felipe M.',
-  'Indio e Felipe',
-  'Flanklin e Landim',
-  'Iago e Beguinha',
-  'Parana e Juka',
-  'Leo Bulks e D...',
-  'Pedrinho e Re...',
-  'Freitas e Gud...',
-  'Sandrey e Brisa',
-  'Dioguinho e Giovani',
-  'Victor e Thierry',
-  'Aguia e Bruninho',
-  'Longo e Michel',
-  'Kibinho e Murilo',
-  'Gui e Juninho',
-  'Renan e Neguinho',
-  'Vitinho e Parana',
-  'Chau e Thallys',
-  'Saldanha e Juninho',
-  'Hiltinho e Franklin',
-  'Biel e Pablo',
-  'Cezar e Arthur',
-  'Leo e Eduzinho',
-  'Breno e Natan',
-];
+const mapChampionshipStatus = (
+  status: string,
+): 'scheduled' | 'upcoming' | 'live' | 'finished' => {
+  if (status === 'live' || status === 'running') return 'live';
+  if (status === 'ended' || status === 'finished') return 'finished';
+  return 'upcoming';
+};
+
+const toFrontendMatch = (
+  m: ChampionshipMatchOut,
+  round: string,
+  timezone: string | null,
+): Match => ({
+  id: String(m.id),
+  round,
+  teamA: m.team_1 ? { id: String(m.team_1.id), name: m.team_1.name } : null,
+  teamB: m.team_2 ? { id: String(m.team_2.id), name: m.team_2.name } : null,
+  scoreA: m.score_json?.score_1,
+  scoreB: m.score_json?.score_2,
+  setScoreA: m.score_json?.sets_1,
+  setScoreB: m.score_json?.sets_2,
+  status:
+    m.status === 'finished' ? 'finished' : m.status === 'live' ? 'live' : 'scheduled',
+  time: m.scheduled_at
+    ? new Date(m.scheduled_at).toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: timezone || 'UTC',
+      })
+    : undefined,
+});
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 const ChampionshipDetail = () => {
-  const { t, sportName } = useLanguage();
+  const { t, sportName, language } = useLanguage();
   const { id } = useParams();
-  const c = CHAMPIONSHIPS.find(x => x.id === id);
-  const [selectedCategory, setSelectedCategory] = useState<'professional' | 'intermediate' | 'beginner'>('professional');
-  const [selectedTeamCount, setSelectedTeamCount] = useState<TeamCount>(32);
-  const [selectedFormat, setSelectedFormat] = useState<BracketFormat>('dupla-fechada');
-  const [winnersOpen, setWinnersOpen] = useState(true);
-  const [losersOpen, setLosersOpen] = useState(false);
-  const [finalsOpen, setFinalsOpen] = useState(false);
+  const { token } = useSession();
+  const locale = language === 'pt-BR' ? 'pt-BR' : 'en-US';
 
-  const isReiDaPraia = selectedFormat === 'rei-da-praia';
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'bracket' | 'simple'>('bracket');
 
-  if (!c) return <div>{t('championshipNotFound')}</div>;
-  const sport = SPORTS.find(s => s.id === c.sport);
+  const { data: championship, isLoading: loadingChampionship } = useQuery({
+    queryKey: ['championship', id],
+    queryFn: () => championshipApi.get(token!, id!),
+    enabled: !!token && !!id,
+  });
 
-  const architecture = useMemo(
-    () => (isReiDaPraia ? null : buildDoubleEliminationArchitecture(selectedTeamCount)),
-    [selectedTeamCount, isReiDaPraia],
-  );
+  const { data: sports = [] } = useQuery({
+    queryKey: ['championship-sports'],
+    queryFn: () => championshipApi.listSports(token!),
+    enabled: !!token,
+  });
 
-  const reiDaPraiaData = useMemo(() => {
-    if (!isReiDaPraia) return null;
-    const halfSize = Math.max(4, Math.floor(selectedTeamCount / 2));
-    const ouroArch = buildDoubleEliminationArchitecture(halfSize, FOOTVOLLEY_TEAM_POOL);
-    const prataArch = buildDoubleEliminationArchitecture(halfSize, rotatePool(FOOTVOLLEY_TEAM_POOL, halfSize));
-    return {
-      groups: buildGroupStage(selectedTeamCount),
-      ouro: ouroArch,
-      prata: prataArch,
-    };
-  }, [isReiDaPraia, selectedTeamCount]);
+  useEffect(() => {
+    if (championship?.categories.length && selectedCategoryId === null) {
+      setSelectedCategoryId(championship.categories[0].id ?? null);
+    }
+  }, [championship, selectedCategoryId]);
+
+  const { data: matchesData, isLoading: loadingMatches } = useQuery({
+    queryKey: ['championship-matches', id, selectedCategoryId],
+    queryFn: () => championshipApi.getMatches(token!, id!, selectedCategoryId!),
+    enabled: !!token && !!id && selectedCategoryId !== null,
+  });
+
+  if (loadingChampionship) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!championship) {
+    return (
+      <div className="py-16 text-center text-muted-foreground">
+        {t('championshipNotFound')}
+      </div>
+    );
+  }
+
+  const sportsById = new Map(sports.map((s) => [s.id, s]));
+  const sport = championship.sport_id ? sportsById.get(championship.sport_id) : null;
+  const sportId = sport ? mapSportSlug(sport.slug) : null;
+  const status = mapChampionshipStatus(championship.status);
+  const selectedCategory = championship.categories.find((c) => c.id === selectedCategoryId);
+  const formatSlug = selectedCategory?.format_slug ?? '';
+  const isCumbuca = formatSlug.includes('cumbuca');
+
+  const startDate = formatUtcDate(championship.start_at, championship.timezone, locale);
+  const endDate = formatUtcDate(championship.end_at, championship.timezone, locale);
+  const location = championship.complex_name ?? championship.complex_city ?? '-';
 
   return (
     <div className="mx-auto w-full max-w-[min(110rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(118rem,calc(100vw-3rem))]">
+      {/* Header */}
       <div className="relative min-h-[220px] overflow-hidden rounded-2xl border border-border bg-secondary">
-        {c.image ? (
-          <img src={c.image} alt={c.name} className="absolute inset-0 w-full h-full object-cover" />
+        {championship.image_url ? (
+          <img
+            src={championship.image_url}
+            alt={championship.name}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
         ) : (
           <div className="absolute inset-0 hex-grid opacity-30" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/30" />
         <div className="relative p-5 sm:p-8">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-background/60 backdrop-blur-md text-xs font-bold uppercase tracking-wider border border-white/10 leading-none">
-              {sport && <SportIcon sportId={sport.id} className="h-3.5 w-3.5 translate-y-[0.5px]" />}
-              <span className="translate-y-[0.5px] leading-none">{sport ? sportName(sport.id) : c.sport}</span>
+          <div className="mb-3 flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-background/60 px-2.5 py-1 text-xs font-bold uppercase leading-none tracking-wider backdrop-blur-md">
+              <span className="translate-y-[0.5px] leading-none">
+                {sportId ? sportName(sportId) : t('championships')}
+              </span>
             </span>
           </div>
-          <h1 className="mb-3 font-display text-2xl font-black drop-shadow-lg sm:text-3xl lg:text-4xl">{c.name}</h1>
+          <h1 className="mb-3 font-display text-2xl font-black drop-shadow-lg sm:text-3xl lg:text-4xl">
+            {championship.name}
+          </h1>
           <div className="flex flex-wrap gap-5 text-sm font-semibold">
-            <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {c.location}</span>
-            <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {c.startDate} → {c.endDate}</span>
-            <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> {selectedTeamCount} {t('teams')}</span>
-            {c.prize && <span className="flex items-center gap-1.5"><Trophy className="w-4 h-4" /> {c.prize}</span>}
+            {location && location !== '-' && (
+              <span className="flex items-center gap-1.5">
+                <MapPin className="h-4 w-4" /> {location}
+              </span>
+            )}
+            <span className="flex items-center gap-1.5">
+              <Calendar className="h-4 w-4" />
+              {startDate}
+              {endDate && endDate !== startDate ? ` → ${endDate}` : ''}
+            </span>
           </div>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <LiveBadge status={c.status} />
-            </div>
+            <LiveBadge status={status} />
             <div className="flex items-center gap-2 sm:justify-end">
-              <MapsButton />
-              <YouTubeButton url={c.youtubeUrl} />
+              <MapsButton url={championship.address_url ?? undefined} />
+              <YouTubeButton url={championship.transmission_url ?? undefined} />
             </div>
           </div>
         </div>
       </div>
 
+      {/* Content section */}
       <section>
         <div className="rounded-2xl border border-border bg-gradient-card p-4 sm:p-6">
+          {/* Top bar */}
           <div className="flex flex-col gap-4 border-b border-border pb-5 xl:flex-row xl:items-end xl:justify-between">
             <div>
-              <h2 className="font-display font-bold text-sm uppercase tracking-[0.2em] text-neon-cyan">{t('bracket')}</h2>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-primary-glow">
-                  {t(selectedCategory)}
-                </span>
-                <span className="text-xs text-muted-foreground">{selectedTeamCount} {t('teams')}</span>
-              </div>
+              <h2 className="font-display text-sm font-bold uppercase tracking-[0.2em] text-neon-cyan">
+                {t('bracket')}
+              </h2>
+              {selectedCategory && (
+                <div className="mt-2">
+                  <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-primary-glow">
+                    {t(selectedCategory.category_slug)}
+                    {selectedCategory.audience_slug
+                      ? ` · ${t(selectedCategory.audience_slug)}`
+                      : ''}
+                  </span>
+                </div>
+              )}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3 xl:w-[48rem]">
-              <div>
-                <div className="mb-2 text-[10px] font-display font-bold uppercase tracking-[0.25em] text-muted-foreground">
-                  {t('bracketFormat')}
+            <div className="flex flex-wrap items-end gap-4">
+              {championship.categories.length > 1 && (
+                <div>
+                  <div className="mb-2 text-[10px] font-display font-bold uppercase tracking-[0.25em] text-muted-foreground">
+                    {t('category')}
+                  </div>
+                  <Select
+                    value={String(selectedCategoryId ?? '')}
+                    onValueChange={(v) => setSelectedCategoryId(Number(v))}
+                  >
+                    <SelectTrigger className="h-10 w-52 rounded-xl border-border bg-secondary/60 text-sm font-semibold text-foreground shadow-none ring-0 ring-offset-0 focus:ring-0 focus:ring-offset-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-border bg-gradient-card p-1.5 text-foreground shadow-card backdrop-blur-xl">
+                      {championship.categories.map((cat) => (
+                        <SelectItem
+                          key={cat.id}
+                          value={String(cat.id)}
+                          className="rounded-lg py-2 pl-8 pr-3 text-sm font-semibold focus:bg-primary/15 focus:text-primary-glow"
+                        >
+                          {t(cat.category_slug)}
+                          {cat.audience_slug ? ` · ${t(cat.audience_slug)}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Select value={selectedFormat} onValueChange={(v) => setSelectedFormat(v as BracketFormat)}>
-                  <SelectTrigger className="h-10 rounded-xl border-border bg-secondary/60 text-sm font-semibold text-foreground shadow-none ring-0 ring-offset-0 focus:ring-0 focus:ring-offset-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border bg-gradient-card p-1.5 text-foreground shadow-card backdrop-blur-xl">
-                    <SelectItem value="dupla-fechada" className="rounded-lg py-2 pl-8 pr-3 text-sm font-semibold focus:bg-primary/15 focus:text-primary-glow">
-                      {t('doublesFormat')}
-                    </SelectItem>
-                    <SelectItem value="cumbuca" className="rounded-lg py-2 pl-8 pr-3 text-sm font-semibold focus:bg-primary/15 focus:text-primary-glow">
-                      {t('cumbucaFormat')}
-                    </SelectItem>
-                    <SelectItem value="rei-da-praia" className="rounded-lg py-2 pl-8 pr-3 text-sm font-semibold focus:bg-primary/15 focus:text-primary-glow">
-                      {t('reiDaPraia')}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              )}
 
               <div>
                 <div className="mb-2 text-[10px] font-display font-bold uppercase tracking-[0.25em] text-muted-foreground">
-                  {t('category')}
+                  {t('view') || 'Visualização'}
                 </div>
-                <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as 'professional' | 'intermediate' | 'beginner')}>
-                  <SelectTrigger className="h-10 rounded-xl border-border bg-secondary/60 text-sm font-semibold text-foreground shadow-none ring-0 ring-offset-0 focus:ring-0 focus:ring-offset-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border bg-gradient-card p-1.5 text-foreground shadow-card backdrop-blur-xl">
-                    <SelectItem value="professional" className="rounded-lg py-2 pl-8 pr-3 text-sm font-semibold focus:bg-primary/15 focus:text-primary-glow">
-                      {t('professional')}
-                    </SelectItem>
-                    <SelectItem value="intermediate" className="rounded-lg py-2 pl-8 pr-3 text-sm font-semibold focus:bg-primary/15 focus:text-primary-glow">
-                      {t('intermediate')}
-                    </SelectItem>
-                    <SelectItem value="beginner" className="rounded-lg py-2 pl-8 pr-3 text-sm font-semibold focus:bg-primary/15 focus:text-primary-glow">
-                      {t('beginner')}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <div className="mb-2 text-[10px] font-display font-bold uppercase tracking-[0.25em] text-muted-foreground">
-                  {t('bracketSize')}
+                <div className="flex h-10 items-center gap-1 rounded-xl border border-border bg-secondary/60 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('bracket')}
+                    className={`rounded-lg px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-smooth ${
+                      viewMode === 'bracket'
+                        ? 'bg-primary/20 text-primary-glow shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Bracket
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('simple')}
+                    className={`rounded-lg px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-smooth ${
+                      viewMode === 'simple'
+                        ? 'bg-primary/20 text-primary-glow shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Lista
+                  </button>
                 </div>
-                <Select value={String(selectedTeamCount)} onValueChange={(value) => setSelectedTeamCount(Number(value) as TeamCount)}>
-                  <SelectTrigger className="h-10 rounded-xl border-border bg-secondary/60 text-sm font-semibold text-foreground shadow-none ring-0 ring-offset-0 focus:ring-0 focus:ring-offset-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border bg-gradient-card p-1.5 text-foreground shadow-card backdrop-blur-xl">
-                    {BRACKET_SIZE_OPTIONS.map((size) => (
-                      <SelectItem
-                        key={size}
-                        value={String(size)}
-                        className="rounded-lg py-2 pl-8 pr-3 text-sm font-semibold focus:bg-primary/15 focus:text-primary-glow"
-                      >
-                        {size}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </div>
 
-          {isReiDaPraia && reiDaPraiaData ? (
-            <ReiDaPraiaView data={reiDaPraiaData} t={t} />
-          ) : architecture ? (
-            <div className="mt-6 space-y-4">
-              <BracketPanel title={t('winnerBracket')} isOpen={winnersOpen} onToggle={() => setWinnersOpen((current) => !current)}>
-                <Bracket rounds={architecture.winners} />
-              </BracketPanel>
-
-              <BracketPanel title={t('loserBracket')} isOpen={losersOpen} onToggle={() => setLosersOpen((current) => !current)}>
-                <Bracket rounds={architecture.losers} />
-              </BracketPanel>
-
-              <BracketPanel title={t('finalsBracket')} isOpen={finalsOpen} onToggle={() => setFinalsOpen((current) => !current)}>
-                <FinalsBracket rounds={architecture.finals} />
-              </BracketPanel>
+          {/* Match content */}
+          {loadingMatches ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
+          ) : matchesData ? (
+            isCumbuca ? (
+              <CumbucaView
+                data={matchesData}
+                viewMode={viewMode}
+                timezone={championship.timezone}
+                t={t}
+              />
+            ) : (
+              <GenericMatchesView
+                data={matchesData}
+                viewMode={viewMode}
+                timezone={championship.timezone}
+                t={t}
+              />
+            )
           ) : null}
         </div>
       </section>
@@ -237,111 +290,364 @@ const ChampionshipDetail = () => {
   );
 };
 
-// ─── Rei da Praia View ───────────────────────────────────────────────────────
+// ── Cumbuca view ─────────────────────────────────────────────────────────────
 
-type ReiDaPraiaData = {
-  groups: GroupData[];
-  ouro: ReturnType<typeof buildDoubleEliminationArchitecture>;
-  prata: ReturnType<typeof buildDoubleEliminationArchitecture>;
-};
-
-const ReiDaPraiaView = ({ data, t }: { data: ReiDaPraiaData; t: (k: string) => string }) => {
+const CumbucaView = ({
+  data,
+  viewMode,
+  timezone,
+  t,
+}: {
+  data: ChampionshipMatchesData;
+  viewMode: 'bracket' | 'simple';
+  timezone: string | null;
+  t: (k: string) => string;
+}) => {
   const [groupOpen, setGroupOpen] = useState(true);
-  const [ouroWinnersOpen, setOuroWinnersOpen] = useState(false);
-  const [ouroLosersOpen, setOuroLosersOpen] = useState(false);
-  const [ouroFinalsOpen, setOuroFinalsOpen] = useState(false);
-  const [prataWinnersOpen, setPrataWinnersOpen] = useState(false);
-  const [prataLosersOpen, setPrataLosersOpen] = useState(false);
-  const [prataFinalsOpen, setPrataFinalsOpen] = useState(false);
+  const [goldenOpen, setGoldenOpen] = useState(true);
+  const [silverOpen, setSilverOpen] = useState(false);
+  const [openFallbackGroups, setOpenFallbackGroups] = useState<Record<string, boolean>>({});
+  const normalizeGroupName = (name: string) => name.trim().toLowerCase();
+
+  const groupPhase = data.groups.filter((g) => g.phase === 'group');
+  const bracketGroups = data.groups.filter((g) => g.phase === 'bracket');
+  const golden = data.groups.find(
+    (g) => g.phase === 'bracket' && normalizeGroupName(g.name).includes('golden'),
+  );
+  const silver = data.groups.find(
+    (g) => g.phase === 'bracket' && normalizeGroupName(g.name).includes('silver'),
+  );
+  const fallbackBrackets = bracketGroups.filter(
+    (g) => g !== golden && g !== silver,
+  );
 
   return (
     <div className="mt-6 space-y-4">
-      {/* Group Stage */}
-      <BracketPanel title={t('groupStage')} isOpen={groupOpen} onToggle={() => setGroupOpen(v => !v)}>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {data.groups.map((group) => <GroupCard key={group.name} group={group} t={t} />)}
+      {groupPhase.length > 0 && (
+        <BracketPanel
+          title={t('groupStage')}
+          isOpen={groupOpen}
+          onToggle={() => setGroupOpen((v) => !v)}
+        >
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {groupPhase.map((g) => (
+              <GroupStandingsCard key={g.name} group={g} />
+            ))}
+          </div>
+        </BracketPanel>
+      )}
+
+      {golden && (
+        <>
+          <SeriesDivider color="gold" label={t('goldBracket')} />
+          <BracketPanel
+            title={t('goldenSeries') || 'Golden Series'}
+            isOpen={goldenOpen}
+            onToggle={() => setGoldenOpen((v) => !v)}
+          >
+            {viewMode === 'bracket' ? (
+              <SeriesBracketView series={golden} timezone={timezone} t={t} />
+            ) : (
+              <SeriesMatchListView series={golden} timezone={timezone} />
+            )}
+          </BracketPanel>
+        </>
+      )}
+
+      {silver && (
+        <>
+          <SeriesDivider color="silver" label={t('silverBracket')} />
+          <BracketPanel
+            title={t('silverSeries') || 'Silver Series'}
+            isOpen={silverOpen}
+            onToggle={() => setSilverOpen((v) => !v)}
+          >
+            {viewMode === 'bracket' ? (
+              <SeriesBracketView series={silver} timezone={timezone} t={t} />
+            ) : (
+              <SeriesMatchListView series={silver} timezone={timezone} />
+            )}
+          </BracketPanel>
+        </>
+      )}
+
+      {fallbackBrackets.map((group) => (
+        <BracketPanel
+          key={group.name}
+          title={group.name}
+          isOpen={openFallbackGroups[group.name] ?? true}
+          onToggle={() =>
+            setOpenFallbackGroups((current) => ({
+              ...current,
+              [group.name]: !(current[group.name] ?? true),
+            }))
+          }
+        >
+          {viewMode === 'bracket' ? (
+            <SeriesBracketView series={group} timezone={timezone} t={t} />
+          ) : (
+            <SeriesMatchListView series={group} timezone={timezone} />
+          )}
+        </BracketPanel>
+      ))}
+
+      {data.groups.length === 0 && (
+        <div className="py-10 text-center text-sm text-muted-foreground">
+          Nenhuma partida ainda
         </div>
-      </BracketPanel>
-
-      {/* Divider: OURO */}
-      <div className="flex items-center gap-3 pt-2">
-        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-yellow-500/40 to-transparent" />
-        <span className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-1 text-[10px] font-bold uppercase tracking-[0.3em] text-yellow-400">
-          {t('goldBracket')}
-        </span>
-        <div className="h-px flex-1 bg-gradient-to-l from-transparent via-yellow-500/40 to-transparent" />
-      </div>
-
-      <BracketPanel title={t('winnerBracket')} isOpen={ouroWinnersOpen} onToggle={() => setOuroWinnersOpen(v => !v)}>
-        <Bracket rounds={data.ouro.winners} />
-      </BracketPanel>
-      <BracketPanel title={t('loserBracket')} isOpen={ouroLosersOpen} onToggle={() => setOuroLosersOpen(v => !v)}>
-        <Bracket rounds={data.ouro.losers} />
-      </BracketPanel>
-      <BracketPanel title={t('finalsGold')} isOpen={ouroFinalsOpen} onToggle={() => setOuroFinalsOpen(v => !v)}>
-        <FinalsBracket rounds={data.ouro.finals} />
-      </BracketPanel>
-
-      {/* Divider: PRATA */}
-      <div className="flex items-center gap-3 pt-2">
-        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-400/40 to-transparent" />
-        <span className="rounded-full border border-slate-400/30 bg-slate-400/10 px-4 py-1 text-[10px] font-bold uppercase tracking-[0.3em] text-slate-300">
-          {t('silverBracket')}
-        </span>
-        <div className="h-px flex-1 bg-gradient-to-l from-transparent via-slate-400/40 to-transparent" />
-      </div>
-
-      <BracketPanel title={t('winnerBracket')} isOpen={prataWinnersOpen} onToggle={() => setPrataWinnersOpen(v => !v)}>
-        <Bracket rounds={data.prata.winners} />
-      </BracketPanel>
-      <BracketPanel title={t('loserBracket')} isOpen={prataLosersOpen} onToggle={() => setPrataLosersOpen(v => !v)}>
-        <Bracket rounds={data.prata.losers} />
-      </BracketPanel>
-      <BracketPanel title={t('finalsSilver')} isOpen={prataFinalsOpen} onToggle={() => setPrataFinalsOpen(v => !v)}>
-        <FinalsBracket rounds={data.prata.finals} />
-      </BracketPanel>
+      )}
     </div>
   );
 };
 
-const GroupCard = ({ group, t }: { group: GroupData; t: (k: string) => string }) => (
-  <div className="rounded-2xl border border-border bg-background/30 p-4">
-    <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-neon-cyan">{group.name}</div>
-    <table className="w-full">
-      <thead>
-        <tr className="border-b border-border/50">
-          <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Equipe</th>
-          <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">V</th>
-          <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">D</th>
-          <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Pts</th>
-        </tr>
-      </thead>
-      <tbody>
-        {group.standings.map((row, i) => (
-          <tr key={row.team.id} className={i < 2 ? '' : 'opacity-50'}>
-            <td className="py-1.5 pr-2 text-center">
-              <div className="flex items-center justify-center gap-1.5">
-                {i < 2 && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-neon-cyan shadow-[0_0_6px_hsl(var(--neon-cyan))]" />}
-                <span className={`text-xs leading-tight ${i < 2 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                  {row.team.name.replace(/^\d+ - /, '')}
-                </span>
-              </div>
-            </td>
-            <td className="py-1.5 text-center text-xs text-muted-foreground">{row.wins}</td>
-            <td className="py-1.5 text-center text-xs text-muted-foreground">{row.losses}</td>
-            <td className="py-1.5 text-center text-xs font-bold text-foreground">{row.points}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-    <div className="mt-2.5 flex items-center gap-1.5 text-[9px] text-muted-foreground">
-      <span className="h-1.5 w-1.5 rounded-full bg-neon-cyan shadow-[0_0_6px_hsl(var(--neon-cyan))]" />
-      avançam para fase seguinte
+// ── Series bracket view (visual) ─────────────────────────────────────────────
+
+const SeriesBracketView = ({
+  series,
+  timezone,
+  t,
+}: {
+  series: ChampionshipGroupOut;
+  timezone: string | null;
+  t: (k: string) => string;
+}) => {
+  const matches = [...series.matches].sort((a, b) => a.match_number - b.match_number);
+
+  if (matches.length < 6) {
+    return <SeriesMatchListView series={series} timezone={timezone} />;
+  }
+
+  const toMatch = (m: ChampionshipMatchOut, round: string): Match =>
+    toFrontendMatch(m, round, timezone);
+
+  const winnerRounds: BracketRounds = [
+    { name: 'R1', matches: [toMatch(matches[0], 'R1'), toMatch(matches[1], 'R1')] },
+    { name: t('winnerBracket'), matches: [toMatch(matches[2], t('winnerBracket'))] },
+  ];
+  const loserRounds: BracketRounds = [
+    { name: 'R1', matches: [toMatch(matches[3], 'L-R1')] },
+    { name: t('loserBracket'), matches: [toMatch(matches[4], t('loserBracket'))] },
+  ];
+  const grandFinal = toMatch(matches[5], 'Grande Final');
+
+  return (
+    <>
+      <div className="md:hidden">
+        <BracketMobile
+          rounds={[
+            ...winnerRounds,
+            ...loserRounds,
+            { name: 'Grande Final', matches: [grandFinal] },
+          ]}
+        />
+      </div>
+      <div className="hidden md:block space-y-6">
+        <div>
+          <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neon-cyan">
+            {t('winnerBracket')}
+          </div>
+          <Bracket rounds={winnerRounds} />
+        </div>
+        <div>
+          <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neon-pink">
+            {t('loserBracket')}
+          </div>
+          <Bracket rounds={loserRounds} />
+        </div>
+        <div>
+          <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-yellow-400">
+            Grande Final
+          </div>
+          <MatchNode match={grandFinal} />
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ── Series match list view (simple) ──────────────────────────────────────────
+
+const SeriesMatchListView = ({
+  series,
+  timezone,
+}: {
+  series: ChampionshipGroupOut;
+  timezone: string | null;
+}) => {
+  const matches = [...series.matches].sort((a, b) => a.match_number - b.match_number);
+  return (
+    <div className="space-y-2">
+      {matches.map((m, idx) => (
+        <MatchCard
+          key={m.id}
+          match={toFrontendMatch(m, `M${idx + 1}`, timezone)}
+          number={idx + 1}
+          round={`M${idx + 1}`}
+        />
+      ))}
+      {matches.length === 0 && (
+        <div className="py-8 text-center text-sm text-muted-foreground">
+          Nenhuma partida ainda
+        </div>
+      )}
     </div>
+  );
+};
+
+// ── Group standings card ──────────────────────────────────────────────────────
+
+const GroupStandingsCard = ({ group }: { group: ChampionshipGroupOut }) => (
+  <div className="rounded-2xl border border-border bg-background/30 p-4">
+    <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-neon-cyan">
+      {group.name}
+    </div>
+    {group.standings.length > 0 ? (
+      <>
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border/50">
+              <th className="pb-1.5 text-left text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                Equipe
+              </th>
+              <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                V
+              </th>
+              <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                D
+              </th>
+              <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                Pts
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {group.standings.map((row, i) => (
+              <tr key={row.team.id} className={i >= 2 ? 'opacity-50' : ''}>
+                <td className="py-1.5 pr-2">
+                  <div className="flex items-center gap-1.5">
+                    {i < 2 && (
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-neon-cyan shadow-[0_0_6px_hsl(var(--neon-cyan))]" />
+                    )}
+                    <span
+                      className={`text-xs leading-tight ${
+                        i < 2
+                          ? 'font-semibold text-foreground'
+                          : 'text-muted-foreground'
+                      }`}
+                    >
+                      {row.team.name}
+                    </span>
+                  </div>
+                </td>
+                <td className="py-1.5 text-center text-xs text-muted-foreground">
+                  {row.wins}
+                </td>
+                <td className="py-1.5 text-center text-xs text-muted-foreground">
+                  {row.losses}
+                </td>
+                <td className="py-1.5 text-center text-xs font-bold text-foreground">
+                  {row.points}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="mt-2.5 flex items-center gap-1.5 text-[9px] text-muted-foreground">
+          <span className="h-1.5 w-1.5 rounded-full bg-neon-cyan shadow-[0_0_6px_hsl(var(--neon-cyan))]" />
+          avançam para fase seguinte
+        </div>
+      </>
+    ) : (
+      <div className="space-y-2">
+        {group.matches.map((m) => (
+          <div
+            key={m.id}
+            className="flex items-center justify-between rounded-lg bg-background/30 px-2 py-1.5 text-xs"
+          >
+            <span className="truncate font-semibold text-foreground">
+              {m.team_1?.name ?? 'TBD'}
+            </span>
+            <span className="mx-2 shrink-0 text-muted-foreground">×</span>
+            <span className="truncate text-right font-semibold text-foreground">
+              {m.team_2?.name ?? 'TBD'}
+            </span>
+          </div>
+        ))}
+      </div>
+    )}
   </div>
 );
 
-// ─── Shared UI ───────────────────────────────────────────────────────────────
+// ── Generic matches view (non-cumbuca formats) ────────────────────────────────
+
+const GenericMatchesView = ({
+  data,
+  timezone,
+}: {
+  data: ChampionshipMatchesData;
+  viewMode: 'bracket' | 'simple';
+  timezone: string | null;
+  t: (k: string) => string;
+}) => (
+  <div className="mt-6 space-y-4">
+    {data.groups.map((group) => (
+      <div
+        key={group.name}
+        className="rounded-2xl border border-border bg-background/20 p-4"
+      >
+        <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-neon-cyan">
+          {group.name}
+        </div>
+        <div className="space-y-2">
+          {group.matches.map((m) => (
+            <MatchCard
+              key={m.id}
+              match={toFrontendMatch(m, group.name, timezone)}
+              number={m.match_number}
+              round={group.name}
+            />
+          ))}
+          {group.matches.length === 0 && (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              Nenhuma partida ainda
+            </div>
+          )}
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+// ── Series divider ────────────────────────────────────────────────────────────
+
+const SeriesDivider = ({ color, label }: { color: 'gold' | 'silver'; label: string }) => {
+  const isGold = color === 'gold';
+  return (
+    <div className="flex items-center gap-3 pt-2">
+      <div
+        className={`h-px flex-1 bg-gradient-to-r from-transparent ${
+          isGold ? 'via-yellow-500/40' : 'via-slate-400/40'
+        } to-transparent`}
+      />
+      <span
+        className={`rounded-full border px-4 py-1 text-[10px] font-bold uppercase tracking-[0.3em] ${
+          isGold
+            ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-400'
+            : 'border-slate-400/30 bg-slate-400/10 text-slate-300'
+        }`}
+      >
+        {label}
+      </span>
+      <div
+        className={`h-px flex-1 bg-gradient-to-l from-transparent ${
+          isGold ? 'via-yellow-500/40' : 'via-slate-400/40'
+        } to-transparent`}
+      />
+    </div>
+  );
+};
+
+// ── Bracket panel ─────────────────────────────────────────────────────────────
 
 const BracketPanel = ({
   title,
@@ -367,272 +673,12 @@ const BracketPanel = ({
         {isOpen ? '−' : '+'}
       </span>
     </button>
-    {isOpen && <div className="border-t border-border px-2 pb-2 pt-4 sm:px-4 sm:pb-4">{children}</div>}
+    {isOpen && (
+      <div className="border-t border-border px-2 pb-2 pt-4 sm:px-4 sm:pb-4">
+        {children}
+      </div>
+    )}
   </div>
 );
-
-const FinalsBracket = ({ rounds }: { rounds: FinalsRounds }) => {
-  const { roundName } = useLanguage();
-  const semifinals = rounds[0];
-  const thirdPlaceRound = rounds[1];
-  const finalRound = rounds[2];
-  const gap = 18;
-  const bottomSemiTop = CARD_HEIGHT + gap;
-  const totalHeight = bottomSemiTop + CARD_HEIGHT;
-  const centerTop = (totalHeight - CARD_HEIGHT) / 2;
-
-  return (
-    <>
-      <div className="md:hidden">
-        <BracketMobile rounds={rounds} highlightRound="Final" />
-      </div>
-
-      <div className="hidden md:block overflow-x-auto pb-4">
-        <div className="flex min-w-max gap-4">
-          <section className="space-y-4">
-            <h4 className="w-56 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
-              {roundName(semifinals.name)}
-            </h4>
-            <div className="relative" style={{ height: totalHeight, width: 288 }}>
-              <div className="absolute left-0 top-0 overflow-visible" style={{ width: 288, height: CARD_HEIGHT }}>
-                <div className="relative h-full w-full">
-                  <MatchNode match={semifinals.matches[0]} />
-                  <PreciseBracketConnector deltaToNext={centerTop} />
-                </div>
-              </div>
-              <div className="absolute left-0 overflow-visible" style={{ top: bottomSemiTop, width: 288, height: CARD_HEIGHT }}>
-                <div className="relative h-full w-full">
-                  <MatchNode match={semifinals.matches[1]} />
-                  <PreciseBracketConnector deltaToNext={centerTop - bottomSemiTop} />
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <h4 className="w-56 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
-              {roundName(thirdPlaceRound.name)}
-            </h4>
-            <div className="relative" style={{ height: totalHeight, width: 224 }}>
-              <div className="absolute left-0" style={{ top: centerTop }}>
-                <MatchNode match={thirdPlaceRound.matches[0]} />
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <h4 className="ml-16 w-56 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
-              {roundName(finalRound.name)}
-            </h4>
-            <div className="relative" style={{ height: totalHeight, width: 288 }}>
-              <div
-                className="absolute rounded-xl bg-neon-cyan/4 shadow-[0_12px_24px_-20px_hsl(var(--neon-cyan)/0.7)] ring-1 ring-inset ring-neon-cyan/12"
-                style={{ top: centerTop - 7, left: 58, width: 236, height: CARD_HEIGHT + 14 }}
-              />
-              <div className="absolute overflow-visible" style={{ top: centerTop, left: 64, width: 224, height: CARD_HEIGHT }}>
-                <div className="relative h-full w-full">
-                  <MatchNode match={finalRound.matches[0]} />
-                  <div className="absolute overflow-visible" style={{ left: -64, top: CARD_HEIGHT / 2, width: 64, height: 1 }}>
-                    <div className="h-px w-full bg-primary/60" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-    </>
-  );
-};
-
-// ─── Data builders ───────────────────────────────────────────────────────────
-
-const buildGroupStage = (teamCount: number): GroupData[] => {
-  const groupCount = Math.max(1, Math.ceil(teamCount / 4));
-  const teams = buildSeededTeams(Math.min(teamCount, FOOTVOLLEY_TEAM_POOL.length), FOOTVOLLEY_TEAM_POOL);
-  return Array.from({ length: groupCount }, (_, i) => {
-    const groupTeams = teams.slice(i * 4, Math.min((i + 1) * 4, teams.length));
-    return {
-      name: `Grupo ${String.fromCharCode(65 + (i % 26))}`,
-      standings: groupTeams.map((team, j) => ({
-        team,
-        wins: Math.max(0, groupTeams.length - 1 - j),
-        losses: j,
-        points: Math.max(0, groupTeams.length - 1 - j) * 3,
-      })),
-    };
-  });
-};
-
-const buildDoubleEliminationArchitecture = (size: TeamCount, teamPool = FOOTVOLLEY_TEAM_POOL) => {
-  const winnerSeeds = buildSeededTeams(size, teamPool);
-  const loserSize = Math.max(4, Math.floor(size / 4) * 2);
-  const loserSeeds = buildSeededTeams(loserSize, rotatePool(teamPool, size / 2));
-
-  const winners = buildProgressiveBracket(winnerSeeds, 'cv');
-  const losers = buildProgressiveBracket(loserSeeds, 'cp');
-
-  const winnerQualified = getQualifiedTeams(winners);
-  const loserQualified = getQualifiedTeams(losers);
-
-  return {
-    winners,
-    losers,
-    finals: buildFinalsBracket(winnerQualified, loserQualified),
-  };
-};
-
-const rotatePool = (pool: string[], amount: number) => {
-  const offset = Math.floor(amount) % pool.length;
-  return [...pool.slice(offset), ...pool.slice(0, offset)];
-};
-
-const buildSeededTeams = (size: TeamCount, pool: string[]): Team[] =>
-  pool.slice(0, size).map((name, index) => ({
-    id: `seed-${index + 1}`,
-    name: `${index + 1} - ${name}`,
-    seed: index + 1,
-  }));
-
-const buildProgressiveBracket = (initialTeams: Team[], prefix: string): BracketRounds => {
-  let currentTeams = [...initialTeams];
-  const rounds: BracketRounds = [];
-  let roundIndex = 0;
-
-  while (currentTeams.length > 2) {
-    const currentSize = currentTeams.length;
-    const nextSize = getNextStageSize(currentSize);
-    const label = getRoundLabel(currentSize);
-    const matches: Match[] = [];
-    const nextTeams: Team[] = [];
-
-    const byeCount = isPowerOfTwo(currentSize) ? 0 : 2 * nextSize - currentSize;
-    const byeTeams = currentTeams.slice(0, byeCount);
-    const playingTeams = currentTeams.slice(byeCount);
-
-    nextTeams.push(...byeTeams);
-
-    for (let index = 0; index < playingTeams.length; index += 2) {
-      const teamA = playingTeams[index] ?? null;
-      const teamB = playingTeams[index + 1] ?? null;
-      const resolved = resolveMatch(label, `${prefix}-${roundIndex + 1}-${index / 2 + 1}`, teamA, teamB, index / 2);
-      matches.push(resolved.match);
-      if (resolved.winner) {
-        nextTeams.push(resolved.winner);
-      }
-    }
-
-    rounds.push({ name: label, matches });
-    currentTeams = nextTeams;
-    roundIndex += 1;
-  }
-
-  return rounds;
-};
-
-const isPowerOfTwo = (value: number) => value > 0 && (value & (value - 1)) === 0;
-
-const getPreviousPowerOfTwo = (value: number) => {
-  let power = 1;
-  while (power * 2 < value) {
-    power *= 2;
-  }
-  return power;
-};
-
-const getNextStageSize = (currentSize: number) => {
-  if (currentSize <= 4) return 2;
-  if (isPowerOfTwo(currentSize)) return currentSize / 2;
-  return getPreviousPowerOfTwo(currentSize);
-};
-
-const getRoundLabel = (currentSize: number) => {
-  if (currentSize === 4) return 'Semi';
-  if (currentSize === 8) return 'Quartas';
-  if (currentSize === 16) return 'Oitavas';
-  if (currentSize === 32) return 'Round of 32';
-  return `R${currentSize}`;
-};
-
-const resolveMatch = (round: string, id: string, teamA: Team | null, teamB: Team | null, index: number) => {
-  const time = getRoundTime(round, index);
-
-  if (!teamA || !teamB) {
-    return {
-      match: { id, round, teamA, teamB, time, status: 'scheduled' as const },
-      winner: teamA ?? teamB,
-      loser: teamA ? teamB : teamA,
-    };
-  }
-
-  const teamAWins = index % 3 !== 1;
-  const scoreA = teamAWins ? 18 : 15;
-  const scoreB = teamAWins ? 14 : 18;
-  const setScoreA = teamAWins ? 2 : 1;
-  const setScoreB = teamAWins ? 1 : 2;
-
-  return {
-    match: { id, round, teamA, teamB, setScoreA, setScoreB, scoreA, scoreB, time, status: 'finished' as const },
-    winner: (teamAWins ? teamA : teamB) as Team,
-    loser: (teamAWins ? teamB : teamA) as Team,
-  };
-};
-
-const getRoundTime = (round: string, index: number) => {
-  const baseByRound: Record<string, string> = {
-    'Round of 32': '09:00',
-    Oitavas: '10:00',
-    Quartas: '12:00',
-    Semi: '15:30',
-    Final: '18:00',
-    'Disputa de 3º Lugar': '17:00',
-  };
-
-  const base = baseByRound[round] ?? '15:30';
-  const [hourString, minuteString] = base.split(':');
-  const hour = Number(hourString);
-  const minute = Number(minuteString);
-  const totalMinutes = hour * 60 + minute + index * 20;
-  const nextHour = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
-  const nextMinute = String(totalMinutes % 60).padStart(2, '0');
-  return `${nextHour}:${nextMinute}`;
-};
-
-const getQualifiedTeams = (rounds: BracketRounds): Team[] => {
-  const lastRound = rounds[rounds.length - 1];
-  if (!lastRound) return [];
-  return lastRound.matches.flatMap((match) => {
-    const teamAWins = (match.scoreA ?? 0) >= (match.scoreB ?? 0);
-    return [teamAWins ? match.teamA : match.teamB].filter(Boolean) as Team[];
-  });
-};
-
-const buildFinalsBracket = (winnerQualified: Team[], loserQualified: Team[]): FinalsRounds => {
-  const semifinalOne = resolveMatch('Semi', 'finals-semi-1', winnerQualified[0] ?? null, loserQualified[1] ?? null, 0);
-  const semifinalTwo = resolveMatch('Semi', 'finals-semi-2', winnerQualified[1] ?? null, loserQualified[0] ?? null, 1);
-  const finalMatch = {
-    id: 'finals-final',
-    round: 'Final',
-    teamA: semifinalOne.winner,
-    teamB: semifinalTwo.winner,
-    time: '18:00',
-    status: 'scheduled' as const,
-  };
-  const thirdPlaceResolved = resolveMatch('3º Lugar', 'finals-third', semifinalOne.loser, semifinalTwo.loser, 0);
-  const thirdPlaceMatch = {
-    ...thirdPlaceResolved.match,
-    setScoreA: 1,
-    setScoreB: 1,
-    scoreA: 1,
-    scoreB: 1,
-    status: 'live' as const,
-  };
-
-  return [
-    { name: 'Semi', matches: [semifinalOne.match, semifinalTwo.match] },
-    { name: 'Disputa de 3º Lugar', matches: [thirdPlaceMatch] },
-    { name: 'Final', matches: [finalMatch] },
-  ];
-};
 
 export default ChampionshipDetail;

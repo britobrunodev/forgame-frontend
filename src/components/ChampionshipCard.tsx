@@ -123,7 +123,7 @@ export const ChampionshipCard = ({ c }: { c: ChampionshipCardData }) => {
   const badge = STATUS_BADGE[c.status] ?? STATUS_BADGE.draft;
   const isOpen = c.status === 'open';
   const isLive = c.status === 'live';
-  const isClickable = isOpen;
+  const isClickable = isOpen || isLive;
 
   const handleRegister = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -131,7 +131,8 @@ export const ChampionshipCard = ({ c }: { c: ChampionshipCardData }) => {
   };
 
   const handleCardClick = () => {
-    if (isClickable) navigate(`/championships/${c.id}/register`);
+    if (isLive) navigate(`/championships/${c.id}`);
+    else if (isOpen) navigate(`/championships/${c.id}/register`);
   };
 
   return (
@@ -139,7 +140,7 @@ export const ChampionshipCard = ({ c }: { c: ChampionshipCardData }) => {
       onClick={handleCardClick}
       className={`group relative overflow-hidden rounded-2xl border border-border bg-gradient-card ${isClickable ? 'cursor-pointer transition-smooth hover:-translate-y-0.5 hover:border-background hover:shadow-none' : 'cursor-default'}`}
     >
-      <div className="relative aspect-[3/2] overflow-hidden bg-secondary">
+      <div className="relative aspect-[3/2] overflow-hidden bg-slate-950 dark:bg-secondary">
         {c.image ? (
           <PositionedCoverImage
             src={c.image}

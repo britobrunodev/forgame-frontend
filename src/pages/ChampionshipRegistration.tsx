@@ -87,8 +87,13 @@ const ChampionshipRegistration = () => {
     () => formats.find((f) => f.id === selectedCategory?.format_id) ?? null,
     [formats, selectedCategory],
   );
-  const subscriptionPlayers: number =
-    (selectedFormat?.config_json?.subscription_players as number | undefined) ?? selectedCategory?.players_per_team ?? 1;
+  const rawSubscriptionPlayers = selectedFormat?.config_json?.subscription_players;
+  const subscriptionPlayers =
+    typeof rawSubscriptionPlayers === 'number' && rawSubscriptionPlayers > 0
+      ? rawSubscriptionPlayers
+      : typeof rawSubscriptionPlayers === 'string' && /^\d+$/.test(rawSubscriptionPlayers) && Number(rawSubscriptionPlayers) > 0
+        ? Number(rawSubscriptionPlayers)
+        : 1;
   const requiredAdditionalPlayers = Math.max(0, subscriptionPlayers - 1);
 
   const { data: playersResponse, isLoading: isLoadingPlayers } = useQuery({
@@ -122,10 +127,16 @@ const ChampionshipRegistration = () => {
     }).format(selectedCategory.entry_fee ?? 0)
     : null;
 
-  const canProceed = selectedCategory !== null && selectedPlayers.length === requiredAdditionalPlayers;
+  const canProceed = selectedCategory !== null
+    && !selectedCategory.is_full
+    && selectedPlayers.length === requiredAdditionalPlayers;
 
   const handleProceed = () => {
     if (!championship || !selectedCategory || !formattedFee || !token) return;
+    if (selectedCategory.is_full) {
+      notify.error(t('categoryFull'), t('categoryFullDescription'));
+      return;
+    }
     const playerIds =
       subscriptionPlayers === 1
         ? [Number(currentUser.id)]
@@ -228,16 +239,16 @@ const ChampionshipRegistration = () => {
           <ArrowLeft className="h-4 w-4" />
         </button>
         <div className="min-w-0">
-          <p className="font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('championshipRegistrations')}</p>
+          <p className="font-display text-sm font-bold uppercase tracking-[0.28em] text-primary dark:text-[#39E600]">{t('championshipRegistrations')}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">{t('registerForChampionship')}</p>
         </div>
       </header>
 
       <section className="rounded-[2rem] border border-border bg-gradient-card p-6 shadow-card sm:p-8">
-        <p className="font-display text-[10px] font-bold uppercase tracking-[0.3em] text-neon-cyan">
+        <p className="font-display text-[10px] font-bold uppercase tracking-[0.3em] text-primary dark:text-[#39E600]">
           {sport ? sportName(sport) : t('championships')}
         </p>
-        <h1 className="mt-1 font-display text-2xl font-black leading-tight text-foreground sm:text-3xl">{championship.name}</h1>
+        <h1 className="mt-1 font-display text-2xl font-black leading-tight text-muted-foreground dark:text-foreground sm:text-3xl">{championship.name}</h1>
       </section>
 
       {championship.status !== 'open' ? (
@@ -258,6 +269,7 @@ const ChampionshipRegistration = () => {
               <div className="space-y-3">
                 {categories.map((category) => {
                   const isActive = selectedCategoryId === String(category.id);
+                  const isFull = category.is_full;
                   const catFee = new Intl.NumberFormat(language === 'pt-BR' ? 'pt-BR' : 'en-US', {
                     style: 'currency',
                     currency: 'BRL',
@@ -267,6 +279,10 @@ const ChampionshipRegistration = () => {
                       key={category.id}
                       type="button"
                       onClick={() => {
+                        if (isFull) {
+                          notify.error(t('categoryFull'), t('categoryFullDescription'));
+                          return;
+                        }
                         setSelectedCategoryId(String(category.id));
                         setSelectedPlayers([]);
                         setSearch('');
@@ -276,7 +292,9 @@ const ChampionshipRegistration = () => {
                       className={`group flex w-full items-center gap-4 rounded-2xl border px-5 py-4 text-left transition-smooth ${
                         isActive
                           ? 'border-primary/40 bg-primary/10 shadow-[0_0_20px_hsl(var(--primary)/0.18)]'
-                          : 'border-border bg-background/30 hover:border-primary/30 hover:bg-background/50'
+                          : isFull
+                            ? 'border-border bg-background/20 opacity-70'
+                            : 'border-border bg-background/30 hover:border-primary/30 hover:bg-background/50'
                       }`}
                     >
                       {/* Selection indicator */}
@@ -290,8 +308,15 @@ const ChampionshipRegistration = () => {
 
                       {/* Name + format */}
                       <div className="min-w-0 flex-1">
-                        <div className={`font-display text-base font-black leading-tight ${isActive ? 'text-primary-glow' : 'text-foreground'}`}>
-                          {categoryName(category.category_slug, category.audience_slug, t)}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className={`font-display text-base font-black leading-tight ${isActive ? 'text-primary-glow' : 'text-foreground'}`}>
+                            {categoryName(category.category_slug, category.audience_slug, t)}
+                          </div>
+                          {isFull && (
+                            <span className="rounded-full border border-neon-pink/30 bg-neon-pink/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-neon-pink">
+                              {t('full')}
+                            </span>
+                          )}
                         </div>
                         <div className="mt-0.5 text-xs text-muted-foreground">
                           {formatLabel(category.format_slug, t)}
@@ -489,6 +514,12 @@ const ChampionshipRegistration = () => {
                     <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('entryFee')}</div>
                     <div className="mt-1 break-words font-display text-xl font-black leading-tight text-primary-glow sm:text-2xl">{formattedFee}</div>
                   </div>
+                  {selectedCategory.is_full && (
+                    <div className="rounded-xl border border-neon-pink/25 bg-neon-pink/10 p-3 text-sm text-neon-pink">
+                      <div className="font-semibold">{t('categoryFull')}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">{t('categoryFullDescription')}</div>
+                    </div>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -499,7 +530,7 @@ const ChampionshipRegistration = () => {
                   type="button"
                   disabled={!canProceed || championship.status !== 'open' || isSubmitting}
                   onClick={handleProceed}
-                  className="inline-flex w-full items-center justify-center rounded-lg bg-gradient-primary px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] shadow-neon transition-smooth hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex w-full items-center justify-center rounded-lg bg-gradient-primary px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] text-white shadow-neon transition-smooth hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t('continue')}
                 </button>

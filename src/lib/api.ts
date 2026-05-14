@@ -193,7 +193,6 @@ export interface ChampionshipSubscriptionListItem {
   category_slug: string;
   audience_slug: string;
   format_slug: string;
-  players_per_team: number;
   team_id: number;
   team_user_ids: number[];
   status: string;
@@ -597,14 +596,16 @@ export interface ChampionshipCategoryData {
   category_slug: string;
   audience_slug: string;
   entry_fee: number | null;
-  players_per_team: number;
   max_subscriptions: number | null;
+  subscriptions_count: number;
+  is_full: boolean;
   auto_generate_matches: boolean;
   start_date: string | null;
   start_time: string | null;
 }
 
 export interface ChampionshipCategoryInput {
+  id?: number | null;
   format_id: number | null;
   category_slug: string;
   audience_slug: string;
@@ -725,6 +726,11 @@ export const championshipApi = {
       body: JSON.stringify(body),
     }).then((r) => handle<ChampionshipSubscriptionData>(r)),
 
+  getMatches: (token: string, championshipId: number | string, categoryId: number) =>
+    fetch(`${API_BASE}/championships/${championshipId}/matches?category_id=${categoryId}`, {
+      headers: json(token),
+    }).then((r) => handle<ChampionshipMatchesData>(r)),
+
   uploadImage: async (token: string, id: number | string, dataUrl: string): Promise<{ url: string }> => {
     const [, base64] = dataUrl.split(',');
     const binary = atob(base64);
@@ -741,6 +747,46 @@ export const championshipApi = {
     return handle<{ url: string }>(res);
   },
 };
+
+export interface ChampionshipTeamOut {
+  id: number;
+  name: string;
+  user_ids: number[];
+}
+
+export interface ChampionshipMatchOut {
+  id: number;
+  match_number: number;
+  group_name: string | null;
+  round_number: number;
+  status: string;
+  team_1: ChampionshipTeamOut | null;
+  team_2: ChampionshipTeamOut | null;
+  winner_team_id: number | null;
+  score_json: { score_1?: number; score_2?: number; sets_1?: number; sets_2?: number } | null;
+  scheduled_at: string | null;
+  config_json: Record<string, unknown> | null;
+}
+
+export interface ChampionshipStandingRow {
+  team: ChampionshipTeamOut;
+  wins: number;
+  losses: number;
+  points: number;
+}
+
+export interface ChampionshipGroupOut {
+  name: string;
+  phase: string;
+  standings: ChampionshipStandingRow[];
+  matches: ChampionshipMatchOut[];
+}
+
+export interface ChampionshipMatchesData {
+  format_slug: string;
+  category_id: number;
+  groups: ChampionshipGroupOut[];
+}
 
 export const championshipSubscriptionsApi = {
   listMine: (token: string, page = 1, perPage = 12) =>

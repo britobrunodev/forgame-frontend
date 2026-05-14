@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Clock, Copy, CreditCard, QrCode, Receipt, ShieldCheck, Wallet } from 'lucide-react';
+import { ArrowLeft, Clock, Copy, CreditCard, QrCode, Receipt, Wallet } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useLanguage } from '@/i18n';
 import { notify } from '@/lib/notify';
@@ -244,14 +244,14 @@ const Payment = () => {
           </button>
         )}
         <div>
-          <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('payment')}</p>
+          <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-primary dark:text-[#39E600]">{t('payment')}</p>
           <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{state?.description ?? payment?.source_name ?? t('paymentDescription')}</p>
         </div>
       </header>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_320px]">
+      <div className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,1.2fr)_320px]">
         {/* ── Main panel ──────────────────────────────── */}
-        <section className="rounded-[2rem] border border-border bg-gradient-card p-5 shadow-card sm:p-6">
+        <section className="h-full rounded-[2rem] border border-border bg-gradient-card p-5 shadow-card sm:p-6">
 
           {/* Payment method selector */}
           <div className="space-y-3">
@@ -501,14 +501,13 @@ const Payment = () => {
         </section>
 
         {/* ── Sidebar ──────────────────────────────────── */}
-        <aside className="space-y-5">
-          <div className="rounded-2xl border border-border bg-gradient-card p-5 shadow-card">
-            <div className="mb-4 flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-neon-cyan" />
+        <aside className="h-full">
+          <div className="flex h-full flex-col rounded-2xl border border-border bg-gradient-card p-5 shadow-card">
+            <div className="mb-4">
               <h2 className="font-display text-sm font-bold uppercase tracking-[0.2em]">{t('bookingSummary')}</h2>
             </div>
 
-            <div className="space-y-3 text-sm">
+            <div className="flex-1 space-y-3 text-sm">
               {resolvedSummary.map((item) => (
                 <div key={item.label} className="rounded-xl border border-border bg-background/30 p-3">
                   <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{item.label}</div>
@@ -530,7 +529,7 @@ const Payment = () => {
                   type="button"
                   disabled={isSubmitting}
                   onClick={handlePay}
-                  className="inline-flex w-full items-center justify-center rounded-lg bg-gradient-primary px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] shadow-neon transition-smooth hover:brightness-110 disabled:opacity-60"
+                  className="inline-flex w-full items-center justify-center rounded-lg bg-gradient-primary px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] text-white shadow-neon transition-smooth hover:brightness-110 disabled:opacity-60"
                 >
                   {isSubmitting ? '...' : t('payNow')}
                 </button>
@@ -551,7 +550,7 @@ const Payment = () => {
             type="button"
             disabled={isSubmitting}
             onClick={handlePay}
-            className="shrink-0 inline-flex items-center justify-center rounded-lg bg-gradient-primary px-5 py-2.5 font-display text-sm font-bold uppercase tracking-[0.2em] shadow-neon transition-smooth hover:brightness-110 disabled:opacity-60"
+            className="shrink-0 inline-flex items-center justify-center rounded-lg bg-gradient-primary px-5 py-2.5 font-display text-sm font-bold uppercase tracking-[0.2em] text-white shadow-neon transition-smooth hover:brightness-110 disabled:opacity-60"
           >
             {isSubmitting ? '...' : t('payNow')}
           </button>

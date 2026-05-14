@@ -18,6 +18,7 @@ import type { SportId } from '@/types';
 
 type CategoryEntry = {
   id: string;
+  backend_id?: number;
   format_id: string;
   category_slug: string;
   audience_slug: string;
@@ -171,6 +172,7 @@ const ChampionshipSettings = () => {
     setCategories(
       existing.categories.map((cat) => ({
         id: String(cat.id ?? genId()),
+        backend_id: cat.id,
         format_id: cat.format_id != null ? String(cat.format_id) : '',
         category_slug: cat.category_slug,
         audience_slug: cat.audience_slug,
@@ -238,6 +240,7 @@ const ChampionshipSettings = () => {
   const addCategory = () =>
     setCategories((prev) => [...prev, {
       id: genId(),
+      backend_id: undefined,
       format_id: formatsCatalog[0]?.id != null ? String(formatsCatalog[0].id) : '',
       category_slug: categoriesCatalog[0]?.slug ?? 'beginner',
       audience_slug: 'mixed',
@@ -250,7 +253,11 @@ const ChampionshipSettings = () => {
 
   const removeCategory = (id: string) => setCategories((prev) => prev.filter((c) => c.id !== id));
 
-  const updateCategory = (id: string, field: keyof Omit<CategoryEntry, 'id'>, value: string | boolean) =>
+  const updateCategory = (
+    id: string,
+    field: keyof Omit<CategoryEntry, 'id' | 'backend_id'>,
+    value: string | boolean,
+  ) =>
     setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
 
   // ── Save ───────────────────────────────────────────────────────────────────
@@ -276,6 +283,7 @@ const ChampionshipSettings = () => {
         end_at: endDate ? localToUtcIso(endDate, endTime, timezone) : null,
         registration_deadline_at: deadlineDate ? localToUtcIso(deadlineDate, deadlineTime, timezone) : null,
         categories: categories.map((c) => ({
+          id: c.backend_id,
           format_id: c.format_id ? Number(c.format_id) : null,
           category_slug: c.category_slug,
           audience_slug: c.audience_slug,
