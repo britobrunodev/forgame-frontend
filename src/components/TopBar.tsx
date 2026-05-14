@@ -259,7 +259,7 @@ export const TopBar = () => {
       >
         <div className="text-right hidden sm:block">
           <div className="text-sm font-bold leading-tight">{currentUser.name}</div>
-          <div className="text-[10px] uppercase tracking-wider text-neon-cyan font-semibold">
+          <div className="text-[10px] uppercase tracking-wider text-lime-400 font-semibold">
             {accessLabel}
           </div>
         </div>
