@@ -51,7 +51,7 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('playerFeed')}</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#39E600]">{t('playerFeed')}</p>
               <h1 className="mt-0.5 truncate font-display text-xl font-black leading-tight sm:text-2xl">
                 {currentUser.nickname
                   ? <><span className="text-foreground/70">{t('hey')},</span> <span className="neon-text">{currentUser.nickname}</span></>

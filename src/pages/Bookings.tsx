@@ -27,7 +27,7 @@ const Bookings = () => {
   return (
     <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-8">
       <header>
-        <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('scheduleTitle')}</p>
+        <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-[#39E600]">{t('scheduleTitle')}</p>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('scheduleDescription')}</p>
       </header>
 

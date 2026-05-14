@@ -292,7 +292,7 @@ export const StaffAccessManager = ({
           </>
         )}
 
-        {users.length > 0 && selectedComplexId ? (
+        {snapshot ? (
           <div className="mt-5 flex items-center justify-between gap-4 border-t border-border pt-4">
             <div className="flex items-center gap-2">
               <button
@@ -316,7 +316,7 @@ export const StaffAccessManager = ({
               </button>
               <span className="ml-2 text-xs text-muted-foreground">{totalUsers} {t('users').toLowerCase()}</span>
             </div>
-            <button type="button" onClick={handleSave} disabled={saving} title={t('saveChanges')} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110 disabled:opacity-60">
+            <button type="button" onClick={handleSave} disabled={saving || !selectedComplexId} title={t('saveChanges')} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110 disabled:opacity-60">
               <Save className="h-4 w-4" />
             </button>
           </div>

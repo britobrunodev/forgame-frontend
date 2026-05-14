@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, Trash2, ShieldCheck, Check } from 'lucide-react';
+import { Building2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, Trash2, ShieldCheck, Check } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { notify } from '@/lib/notify';
 import { useSession } from '@/session';
@@ -72,10 +72,6 @@ const AdminComplexes = () => {
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : complexes.length === 0 ? (
-          <div className="px-5 py-10 text-center text-sm text-muted-foreground">
-            Nenhum complexo cadastrado.
-          </div>
         ) : (
           <>
             {/* Mobile cards */}
@@ -105,6 +101,11 @@ const AdminComplexes = () => {
                   </div>
                 </div>
               ))}
+              {pageItems.length === 0 ? (
+                <div className="rounded-xl border border-border px-4 py-10 text-center">
+                  <Building2 className="mx-auto h-10 w-10 text-muted-foreground/30" />
+                </div>
+              ) : null}
             </div>
 
             {/* Desktop table */}
@@ -150,6 +151,11 @@ const AdminComplexes = () => {
                       </div>
                     </div>
                   ))}
+                  {pageItems.length === 0 ? (
+                    <div className="py-10 text-center">
+                      <Building2 className="mx-auto h-10 w-10 text-muted-foreground/30" />
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>

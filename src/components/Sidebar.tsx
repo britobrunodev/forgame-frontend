@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Trophy, MapPin, LogOut, Building2, ChevronDown, ChevronLeft, ChevronRight, Receipt, GraduationCap, Users, ShieldCheck, ClipboardList, Calendar } from 'lucide-react';
-import { Logo } from './Logo';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 
@@ -50,17 +49,16 @@ export const Sidebar = () => {
         collapsed ? 'w-20' : 'w-60 xl:w-64'
       }`}
     >
-      {/* Logo area — h-10 wrapper matches TopBar content height so border-b aligns */}
-      <div className="relative flex items-center justify-center border-b border-border px-3 py-3 sm:py-4">
+      <div className="relative flex h-[74px] items-center justify-center border-b border-border px-3">
         <button
           type="button"
           onClick={toggleCollapsed}
           title={collapsed ? 'Expandir menu' : 'Recolher menu'}
-          className="flex h-10 items-center justify-center"
+          className="flex h-full items-center justify-center"
         >
           {collapsed
-            ? <img src="/forgame_logo_tab.png" alt="Forgame" className="h-9 w-9 object-contain" />
-            : <Logo className="h-9" />
+            ? <img src="/forgame_logo_without_letters.png" alt="Forgame" className="h-10 w-10 object-contain" />
+            : <img src="/forgame_logo.png" alt="Forgame" className="h-[3.7rem] w-auto object-contain" />
           }
         </button>
         <button

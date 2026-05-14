@@ -114,7 +114,8 @@ const AdminApprovals = () => {
       </header>
 
       <section className="space-y-5">
-        <div className="flex flex-wrap gap-2">
+        <div className="border-b border-border pb-4">
+          <div className="flex flex-wrap gap-2">
           {FILTERS.map(({ value, label }) => (
             <button
               key={value}
@@ -132,16 +133,12 @@ const AdminApprovals = () => {
               </span>
             </button>
           ))}
+          </div>
         </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="mt-5 flex flex-col items-center justify-center py-16 text-center">
-            <CheckCircle2 className="mb-3 h-10 w-10 text-muted-foreground/50" />
-            <p className="text-sm font-semibold text-muted-foreground">Nenhuma solicitação encontrada.</p>
           </div>
         ) : (
           <div className="mt-5 space-y-2">
@@ -196,9 +193,14 @@ const AdminApprovals = () => {
                 ) : null}
               </div>
             ))}
+            {filtered.length === 0 ? (
+              <div className="py-10 text-center">
+                <CheckCircle2 className="mx-auto h-10 w-10 text-muted-foreground/30" />
+              </div>
+            ) : null}
           </div>
         )}
-        {!isLoading && approvals.length > 0 && (
+        {!isLoading && (
           <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
             <div className="flex items-center gap-2">
               <button

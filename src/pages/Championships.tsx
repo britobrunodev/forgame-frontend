@@ -64,7 +64,7 @@ const Championships = () => {
     <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('championships')}</p>
+          <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-[#39E600]">{t('championships')}</p>
           <p className="mt-3 text-sm text-muted-foreground">{t('allChampionships')}</p>
         </div>
         <div className="w-full max-w-xs">
@@ -95,7 +95,7 @@ const Championships = () => {
           </p>
         </div>
       ) : championships.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-gradient-card p-10 shadow-card text-center">
+        <div className="p-10 text-center">
           <Trophy className="mx-auto h-10 w-10 text-muted-foreground/30" />
         </div>
       ) : (

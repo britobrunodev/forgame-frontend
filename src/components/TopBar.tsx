@@ -16,7 +16,6 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import { LanguageSelector } from './LanguageSelector';
-import { Logo } from './Logo';
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLanguage } from '@/i18n';
@@ -56,7 +55,7 @@ export const TopBar = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-30 shrink-0 flex flex-wrap items-center gap-3 border-b border-border bg-background/70 px-4 py-3 backdrop-blur-xl sm:px-6 sm:py-4">
+    <header className="sticky top-0 z-30 flex h-[66px] shrink-0 items-center gap-3 border-b border-border bg-background/70 px-4 backdrop-blur-xl sm:h-[74px] sm:px-6">
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetTrigger asChild>
           <button className="lg:hidden inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground">
@@ -67,9 +66,13 @@ export const TopBar = () => {
 
         <SheetContent side="left" className="w-[88vw] max-w-sm border-r border-border bg-sidebar/95 p-0 backdrop-blur-xl">
           <div className="flex h-full flex-col">
-            <div className="flex h-20 items-center justify-center border-b border-border">
+            <div className="flex h-[66px] items-center justify-center border-b border-border px-3 sm:h-[74px]">
               <SheetTitle className="sr-only">Forgame</SheetTitle>
-              <Logo />
+              <img
+                src="/forgame_logo.png"
+                alt="Forgame"
+                className="h-[3.7rem] w-auto object-contain"
+              />
             </div>
 
             <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3">

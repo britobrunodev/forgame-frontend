@@ -77,7 +77,7 @@ const ManagementChampionships = () => {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : championships.length > 0 ? (
+      ) : (
         <div className="space-y-5">
           {/* Mobile cards */}
           <div className="space-y-3 md:hidden">
@@ -121,6 +121,11 @@ const ManagementChampionships = () => {
                 </div>
               </article>
             ))}
+            {championships.length === 0 ? (
+              <div className="rounded-2xl border border-border bg-background/25 px-4 py-10 text-center">
+                <Trophy className="mx-auto h-10 w-10 text-muted-foreground/30" />
+              </div>
+            ) : null}
           </div>
 
           {/* Desktop table */}
@@ -175,6 +180,11 @@ const ManagementChampionships = () => {
                     </div>
                   </div>
                 ))}
+                {championships.length === 0 ? (
+                  <div className="py-10 text-center">
+                    <Trophy className="mx-auto h-10 w-10 text-muted-foreground/30" />
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -203,12 +213,6 @@ const ManagementChampionships = () => {
             </div>
             <span className="text-xs text-muted-foreground">{totalItems} {t('championships').toLowerCase()}</span>
           </div>
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
-          <Trophy className="mb-4 h-8 w-8 text-muted-foreground/50" />
-          <h2 className="font-display text-2xl font-black">{t('noManagedChampionshipsTitle')}</h2>
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('noManagedChampionshipsDescription')}</p>
         </div>
       )}
     </div>

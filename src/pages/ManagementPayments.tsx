@@ -224,7 +224,7 @@ const ManagementPayments = () => {
           ) : null}
         </div>
 
-        {visibleRows.length > 0 ? (
+        {!isLoading ? (
           <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
             <div className="flex items-center gap-2">
               <button

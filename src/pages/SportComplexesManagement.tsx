@@ -61,7 +61,7 @@ const SportComplexesManagement = () => {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : complexes.length > 0 ? (
+      ) : (
         <>
           <div className="space-y-3 md:hidden">
             {complexes.map((complex) => (
@@ -107,6 +107,11 @@ const SportComplexesManagement = () => {
                 </div>
               </article>
             ))}
+            {complexes.length === 0 ? (
+              <div className="rounded-2xl border border-border bg-background/25 px-4 py-10 text-center">
+                <Building2 className="mx-auto h-10 w-10 text-muted-foreground/30" />
+              </div>
+            ) : null}
           </div>
           <div className="hidden overflow-x-auto md:block">
             <div className="min-w-[860px]">
@@ -151,6 +156,11 @@ const SportComplexesManagement = () => {
                     </div>
                   </div>
                 ))}
+                {complexes.length === 0 ? (
+                  <div className="py-10 text-center">
+                    <Building2 className="mx-auto h-10 w-10 text-muted-foreground/30" />
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -179,12 +189,6 @@ const SportComplexesManagement = () => {
             <span className="text-xs text-muted-foreground">{totalItems} {t('sportComplexes').toLowerCase()}</span>
           </div>
         </>
-      ) : (
-        <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
-          <Building2 className="mb-4 h-8 w-8 text-muted-foreground/50" />
-          <h2 className="font-display text-2xl font-black">{t('noSportComplexesTitle')}</h2>
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('noSportComplexesDescription')}</p>
-        </div>
       )}
     </div>
   );
