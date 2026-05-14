@@ -80,7 +80,6 @@
     background-image: var(--gradient-bg);
     background-attachment: fixed;
     min-height: 100vh;
-    padding-top: env(safe-area-inset-top);
   }
 
   h1, h2, h3, h4, .font-display {

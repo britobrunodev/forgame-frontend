@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-hero pt-32 pb-20 md:pt-40 md:pb-28">
+    <section className="relative overflow-hidden bg-hero pb-20 md:pb-28" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 9rem)' }}>
       <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-12 lg:gap-8">
         <div className="lg:col-span-7">
           <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-surface/60 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">

@@ -55,7 +55,11 @@ export const TopBar = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-30 flex h-[66px] shrink-0 items-center gap-3 border-b border-border bg-background/70 px-4 backdrop-blur-xl sm:h-[74px] sm:px-6">
+    <header
+      className="sticky top-0 z-30 shrink-0 border-b border-border bg-background/70 backdrop-blur-xl"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+    >
+    <div className="flex h-[66px] items-center gap-3 px-4 sm:h-[74px] sm:px-6">
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetTrigger asChild>
           <button className="lg:hidden inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground">
@@ -64,15 +68,17 @@ export const TopBar = () => {
           </button>
         </SheetTrigger>
 
-        <SheetContent side="left" className="w-[88vw] max-w-sm border-r border-border bg-sidebar/95 p-0 backdrop-blur-xl">
+        <SheetContent side="left" className="w-[62vw] max-w-xs border-r border-border bg-sidebar/95 p-0 backdrop-blur-xl">
           <div className="flex h-full flex-col">
-            <div className="flex h-[66px] items-center justify-center border-b border-border px-3 sm:h-[74px]">
-              <SheetTitle className="sr-only">Forgame</SheetTitle>
-              <img
-                src="/forgame_logo.png"
-                alt="Forgame"
-                className="h-[3.7rem] w-auto object-contain"
-              />
+            <div className="border-b border-border" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+              <div className="flex h-[66px] items-center justify-center px-3 sm:h-[74px]">
+                <SheetTitle className="sr-only">Forgame</SheetTitle>
+                <img
+                  src="/forgame_logo.png"
+                  alt="Forgame"
+                  className="h-[3.7rem] w-auto object-contain"
+                />
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3">
@@ -217,7 +223,7 @@ export const TopBar = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/login')}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-sm text-sidebar-foreground transition-smooth hover:bg-sidebar-accent"
+                  className="flex w-full items-center justify-center gap-3 px-4 py-3 text-sm text-sidebar-foreground transition-smooth hover:bg-sidebar-accent"
                 >
                   <LogOut className="h-4 w-4" /> {t('logout')}
                 </button>
@@ -274,6 +280,7 @@ export const TopBar = () => {
           </AvatarFallback>
         </Avatar>
       </button>
+    </div>
     </header>
   );
 };

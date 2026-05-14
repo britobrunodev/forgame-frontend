@@ -11,7 +11,7 @@ const links = [
 
 export function Navbar() {
   return (
-    <header className="absolute inset-x-0 top-0 z-30">
+    <header className="absolute inset-x-0 top-0 z-30" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
         <Link to="/" className="flex items-center gap-2">
           <img src={logo} alt="Forgame" className="h-9 w-auto" />

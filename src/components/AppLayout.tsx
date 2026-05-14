@@ -47,6 +47,7 @@ export const AppLayout = () => {
           <div className="print:hidden"><TopBar /></div>
           <main className="flex-1 overflow-y-auto animate-fade-in px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 print:overflow-visible print:p-0">
             <Outlet />
+            <div className="print:hidden" style={{ height: 'env(safe-area-inset-bottom)' }} aria-hidden="true" />
           </main>
         </div>
       </div>

@@ -48,6 +48,7 @@ export const Sidebar = () => {
       className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border bg-sidebar/80 backdrop-blur-xl lg:flex transition-all duration-200 ${
         collapsed ? 'w-20' : 'w-60 xl:w-64'
       }`}
+      style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="relative flex h-[74px] items-center justify-center border-b border-border px-3">
         <button

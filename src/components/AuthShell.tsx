@@ -15,7 +15,10 @@ export const AuthShell = ({ mode, title, subtitle, isLoading, children }: AuthSh
   const { t } = useLanguage();
 
   return (
-    <div className="relative flex min-h-screen items-start justify-center overflow-hidden p-4 pt-16 sm:items-center sm:pt-4">
+    <div
+      className="relative flex min-h-screen items-start justify-center overflow-hidden p-4 sm:items-center sm:pt-4"
+      style={{ paddingTop: 'calc(env(safe-area-inset-top) + 4rem)' }}
+    >
       <div className="absolute inset-0 hex-grid opacity-40" />
       <div className="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
       <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-neon-cyan/5 blur-3xl" />
@@ -24,7 +27,7 @@ export const AuthShell = ({ mode, title, subtitle, isLoading, children }: AuthSh
           <div className="animate-loading-bar h-full bg-gradient-primary" />
         </div>
       )}
-      <div className="absolute right-4 top-4 z-10">
+      <div className="absolute right-4 z-10" style={{ top: 'calc(env(safe-area-inset-top) + 1rem)' }}>
         <LanguageSelector />
       </div>
 
