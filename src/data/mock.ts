@@ -46,6 +46,7 @@ export const CURRENT_USER: User = {
   wins: 0,
   losses: 0,
   draws: 0,
+  points: 0,
   ownedComplexIds: ["p2", "p3"],
 };
 

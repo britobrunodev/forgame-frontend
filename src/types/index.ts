@@ -233,6 +233,7 @@ export interface User {
   wins?: number;
   losses?: number;
   draws?: number;
+  points?: number;
   ownedComplexIds?: string[];
   documentType?: DocumentType;
   documentNumber?: string;

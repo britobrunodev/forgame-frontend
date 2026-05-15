@@ -325,6 +325,7 @@ const ProfileSettings = () => {
           wins: profile.wins,
           losses: profile.losses,
           draws: profile.draws,
+          points: profile.points,
         });
       } catch (err) {
         if (cancelled) return;
@@ -464,6 +465,7 @@ const ProfileSettings = () => {
         wins: profile?.wins ?? currentUser.wins,
         losses: profile?.losses ?? currentUser.losses,
         draws: profile?.draws ?? currentUser.draws,
+        points: profile?.points ?? currentUser.points,
       });
       notify.success(t('changesSaved'), nextName);
     } catch (err) {

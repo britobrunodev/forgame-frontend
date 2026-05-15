@@ -32,6 +32,7 @@ const useProfileSync = () => {
         wins: profile.wins,
         losses: profile.losses,
         draws: profile.draws,
+        points: profile.points,
         theme: (profile.theme as Theme | null) ?? 'system',
       });
     }).catch(() => {});

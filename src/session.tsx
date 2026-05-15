@@ -65,6 +65,7 @@ const buildUserFromAuth = (authUser: AuthUser): User => {
     wins: 0,
     losses: 0,
     draws: 0,
+    points: 0,
     sportCharacteristics: {},
     country: undefined,
     phoneCountry: undefined,

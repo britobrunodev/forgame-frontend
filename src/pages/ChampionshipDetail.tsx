@@ -8,6 +8,7 @@ import { MapsButton } from '@/components/MapsButton';
 import { MatchNode, type ScoreUpdateFn, type TeamUpdateFn } from '@/components/MatchNode';
 import { PositionedCoverImage } from '@/components/PositionedCoverImage';
 import { YouTubeButton } from '@/components/YouTubeButton';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -24,6 +25,7 @@ import {
   type ChampionshipTableOut,
 } from '@/lib/api';
 import { formatUtcDate } from '@/lib/datetime';
+import { notify } from '@/lib/notify';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import type { Match, SportId } from '@/types';
@@ -134,6 +136,7 @@ const ChampionshipDetail = () => {
   const locale = language === 'pt-BR' ? 'pt-BR' : 'en-US';
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [generatingNextPhase, setGeneratingNextPhase] = useState(false);
 
   const { data: championship, isLoading: loadingChampionship } = useQuery({
     queryKey: ['championship', id],
@@ -185,6 +188,33 @@ const ChampionshipDetail = () => {
     [token, id, selectedCategoryId, queryClient],
   );
 
+  const handleGenerateNextPhase = useCallback(async () => {
+    if (!selectedCategoryId) return;
+
+    setGeneratingNextPhase(true);
+    try {
+      const result = await championshipApi.generateNextPhase(token ?? '', id!, {
+        category_id: selectedCategoryId,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['championship-matches', id, selectedCategoryId],
+      });
+      notify.success(
+        t('nextPhaseGenerated'),
+        language === 'pt-BR'
+          ? `${result.advanced_player_count} jogadores foram colocados na próxima fase.`
+          : `${result.advanced_player_count} players were seeded into the next phase.`,
+      );
+    } catch (error) {
+      notify.error(
+        t('nextPhaseGenerationFailed'),
+        error instanceof Error ? error.message : undefined,
+      );
+    } finally {
+      setGeneratingNextPhase(false);
+    }
+  }, [token, id, selectedCategoryId, queryClient, t, language]);
+
   if (loadingChampionship) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -208,6 +238,13 @@ const ChampionshipDetail = () => {
   const startDate = formatUtcDate(championship.start_at, championship.timezone, locale);
   const endDate = formatUtcDate(championship.end_at, championship.timezone, locale);
   const location = championship.complex_name ?? championship.complex_city ?? '-';
+  const groupStageMatches = matchesData?.tables.flatMap((table) => table.matches) ?? [];
+  const showGenerateNextPhaseButton =
+    matchesData?.format_slug === 'cumbuca' && Boolean(matchesData?.user_can_edit_scores);
+  const canGenerateNextPhase =
+    showGenerateNextPhaseButton &&
+    groupStageMatches.length > 0 &&
+    groupStageMatches.every((match) => match.status === 'finished');
 
   return (
     <div className="mx-auto w-full max-w-[min(110rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(118rem,calc(100vw-3rem))]">
@@ -292,30 +329,43 @@ const ChampionshipDetail = () => {
               </h2>
               </div>
 
-            <div>
-              <div className="mb-2 text-[10px] font-display font-bold uppercase tracking-[0.25em] text-muted-foreground">
+            <div className="flex flex-col gap-2 sm:items-end">
+              <div className="text-[10px] font-display font-bold uppercase tracking-[0.25em] text-muted-foreground">
                 {t('category')}
               </div>
-              <Select
-                value={String(selectedCategoryId ?? '')}
-                onValueChange={(v) => setSelectedCategoryId(Number(v))}
-              >
-                <SelectTrigger className="h-10 w-52 rounded-xl border-border bg-secondary/60 text-sm font-semibold text-foreground shadow-none ring-0 ring-offset-0 focus:ring-0 focus:ring-offset-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-border bg-gradient-card p-1.5 text-foreground shadow-card backdrop-blur-xl">
-                  {championship.categories.map((cat) => (
-                    <SelectItem
-                      key={cat.id}
-                      value={String(cat.id)}
-                      className="rounded-lg py-2 pl-8 pr-3 text-sm font-semibold focus:bg-primary/15 focus:text-primary-glow"
-                    >
-                      {t(cat.category_slug)}
-                      {cat.audience_slug ? ` · ${t(cat.audience_slug)}` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                {showGenerateNextPhaseButton && (
+                  <Button
+                    type="button"
+                    onClick={handleGenerateNextPhase}
+                    disabled={!canGenerateNextPhase || generatingNextPhase}
+                    className="h-10 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 text-xs font-semibold uppercase tracking-[0.16em] text-violet-400 transition-smooth hover:bg-violet-500/20 disabled:opacity-50 disabled:hover:bg-violet-500/10"
+                  >
+                    {generatingNextPhase && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {t('generateNextPhase')}
+                  </Button>
+                )}
+                <Select
+                  value={String(selectedCategoryId ?? '')}
+                  onValueChange={(v) => setSelectedCategoryId(Number(v))}
+                >
+                  <SelectTrigger className="h-10 w-52 rounded-xl border-border bg-secondary/60 text-sm font-semibold text-foreground shadow-none ring-0 ring-offset-0 focus:ring-0 focus:ring-offset-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border bg-gradient-card p-1.5 text-foreground shadow-card backdrop-blur-xl">
+                    {championship.categories.map((cat) => (
+                      <SelectItem
+                        key={cat.id}
+                        value={String(cat.id)}
+                        className="rounded-lg py-2 pl-8 pr-3 text-sm font-semibold focus:bg-primary/15 focus:text-primary-glow"
+                      >
+                        {t(cat.category_slug)}
+                        {cat.audience_slug ? ` · ${t(cat.audience_slug)}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 

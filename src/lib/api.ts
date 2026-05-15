@@ -151,6 +151,7 @@ export interface PlayerProfile {
   wins: number;
   losses: number;
   draws: number;
+  points: number;
   sport_characteristics: Record<string, string[]> | null;
   address_street: string | null;
   address_number: string | null;
@@ -815,6 +816,17 @@ export const championshipApi = {
       body: JSON.stringify(body),
     }).then((r) => handle<ChampionshipMatchOut>(r)),
 
+  generateNextPhase: (
+    token: string,
+    championshipId: number | string,
+    body: { category_id: number },
+  ) =>
+    fetch(`${API_BASE}/championships/${championshipId}/matches/generate-next-phase`, {
+      method: 'POST',
+      headers: json(token),
+      body: JSON.stringify(body),
+    }).then((r) => handle<GenerateNextPhaseResponse>(r)),
+
   uploadImage: async (token: string, id: number | string, dataUrl: string): Promise<{ url: string }> => {
     const [, base64] = dataUrl.split(',');
     const binary = atob(base64);
@@ -909,6 +921,12 @@ export interface ChampionshipMatchesData {
   match_settings: CategoryMatchSettingsOut[];
   available_teams: ChampionshipTeamOut[];
   user_can_edit_scores: boolean;
+}
+
+export interface GenerateNextPhaseResponse {
+  advanced_player_count: number;
+  seeded_series: string[];
+  seeded_stages: string[];
 }
 
 export interface ChampionshipSubscriptionApproval {

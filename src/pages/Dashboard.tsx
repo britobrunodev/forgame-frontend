@@ -74,10 +74,11 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-3 gap-2">
+          <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <StatBlock label={t('wins')} value={String(currentUser.wins ?? 0)} accent="text-neon-cyan" />
             <StatBlock label={t('draws')} value={String(currentUser.draws ?? 0)} accent="text-primary-glow" />
             <StatBlock label={t('losses')} value={String(currentUser.losses ?? 0)} accent="text-neon-pink" />
+            <StatBlock label={t('scorePoints')} value={String(currentUser.points ?? 0)} accent="text-yellow-300" />
           </div>
         </div>
       </section>
