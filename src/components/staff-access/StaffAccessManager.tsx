@@ -221,21 +221,21 @@ export const StaffAccessManager = ({
 
   return (
     <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-8">
-      <header>
-        <div className="flex items-center gap-3">
-          {showBackButton ? (
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
-              aria-label={t('back')}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-          ) : null}
+      <header className="flex items-center gap-4">
+        {showBackButton ? (
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
+            aria-label={t('back')}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+        ) : null}
+        <div className="min-w-0 flex-1">
           <p className="font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{title}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{intro}</p>
         </div>
-        <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{intro}</p>
       </header>
 
       <div className="space-y-5">

@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleCheckBig, Receipt, Ticket, Trophy } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleCheckBig, Receipt, Ticket, Trophy } from 'lucide-react';
 import { useLanguage } from '@/i18n';
-import { paymentsApi, sportComplexApi, type PaymentData, type PaymentTransactionData } from '@/lib/api';
+import { championshipApi, paymentsApi, sportComplexApi, type PaymentData, type PaymentTransactionData } from '@/lib/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSession } from '@/session';
 
@@ -14,6 +14,7 @@ const PAGE_SIZE = 20;
 
 const ManagementPayments = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { t, language } = useLanguage();
   const { currentUser, isGestorMode, token } = useSession();
@@ -21,11 +22,14 @@ const ManagementPayments = () => {
 
   const scopedType = (searchParams.get('type') as 'championship' | 'court' | null) ?? null;
   const scopedId = searchParams.get('id');
-  const routeLockedKind: Extract<PaymentKind, 'championship'> | null = location.pathname.startsWith('/management/championships/payments')
+  const isChampionshipRoute = location.pathname.startsWith('/management/championships/payments');
+  const isComplexRoute = location.pathname.startsWith('/management/complexes/payments');
+  const routeLockedKind: Extract<PaymentKind, 'championship'> | null = isChampionshipRoute
     ? 'championship'
     : null;
 
   const [selectedComplexId, setSelectedComplexId] = useState<'all' | string>('all');
+  const [selectedChampionshipId, setSelectedChampionshipId] = useState<'all' | string>('all');
   const [selectedKind, setSelectedKind] = useState<PaymentKind>(scopedType ?? routeLockedKind ?? 'all');
   const [selectedStatus, setSelectedStatus] = useState<PaymentStatusFilter>('all');
   const [page, setPage] = useState(1);
@@ -46,10 +50,17 @@ const ManagementPayments = () => {
         ? sportComplexApi.listAll(token!, 1, 100)
         : sportComplexApi.list(token!, 1, 100)
     ),
-    enabled: !!token && canManage,
+    enabled: !!token && canManage && !isChampionshipRoute,
+  });
+
+  const { data: championshipsResponse } = useQuery({
+    queryKey: ['management-payments-championships'],
+    queryFn: () => championshipApi.listMine(token!, 1, 100),
+    enabled: !!token && canManage && isChampionshipRoute,
   });
 
   const complexes = complexesResponse?.items ?? [];
+  const championships = championshipsResponse?.items ?? [];
 
   const { data: paymentsResponse, isLoading } = useQuery({
     queryKey: ['management-payments', page, effectiveKind, selectedStatus, selectedComplexId, scopedId, scopedType],
@@ -66,8 +77,6 @@ const ManagementPayments = () => {
 
   const visibleRows = paymentsResponse?.items ?? [];
   const totalPages = paymentsResponse?.total_pages ?? 1;
-  const totalPaid = useMemo(() => visibleRows.reduce((sum, row) => sum + row.paid_amount, 0), [visibleRows]);
-  const totalAmount = useMemo(() => visibleRows.reduce((sum, row) => sum + row.total_amount, 0), [visibleRows]);
 
   if (!canManage) {
     return (
@@ -85,33 +94,67 @@ const ManagementPayments = () => {
     );
   }
 
+  const backPath = isChampionshipRoute
+    ? '/management/championships'
+    : isComplexRoute
+      ? '/management/complexes'
+      : null;
+
   return (
     <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-8">
-      <header>
-        <div>
-          <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('managementPayments')}</p>
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('managementPaymentsIntro')}</p>
+      <header className="flex items-center gap-4">
+        {backPath && (
+          <button
+            type="button"
+            onClick={() => navigate(backPath)}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('managementPayments')}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{t('managementPaymentsIntro')}</p>
         </div>
       </header>
 
       <section className="space-y-5">
         <div className="mb-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_160px]">
-          <div className="space-y-2">
-            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('sportComplex')}</div>
-            <Select value={selectedComplexId} onValueChange={(value) => { setSelectedComplexId(value as 'all' | string); setPage(1); }}>
-              <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                <SelectItem value="all">{t('allComplexes')}</SelectItem>
-                {complexes.map((complex) => (
-                  <SelectItem key={complex.id} value={String(complex.id)}>
-                    {complex.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {isChampionshipRoute ? (
+            <div className="space-y-2">
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('championships')}</div>
+              <Select value={selectedChampionshipId} onValueChange={(value) => { setSelectedChampionshipId(value as 'all' | string); setPage(1); }}>
+                <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                  <SelectItem value="all">Todos os campeonatos</SelectItem>
+                  {championships.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('sportComplex')}</div>
+              <Select value={selectedComplexId} onValueChange={(value) => { setSelectedComplexId(value as 'all' | string); setPage(1); }}>
+                <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                  <SelectItem value="all">{t('allComplexes')}</SelectItem>
+                  {complexes.map((complex) => (
+                    <SelectItem key={complex.id} value={String(complex.id)}>
+                      {complex.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {routeLockedKind ? null : (
             <div className="space-y-2">
@@ -188,7 +231,7 @@ const ManagementPayments = () => {
                         </button>
                       </div>
                     </div>
-                    {isOpen ? <TransactionsPanel row={row} t={t} language={language} /> : null}
+                    {isOpen ? <TransactionsPanel row={row} language={language} /> : null}
                   </div>
                 );
               })}
@@ -226,7 +269,7 @@ const ManagementPayments = () => {
                     <span className="text-xs text-muted-foreground">/ {formatCurrency(row.total_amount, language)}</span>
                   </div>
                 </button>
-                {isOpen ? <TransactionsPanel row={row} t={t} language={language} /> : null}
+                {isOpen ? <TransactionsPanel row={row} language={language} /> : null}
               </div>
             );
           })}
@@ -270,11 +313,9 @@ const ManagementPayments = () => {
 
 const TransactionsPanel = ({
   row,
-  t,
   language,
 }: {
   row: PaymentData;
-  t: (key: string) => string;
   language: 'en' | 'pt-BR';
 }) => (
   <div className="border-t border-border bg-background/12 px-4 pb-3 pt-2">

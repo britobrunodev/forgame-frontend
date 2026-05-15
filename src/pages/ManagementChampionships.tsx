@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Loader2, Pencil, Plus, Receipt, Trophy, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardCheck, Loader2, Pencil, Plus, Receipt, Trophy, Users } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { championshipApi } from '@/lib/api';
@@ -128,6 +128,14 @@ const ManagementChampionships = () => {
                     <Pencil className="h-3.5 w-3.5" />
                     {t('edit')}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/management/championships/${c.id}/approvals`)}
+                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-400 transition-smooth hover:bg-violet-500/20"
+                  >
+                    <ClipboardCheck className="h-3.5 w-3.5" />
+                    Aprovações
+                  </button>
                 </div>
               </article>
             ))}
@@ -170,7 +178,7 @@ const ManagementChampionships = () => {
                         </span>
                       )}
                     </div>
-                    <div className="flex justify-center gap-3 self-center">
+                    <div className="flex justify-center gap-2 self-center">
                       <button
                         type="button"
                         onClick={() => navigate(`/management/championships/${c.id}/edit`)}
@@ -178,6 +186,14 @@ const ManagementChampionships = () => {
                       >
                         <Pencil className="h-3.5 w-3.5" />
                         {t('edit')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/management/championships/${c.id}/approvals`)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-400 transition-smooth hover:bg-violet-500/20"
+                      >
+                        <ClipboardCheck className="h-3.5 w-3.5" />
+                        Aprovações
                       </button>
                     </div>
                   </div>

@@ -20,6 +20,7 @@ import ChampionshipRegistration from "./pages/ChampionshipRegistration.tsx";
 import Bookings from "./pages/Bookings.tsx";
 import ManagementDashboard from "./pages/ManagementDashboard.tsx";
 import ManagementChampionships from "./pages/ManagementChampionships.tsx";
+import ManagementChampionshipApprovals from "./pages/ManagementChampionshipApprovals.tsx";
 import ManagementChampionshipUsers from "./pages/ManagementChampionshipUsers.tsx";
 import ManagementComplexUsers from "./pages/ManagementComplexUsers.tsx";
 import ManagementPayments from "./pages/ManagementPayments.tsx";
@@ -97,6 +98,7 @@ const App = () => (
                 <Route path="/management/courts/:id/edit" element={<ManagementCourtEdit />} />
                 <Route path="/management/championships/new" element={<ChampionshipSettings />} />
                 <Route path="/management/championships/:championshipId/edit" element={<ChampionshipSettings />} />
+                <Route path="/management/championships/:championshipId/approvals" element={<ManagementChampionshipApprovals />} />
                 <Route path="/management/users" element={<ManagementUsers />} />
                 <Route path="/admin/access" element={<ManagementAdminAccess />} />
                 <Route path="/admin" element={<AdminHub />} />

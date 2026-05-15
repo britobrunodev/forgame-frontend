@@ -848,6 +848,18 @@ export interface ChampionshipMatchesData {
   groups: ChampionshipGroupOut[];
 }
 
+export interface ChampionshipSubscriptionApproval {
+  id: number;
+  user_id: number;
+  user_name: string;
+  user_email: string;
+  category_slug: string;
+  audience_slug: string;
+  team_user_ids: number[];
+  status: string;
+  created_at: string;
+}
+
 export const championshipSubscriptionsApi = {
   listMine: (token: string, page = 1, perPage = 12) =>
     fetch(`${API_BASE}/championship-subscriptions/me?page=${page}&per_page=${perPage}`, {
@@ -861,11 +873,22 @@ export const championshipSubscriptionsApi = {
       body: JSON.stringify(body),
     }).then((r) => handle<ChampionshipSubscriptionData>(r)),
 
+  listWaitingApproval: (token: string, championshipId: number | string, page = 1, perPage = 12) =>
+    fetch(`${API_BASE}/championship-subscriptions/management/${championshipId}?page=${page}&per_page=${perPage}`, {
+      headers: json(token),
+    }).then((r) => handle<PaginatedResponse<ChampionshipSubscriptionApproval>>(r)),
+
   approve: (token: string, subscriptionId: number) =>
     fetch(`${API_BASE}/championship-subscriptions/${subscriptionId}/approve`, {
       method: 'POST',
       headers: json(token),
     }).then((r) => handle<ChampionshipSubscriptionData>(r)),
+
+  reject: (token: string, subscriptionId: number) =>
+    fetch(`${API_BASE}/championship-subscriptions/${subscriptionId}/reject`, {
+      method: 'POST',
+      headers: json(token),
+    }).then((r) => handle<void>(r)),
 };
 
 export interface ComplexPreferenceData {
