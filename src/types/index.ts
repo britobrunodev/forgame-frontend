@@ -56,6 +56,7 @@ export interface Match {
   scoreB?: number;
   status: "scheduled" | "live" | "finished";
   time?: string;
+  maxSets?: number;
 }
 
 export type ChampionshipFormat = "double" | "cumbuca" | "rei-da-praia";

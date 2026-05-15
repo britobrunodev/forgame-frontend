@@ -791,6 +791,18 @@ export const championshipApi = {
       headers: json(token),
     }).then((r) => handle<ChampionshipMatchesData>(r)),
 
+  updateMatchScore: (
+    token: string,
+    championshipId: number | string,
+    matchId: number | string,
+    body: { sets_1?: number; sets_2?: number; score_1?: number; score_2?: number },
+  ) =>
+    fetch(`${API_BASE}/championships/${championshipId}/matches/${matchId}/score`, {
+      method: 'PATCH',
+      headers: json(token),
+      body: JSON.stringify(body),
+    }).then((r) => handle<ChampionshipMatchOut>(r)),
+
   uploadImage: async (token: string, id: number | string, dataUrl: string): Promise<{ url: string }> => {
     const [, base64] = dataUrl.split(',');
     const binary = atob(base64);
@@ -818,6 +830,7 @@ export interface ChampionshipMatchOut {
   id: number;
   match_number: number;
   group_name: string | null;
+  stage_type: string | null;
   round_number: number;
   status: string;
   team_1: ChampionshipTeamOut | null;
@@ -835,17 +848,47 @@ export interface ChampionshipStandingRow {
   points: number;
 }
 
-export interface ChampionshipGroupOut {
+export interface PlayerStandingRow {
+  user_id: number;
   name: string;
-  phase: string;
+  wins: number;
+  losses: number;
+  points: number;
+}
+
+export interface ChampionshipTableOut {
+  name: string;
   standings: ChampionshipStandingRow[];
   matches: ChampionshipMatchOut[];
+  player_standings: PlayerStandingRow[];
+}
+
+export interface ChampionshipBracketRound {
+  name: string;
+  stage_type: string | null;
+  matches: ChampionshipMatchOut[];
+}
+
+export interface ChampionshipBracketOut {
+  name: string;
+  winner_rounds: ChampionshipBracketRound[];
+  loser_rounds: ChampionshipBracketRound[];
+  grand_final: ChampionshipMatchOut | null;
+}
+
+export interface CategoryMatchSettingsOut {
+  stage_type: string;
+  max_sets: number;
+  sets_to_win: number;
 }
 
 export interface ChampionshipMatchesData {
   format_slug: string;
   category_id: number;
-  groups: ChampionshipGroupOut[];
+  tables: ChampionshipTableOut[];
+  brackets: ChampionshipBracketOut[];
+  match_settings: CategoryMatchSettingsOut[];
+  user_can_edit_scores: boolean;
 }
 
 export interface ChampionshipSubscriptionApproval {

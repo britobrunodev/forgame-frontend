@@ -1,14 +1,23 @@
 import type { Championship } from '@/types';
-import { MatchNode } from './MatchNode';
+import { MatchNode, type ScoreUpdateFn } from './MatchNode';
 import { BracketMobile } from './BracketMobile';
 import { useLanguage } from '@/i18n';
 
 type BracketRounds = Championship['rounds'];
-export const CARD_HEIGHT = 108;
+
+export const CARD_HEIGHT = 109;
 const SLOT_GAP = 18;
 const SLOT_STEP = CARD_HEIGHT + SLOT_GAP;
 
-export const Bracket = ({ rounds }: { rounds: BracketRounds }) => {
+export const Bracket = ({
+  rounds,
+  canEdit,
+  onScoreUpdate,
+}: {
+  rounds: BracketRounds;
+  canEdit?: boolean;
+  onScoreUpdate?: ScoreUpdateFn;
+}) => {
   const { roundName } = useLanguage();
   const baseHeight = Math.max(((rounds[0]?.matches.length ?? 1) - 1) * SLOT_STEP + CARD_HEIGHT, CARD_HEIGHT);
   const minHeight = rounds.length === 1 ? baseHeight : Math.max(baseHeight, CARD_HEIGHT);
@@ -25,17 +34,17 @@ export const Bracket = ({ rounds }: { rounds: BracketRounds }) => {
           <div className="flex gap-4 min-w-max">
             {rounds.map((round, ri) => (
               <div key={round.name} className="flex flex-col">
-                <h4 className="mb-4 w-56 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
+                <h4 className="mb-4 w-72 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
                   {roundName(round.name)}
                 </h4>
-                <div className="relative" style={{ height: totalHeight, width: ri < rounds.length - 1 ? 288 : 224 }}>
+                <div className="relative" style={{ height: totalHeight, width: ri < rounds.length - 1 ? 352 : 288 }}>
                   {round.matches.map((match, mi) => {
                     const top = getStandardRoundTop(ri, mi);
                     const nextTop = ri < rounds.length - 1 ? getStandardRoundTop(ri + 1, Math.floor(mi / 2)) : top;
                     return (
-                      <div key={match.id} className="absolute left-0 overflow-visible" style={{ top, width: 288, height: CARD_HEIGHT }}>
+                      <div key={match.id} className="absolute left-0 overflow-visible" style={{ top, width: 352, height: CARD_HEIGHT }}>
                         <div className="relative h-full w-full">
-                          <MatchNode match={match} />
+                          <MatchNode match={match} canEdit={canEdit} onScoreUpdate={onScoreUpdate} />
                         {ri < rounds.length - 1 && (
                             <PreciseBracketConnector deltaToNext={nextTop - top} />
                         )}
@@ -51,7 +60,7 @@ export const Bracket = ({ rounds }: { rounds: BracketRounds }) => {
         <div className="flex gap-4 min-w-max">
           {rounds.map((round, ri) => (
             <div key={round.name} className="flex flex-col">
-              <h4 className="mb-4 w-56 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
+              <h4 className="mb-4 w-72 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
                 {roundName(round.name)}
               </h4>
               <div className="flex flex-col justify-around flex-1 gap-4" style={{ minHeight }}>
@@ -61,7 +70,7 @@ export const Bracket = ({ rounds }: { rounds: BracketRounds }) => {
                     className="flex items-center"
                     style={{ marginTop: ri === 0 && mi === 0 ? 0 : `${ri * 8}px` }}
                   >
-                    <MatchNode match={m} />
+                    <MatchNode match={m} canEdit={canEdit} onScoreUpdate={onScoreUpdate} />
                     {ri < rounds.length - 1 && (
                       <BracketConnector
                         position={mi % 2 === 0 ? 'top' : 'bottom'}
@@ -91,7 +100,7 @@ export const PreciseBracketConnector = ({ deltaToNext }: { deltaToNext: number }
 
   return (
     <div
-      className="absolute left-56 w-16 overflow-visible"
+      className="absolute left-72 w-16 overflow-visible"
       style={{ top: CARD_HEIGHT / 2 + Math.min(0, delta), height: absDelta }}
     >
       <div className="absolute left-0 h-px w-5 bg-primary/60" style={{ top: startY }} />

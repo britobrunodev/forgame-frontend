@@ -1,13 +1,12 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, MapPin, Calendar } from 'lucide-react';
 import { Bracket } from '@/components/Bracket';
-import { BracketMobile } from '@/components/BracketMobile';
 import { LiveBadge } from '@/components/LiveBadge';
 import { MapsButton } from '@/components/MapsButton';
-import { MatchCard } from '@/components/MatchCard';
-import { MatchNode } from '@/components/MatchNode';
+import { MatchNode, type ScoreUpdateFn } from '@/components/MatchNode';
+import { PositionedCoverImage } from '@/components/PositionedCoverImage';
 import { YouTubeButton } from '@/components/YouTubeButton';
 import {
   Select,
@@ -18,9 +17,10 @@ import {
 } from '@/components/ui/select';
 import {
   championshipApi,
-  type ChampionshipGroupOut,
+  type CategoryMatchSettingsOut,
   type ChampionshipMatchOut,
   type ChampionshipMatchesData,
+  type ChampionshipTableOut,
 } from '@/lib/api';
 import { formatUtcDate } from '@/lib/datetime';
 import { useLanguage } from '@/i18n';
@@ -50,6 +50,7 @@ const toFrontendMatch = (
   m: ChampionshipMatchOut,
   round: string,
   timezone: string | null,
+  maxSets?: number,
 ): Match => ({
   id: String(m.id),
   round,
@@ -68,6 +69,7 @@ const toFrontendMatch = (
         timeZone: timezone || 'UTC',
       })
     : undefined,
+  maxSets,
 });
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -76,21 +78,21 @@ const ChampionshipDetail = () => {
   const { t, sportName, language } = useLanguage();
   const { id } = useParams();
   const { token } = useSession();
+  const queryClient = useQueryClient();
   const locale = language === 'pt-BR' ? 'pt-BR' : 'en-US';
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<'bracket' | 'simple'>('bracket');
 
   const { data: championship, isLoading: loadingChampionship } = useQuery({
     queryKey: ['championship', id],
-    queryFn: () => championshipApi.get(token!, id!),
-    enabled: !!token && !!id,
+    queryFn: () => championshipApi.get(token ?? '', id!),
+    enabled: !!id,
   });
 
   const { data: sports = [] } = useQuery({
     queryKey: ['championship-sports'],
-    queryFn: () => championshipApi.listSports(token!),
-    enabled: !!token,
+    queryFn: () => championshipApi.listSports(token ?? ''),
+    enabled: true,
   });
 
   useEffect(() => {
@@ -101,9 +103,24 @@ const ChampionshipDetail = () => {
 
   const { data: matchesData, isLoading: loadingMatches } = useQuery({
     queryKey: ['championship-matches', id, selectedCategoryId],
-    queryFn: () => championshipApi.getMatches(token!, id!, selectedCategoryId!),
-    enabled: !!token && !!id && selectedCategoryId !== null,
+    queryFn: () => championshipApi.getMatches(token ?? '', id!, selectedCategoryId!),
+    enabled: !!id && selectedCategoryId !== null,
   });
+
+  const handleScoreUpdate = useCallback(
+    async (matchId: string, sets1: number, sets2: number, score1?: number, score2?: number) => {
+      await championshipApi.updateMatchScore(token ?? '', id!, matchId, {
+        sets_1: sets1,
+        sets_2: sets2,
+        score_1: score1,
+        score_2: score2,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['championship-matches', id, selectedCategoryId],
+      });
+    },
+    [token, id, selectedCategoryId, queryClient],
+  );
 
   if (loadingChampionship) {
     return (
@@ -125,57 +142,78 @@ const ChampionshipDetail = () => {
   const sport = championship.sport_id ? sportsById.get(championship.sport_id) : null;
   const sportId = sport ? mapSportSlug(sport.slug) : null;
   const status = mapChampionshipStatus(championship.status);
-  const selectedCategory = championship.categories.find((c) => c.id === selectedCategoryId);
-  const formatSlug = selectedCategory?.format_slug ?? '';
-  const isCumbuca = formatSlug.includes('cumbuca');
-
   const startDate = formatUtcDate(championship.start_at, championship.timezone, locale);
   const endDate = formatUtcDate(championship.end_at, championship.timezone, locale);
   const location = championship.complex_name ?? championship.complex_city ?? '-';
 
   return (
     <div className="mx-auto w-full max-w-[min(110rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(118rem,calc(100vw-3rem))]">
-      {/* Header */}
-      <div className="relative min-h-[220px] overflow-hidden rounded-2xl border border-border bg-secondary">
-        {championship.image_url ? (
-          <img
-            src={championship.image_url}
-            alt={championship.name}
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-        ) : (
-          <div className="absolute inset-0 hex-grid opacity-30" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/30" />
-        <div className="relative p-5 sm:p-8">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-background/60 px-2.5 py-1 text-xs font-bold uppercase leading-none tracking-wider backdrop-blur-md">
-              <span className="translate-y-[0.5px] leading-none">
-                {sportId ? sportName(sportId) : t('championships')}
-              </span>
-            </span>
-          </div>
-          <h1 className="mb-3 font-display text-2xl font-black drop-shadow-lg sm:text-3xl lg:text-4xl">
-            {championship.name}
-          </h1>
-          <div className="flex flex-wrap gap-5 text-sm font-semibold">
-            {location && location !== '-' && (
-              <span className="flex items-center gap-1.5">
-                <MapPin className="h-4 w-4" /> {location}
-              </span>
+      {/* Header - two-column layout */}
+      <div className="overflow-hidden rounded-2xl border border-border bg-gradient-card">
+        <div className="flex flex-col md:flex-row">
+          {/* Mobile: image on top */}
+          <div className="relative aspect-[3/2] md:hidden">
+            {championship.image_url ? (
+              <PositionedCoverImage
+                src={championship.image_url}
+                alt={championship.name}
+                offsetX={championship.image_offset_x ?? 0}
+                offsetY={championship.image_offset_y ?? 0}
+                zoom={championship.image_zoom ?? 1}
+                className="absolute inset-0 overflow-hidden"
+              />
+            ) : (
+              <div className="absolute inset-0 hex-grid opacity-30" />
             )}
-            <span className="flex items-center gap-1.5">
-              <Calendar className="h-4 w-4" />
-              {startDate}
-              {endDate && endDate !== startDate ? ` → ${endDate}` : ''}
-            </span>
           </div>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-            <LiveBadge status={status} />
-            <div className="flex items-center gap-2 sm:justify-end">
-              <MapsButton url={championship.address_url ?? undefined} />
-              <YouTubeButton url={championship.transmission_url ?? undefined} />
+
+          {/* Info side */}
+          <div className="flex flex-1 flex-col justify-center p-5 sm:p-8">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-md border border-border bg-secondary/60 px-2.5 py-1 text-xs font-bold uppercase leading-none tracking-wider">
+                <span className="translate-y-[0.5px] leading-none">
+                  {sportId ? sportName(sportId) : t('championships')}
+                </span>
+              </span>
             </div>
+            <h1 className="mb-3 font-display text-2xl font-black sm:text-3xl lg:text-4xl">
+              {championship.name}
+            </h1>
+            <div className="flex flex-wrap gap-5 text-sm font-semibold">
+              {location && location !== '-' && (
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4" /> {location}
+                </span>
+              )}
+              <span className="flex items-center gap-1.5">
+                <Calendar className="h-4 w-4" />
+                {startDate}
+                {endDate && endDate !== startDate ? ` → ${endDate}` : ''}
+              </span>
+            </div>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+              <LiveBadge status={status} />
+              <div className="flex items-center gap-2 sm:justify-end">
+                <MapsButton url={championship.address_url ?? undefined} />
+                <YouTubeButton url={championship.transmission_url ?? undefined} />
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop: image on the right */}
+          <div className="relative hidden self-stretch overflow-hidden md:block md:w-64 lg:w-80 xl:w-96">
+            {championship.image_url ? (
+              <PositionedCoverImage
+                src={championship.image_url}
+                alt={championship.name}
+                offsetX={championship.image_offset_x ?? 0}
+                offsetY={championship.image_offset_y ?? 0}
+                zoom={championship.image_zoom ?? 1}
+                className="absolute inset-0 overflow-hidden"
+              />
+            ) : (
+              <div className="absolute inset-0 hex-grid opacity-30" />
+            )}
           </div>
         </div>
       </div>
@@ -189,76 +227,32 @@ const ChampionshipDetail = () => {
               <h2 className="font-display text-sm font-bold uppercase tracking-[0.2em] text-neon-cyan">
                 {t('bracket')}
               </h2>
-              {selectedCategory && (
-                <div className="mt-2">
-                  <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-primary-glow">
-                    {t(selectedCategory.category_slug)}
-                    {selectedCategory.audience_slug
-                      ? ` · ${t(selectedCategory.audience_slug)}`
-                      : ''}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-end gap-4">
-              {championship.categories.length > 1 && (
-                <div>
-                  <div className="mb-2 text-[10px] font-display font-bold uppercase tracking-[0.25em] text-muted-foreground">
-                    {t('category')}
-                  </div>
-                  <Select
-                    value={String(selectedCategoryId ?? '')}
-                    onValueChange={(v) => setSelectedCategoryId(Number(v))}
-                  >
-                    <SelectTrigger className="h-10 w-52 rounded-xl border-border bg-secondary/60 text-sm font-semibold text-foreground shadow-none ring-0 ring-offset-0 focus:ring-0 focus:ring-offset-0">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border bg-gradient-card p-1.5 text-foreground shadow-card backdrop-blur-xl">
-                      {championship.categories.map((cat) => (
-                        <SelectItem
-                          key={cat.id}
-                          value={String(cat.id)}
-                          className="rounded-lg py-2 pl-8 pr-3 text-sm font-semibold focus:bg-primary/15 focus:text-primary-glow"
-                        >
-                          {t(cat.category_slug)}
-                          {cat.audience_slug ? ` · ${t(cat.audience_slug)}` : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div>
-                <div className="mb-2 text-[10px] font-display font-bold uppercase tracking-[0.25em] text-muted-foreground">
-                  {t('view') || 'Visualização'}
-                </div>
-                <div className="flex h-10 items-center gap-1 rounded-xl border border-border bg-secondary/60 p-1">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('bracket')}
-                    className={`rounded-lg px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-smooth ${
-                      viewMode === 'bracket'
-                        ? 'bg-primary/20 text-primary-glow shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Bracket
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('simple')}
-                    className={`rounded-lg px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-smooth ${
-                      viewMode === 'simple'
-                        ? 'bg-primary/20 text-primary-glow shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Lista
-                  </button>
-                </div>
               </div>
+
+            <div>
+              <div className="mb-2 text-[10px] font-display font-bold uppercase tracking-[0.25em] text-muted-foreground">
+                {t('category')}
+              </div>
+              <Select
+                value={String(selectedCategoryId ?? '')}
+                onValueChange={(v) => setSelectedCategoryId(Number(v))}
+              >
+                <SelectTrigger className="h-10 w-52 rounded-xl border-border bg-secondary/60 text-sm font-semibold text-foreground shadow-none ring-0 ring-offset-0 focus:ring-0 focus:ring-offset-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-border bg-gradient-card p-1.5 text-foreground shadow-card backdrop-blur-xl">
+                  {championship.categories.map((cat) => (
+                    <SelectItem
+                      key={cat.id}
+                      value={String(cat.id)}
+                      className="rounded-lg py-2 pl-8 pr-3 text-sm font-semibold focus:bg-primary/15 focus:text-primary-glow"
+                    >
+                      {t(cat.category_slug)}
+                      {cat.audience_slug ? ` · ${t(cat.audience_slug)}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -268,21 +262,13 @@ const ChampionshipDetail = () => {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : matchesData ? (
-            isCumbuca ? (
-              <CumbucaView
-                data={matchesData}
-                viewMode={viewMode}
-                timezone={championship.timezone}
-                t={t}
-              />
-            ) : (
-              <GenericMatchesView
-                data={matchesData}
-                viewMode={viewMode}
-                timezone={championship.timezone}
-                t={t}
-              />
-            )
+            <UnifiedMatchesView
+              data={matchesData}
+              timezone={championship.timezone}
+              t={t}
+              canEdit={matchesData.user_can_edit_scores}
+              onScoreUpdate={handleScoreUpdate}
+            />
           ) : null}
         </div>
       </section>
@@ -290,203 +276,175 @@ const ChampionshipDetail = () => {
   );
 };
 
-// ── Cumbuca view ─────────────────────────────────────────────────────────────
+// ── Unified matches view ──────────────────────────────────────────────────────
 
-const CumbucaView = ({
+const UnifiedMatchesView = ({
   data,
-  viewMode,
   timezone,
   t,
+  canEdit,
+  onScoreUpdate,
 }: {
   data: ChampionshipMatchesData;
-  viewMode: 'bracket' | 'simple';
   timezone: string | null;
   t: (k: string) => string;
+  canEdit: boolean;
+  onScoreUpdate: ScoreUpdateFn;
 }) => {
-  const [groupOpen, setGroupOpen] = useState(true);
-  const [goldenOpen, setGoldenOpen] = useState(true);
-  const [silverOpen, setSilverOpen] = useState(false);
-  const [openFallbackGroups, setOpenFallbackGroups] = useState<Record<string, boolean>>({});
-  const normalizeGroupName = (name: string) => name.trim().toLowerCase();
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
-  const groupPhase = data.groups.filter((g) => g.phase === 'group');
-  const bracketGroups = data.groups.filter((g) => g.phase === 'bracket');
-  const golden = data.groups.find(
-    (g) => g.phase === 'bracket' && normalizeGroupName(g.name).includes('golden'),
+  const isOpen = (key: string, def = true) => openGroups[key] ?? def;
+  const toggle = (key: string, def = true) =>
+    setOpenGroups((cur) => ({ ...cur, [key]: !(cur[key] ?? def) }));
+
+  const settingsByStage = new Map<string, number>(
+    (data.match_settings ?? []).map((s: CategoryMatchSettingsOut) => [s.stage_type, s.max_sets]),
   );
-  const silver = data.groups.find(
-    (g) => g.phase === 'bracket' && normalizeGroupName(g.name).includes('silver'),
-  );
-  const fallbackBrackets = bracketGroups.filter(
-    (g) => g !== golden && g !== silver,
-  );
+
+  const isEmpty = data.tables.length === 0 && data.brackets.length === 0;
 
   return (
     <div className="mt-6 space-y-4">
-      {groupPhase.length > 0 && (
-        <BracketPanel
-          title={t('groupStage')}
-          isOpen={groupOpen}
-          onToggle={() => setGroupOpen((v) => !v)}
-        >
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {groupPhase.map((g) => (
-              <GroupStandingsCard key={g.name} group={g} />
-            ))}
+      {/* Group tables */}
+      {data.tables.length > 0 && (
+        <div className="mb-3">
+          <BracketPanel
+            title={t('groupStage')}
+            isOpen={isOpen('__group_stage__')}
+            onToggle={() => toggle('__group_stage__')}
+          >
+            <div className="flex flex-wrap gap-4">
+              {data.tables.map((table) => (
+                <GroupStandingsCard
+                  key={table.name}
+                  table={table}
+                  timezone={timezone}
+                  settingsByStage={settingsByStage}
+                  canEdit={canEdit}
+                  onScoreUpdate={onScoreUpdate}
+                />
+              ))}
+            </div>
+          </BracketPanel>
+        </div>
+      )}
+
+      {/* Bracket groups */}
+      {data.brackets.map((bracket) => {
+        const nameLower = bracket.name.toLowerCase();
+        const isGolden = nameLower.includes('golden');
+        const isSilver = nameLower.includes('silver');
+        const defaultOpen = isGolden || (!isSilver && !isGolden);
+        const seriesKey = `__series_${bracket.name}__`;
+        const isSeriesOpen = isOpen(seriesKey, true);
+
+        const mainRounds: BracketRounds = bracket.winner_rounds
+          .filter((r) => r.stage_type !== 'third_place')
+          .map((r) => ({
+            name: r.name,
+            matches: r.matches.map((m) =>
+              toFrontendMatch(m, r.name, timezone, settingsByStage.get(m.stage_type ?? '') ?? undefined),
+            ),
+          }));
+
+        const thirdPlaceRound = bracket.winner_rounds.find((r) => r.stage_type === 'third_place');
+        const thirdPlaceMatch = thirdPlaceRound?.matches[0]
+          ? toFrontendMatch(
+              thirdPlaceRound.matches[0],
+              thirdPlaceRound.name,
+              timezone,
+              settingsByStage.get('third_place') ?? undefined,
+            )
+          : null;
+
+        const loserRounds: BracketRounds = bracket.loser_rounds.map((r) => ({
+          name: r.name,
+          matches: r.matches.map((m) =>
+            toFrontendMatch(m, r.name, timezone, settingsByStage.get(m.stage_type ?? '') ?? undefined),
+          ),
+        }));
+
+        const grandFinalMatch = bracket.grand_final
+          ? toFrontendMatch(
+              bracket.grand_final,
+              'Grande Final',
+              timezone,
+              settingsByStage.get('final') ?? undefined,
+            )
+          : null;
+
+        return (
+          <div key={bracket.name}>
+            {isGolden && (
+              <SeriesDivider
+                color="gold"
+                label={t('goldBracket')}
+                isOpen={isSeriesOpen}
+                onToggle={() => toggle(seriesKey)}
+              />
+            )}
+            {isSilver && (
+              <SeriesDivider
+                color="silver"
+                label={t('silverBracket')}
+                isOpen={isSeriesOpen}
+                onToggle={() => toggle(seriesKey)}
+              />
+            )}
+
+            {isSeriesOpen && (
+              <div className="mt-3 space-y-3">
+                {mainRounds.length > 0 && (
+                  <BracketPanel
+                    title={t('winnerBracket')}
+                    isOpen={isOpen(`__wb_${bracket.name}__`, defaultOpen)}
+                    onToggle={() => toggle(`__wb_${bracket.name}__`, defaultOpen)}
+                  >
+                    <Bracket rounds={mainRounds} canEdit={canEdit} onScoreUpdate={onScoreUpdate} />
+                  </BracketPanel>
+                )}
+
+                {loserRounds.length > 0 && (
+                  <BracketPanel
+                    title={t('loserBracket')}
+                    isOpen={isOpen(`__lb_${bracket.name}__`, false)}
+                    onToggle={() => toggle(`__lb_${bracket.name}__`, false)}
+                  >
+                    <Bracket rounds={loserRounds} canEdit={canEdit} onScoreUpdate={onScoreUpdate} />
+                  </BracketPanel>
+                )}
+
+                {thirdPlaceMatch && (
+                  <BracketPanel
+                    title="3º Lugar"
+                    isOpen={isOpen(`__3rd_${bracket.name}__`, true)}
+                    onToggle={() => toggle(`__3rd_${bracket.name}__`, true)}
+                  >
+                    <div className="flex justify-center py-2">
+                      <MatchNode match={thirdPlaceMatch} canEdit={canEdit} onScoreUpdate={onScoreUpdate} />
+                    </div>
+                  </BracketPanel>
+                )}
+
+                {grandFinalMatch && (
+                  <BracketPanel
+                    title="Grande Final"
+                    isOpen={isOpen(`__gf_${bracket.name}__`, true)}
+                    onToggle={() => toggle(`__gf_${bracket.name}__`, true)}
+                  >
+                    <div className="flex justify-center py-2">
+                      <MatchNode match={grandFinalMatch} canEdit={canEdit} onScoreUpdate={onScoreUpdate} />
+                    </div>
+                  </BracketPanel>
+                )}
+              </div>
+            )}
           </div>
-        </BracketPanel>
-      )}
+        );
+      })}
 
-      {golden && (
-        <>
-          <SeriesDivider color="gold" label={t('goldBracket')} />
-          <BracketPanel
-            title={t('goldenSeries') || 'Golden Series'}
-            isOpen={goldenOpen}
-            onToggle={() => setGoldenOpen((v) => !v)}
-          >
-            {viewMode === 'bracket' ? (
-              <SeriesBracketView series={golden} timezone={timezone} t={t} />
-            ) : (
-              <SeriesMatchListView series={golden} timezone={timezone} />
-            )}
-          </BracketPanel>
-        </>
-      )}
-
-      {silver && (
-        <>
-          <SeriesDivider color="silver" label={t('silverBracket')} />
-          <BracketPanel
-            title={t('silverSeries') || 'Silver Series'}
-            isOpen={silverOpen}
-            onToggle={() => setSilverOpen((v) => !v)}
-          >
-            {viewMode === 'bracket' ? (
-              <SeriesBracketView series={silver} timezone={timezone} t={t} />
-            ) : (
-              <SeriesMatchListView series={silver} timezone={timezone} />
-            )}
-          </BracketPanel>
-        </>
-      )}
-
-      {fallbackBrackets.map((group) => (
-        <BracketPanel
-          key={group.name}
-          title={group.name}
-          isOpen={openFallbackGroups[group.name] ?? true}
-          onToggle={() =>
-            setOpenFallbackGroups((current) => ({
-              ...current,
-              [group.name]: !(current[group.name] ?? true),
-            }))
-          }
-        >
-          {viewMode === 'bracket' ? (
-            <SeriesBracketView series={group} timezone={timezone} t={t} />
-          ) : (
-            <SeriesMatchListView series={group} timezone={timezone} />
-          )}
-        </BracketPanel>
-      ))}
-
-      {data.groups.length === 0 && (
+      {isEmpty && (
         <div className="py-10 text-center text-sm text-muted-foreground">
-          Nenhuma partida ainda
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ── Series bracket view (visual) ─────────────────────────────────────────────
-
-const SeriesBracketView = ({
-  series,
-  timezone,
-  t,
-}: {
-  series: ChampionshipGroupOut;
-  timezone: string | null;
-  t: (k: string) => string;
-}) => {
-  const matches = [...series.matches].sort((a, b) => a.match_number - b.match_number);
-
-  if (matches.length < 6) {
-    return <SeriesMatchListView series={series} timezone={timezone} />;
-  }
-
-  const toMatch = (m: ChampionshipMatchOut, round: string): Match =>
-    toFrontendMatch(m, round, timezone);
-
-  const winnerRounds: BracketRounds = [
-    { name: 'R1', matches: [toMatch(matches[0], 'R1'), toMatch(matches[1], 'R1')] },
-    { name: t('winnerBracket'), matches: [toMatch(matches[2], t('winnerBracket'))] },
-  ];
-  const loserRounds: BracketRounds = [
-    { name: 'R1', matches: [toMatch(matches[3], 'L-R1')] },
-    { name: t('loserBracket'), matches: [toMatch(matches[4], t('loserBracket'))] },
-  ];
-  const grandFinal = toMatch(matches[5], 'Grande Final');
-
-  return (
-    <>
-      <div className="md:hidden">
-        <BracketMobile
-          rounds={[
-            ...winnerRounds,
-            ...loserRounds,
-            { name: 'Grande Final', matches: [grandFinal] },
-          ]}
-        />
-      </div>
-      <div className="hidden md:block space-y-6">
-        <div>
-          <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neon-cyan">
-            {t('winnerBracket')}
-          </div>
-          <Bracket rounds={winnerRounds} />
-        </div>
-        <div>
-          <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neon-pink">
-            {t('loserBracket')}
-          </div>
-          <Bracket rounds={loserRounds} />
-        </div>
-        <div>
-          <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-yellow-400">
-            Grande Final
-          </div>
-          <MatchNode match={grandFinal} />
-        </div>
-      </div>
-    </>
-  );
-};
-
-// ── Series match list view (simple) ──────────────────────────────────────────
-
-const SeriesMatchListView = ({
-  series,
-  timezone,
-}: {
-  series: ChampionshipGroupOut;
-  timezone: string | null;
-}) => {
-  const matches = [...series.matches].sort((a, b) => a.match_number - b.match_number);
-  return (
-    <div className="space-y-2">
-      {matches.map((m, idx) => (
-        <MatchCard
-          key={m.id}
-          match={toFrontendMatch(m, `M${idx + 1}`, timezone)}
-          number={idx + 1}
-          round={`M${idx + 1}`}
-        />
-      ))}
-      {matches.length === 0 && (
-        <div className="py-8 text-center text-sm text-muted-foreground">
           Nenhuma partida ainda
         </div>
       )}
@@ -496,134 +454,95 @@ const SeriesMatchListView = ({
 
 // ── Group standings card ──────────────────────────────────────────────────────
 
-const GroupStandingsCard = ({ group }: { group: ChampionshipGroupOut }) => (
-  <div className="rounded-2xl border border-border bg-background/30 p-4">
-    <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-neon-cyan">
-      {group.name}
-    </div>
-    {group.standings.length > 0 ? (
-      <>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border/50">
-              <th className="pb-1.5 text-left text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                Equipe
-              </th>
-              <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                V
-              </th>
-              <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                D
-              </th>
-              <th className="pb-1.5 text-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                Pts
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {group.standings.map((row, i) => (
-              <tr key={row.team.id} className={i >= 2 ? 'opacity-50' : ''}>
-                <td className="py-1.5 pr-2">
+const GroupStandingsCard = ({
+  table,
+  timezone,
+  settingsByStage,
+  canEdit,
+  onScoreUpdate,
+}: {
+  table: ChampionshipTableOut;
+  timezone: string | null;
+  settingsByStage: Map<string, number>;
+  canEdit: boolean;
+  onScoreUpdate: ScoreUpdateFn;
+}) => {
+  const groupMaxSets = settingsByStage.get('group') ?? 1;
+
+  return (
+    <div className="rounded-2xl border border-border bg-background/30 p-4">
+      <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-neon-cyan">
+        {table.name}
+      </div>
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
+        {/* Matches column */}
+        <div className="flex flex-col gap-2">
+          {table.matches.map((m) => (
+            <MatchNode
+              key={m.id}
+              match={toFrontendMatch(m, table.name, timezone, groupMaxSets)}
+              canEdit={canEdit}
+              onScoreUpdate={onScoreUpdate}
+            />
+          ))}
+        </div>
+
+        {/* Per-player points column */}
+        {table.player_standings.length > 0 && (
+          <div className="min-w-[120px] flex-1">
+            <div className="mb-2 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+              Pontos
+            </div>
+            <div className="flex flex-col gap-1">
+              {table.player_standings.map((p, i) => (
+                <div key={p.user_id} className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-1.5">
                     {i < 2 && (
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-neon-cyan shadow-[0_0_6px_hsl(var(--neon-cyan))]" />
                     )}
-                    <span
-                      className={`text-xs leading-tight ${
-                        i < 2
-                          ? 'font-semibold text-foreground'
-                          : 'text-muted-foreground'
-                      }`}
-                    >
-                      {row.team.name}
+                    <span className={`text-xs ${i < 2 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                      {p.name}
                     </span>
                   </div>
-                </td>
-                <td className="py-1.5 text-center text-xs text-muted-foreground">
-                  {row.wins}
-                </td>
-                <td className="py-1.5 text-center text-xs text-muted-foreground">
-                  {row.losses}
-                </td>
-                <td className="py-1.5 text-center text-xs font-bold text-foreground">
-                  {row.points}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="mt-2.5 flex items-center gap-1.5 text-[9px] text-muted-foreground">
-          <span className="h-1.5 w-1.5 rounded-full bg-neon-cyan shadow-[0_0_6px_hsl(var(--neon-cyan))]" />
-          avançam para fase seguinte
-        </div>
-      </>
-    ) : (
-      <div className="space-y-2">
-        {group.matches.map((m) => (
-          <div
-            key={m.id}
-            className="flex items-center justify-between rounded-lg bg-background/30 px-2 py-1.5 text-xs"
-          >
-            <span className="truncate font-semibold text-foreground">
-              {m.team_1?.name ?? 'TBD'}
-            </span>
-            <span className="mx-2 shrink-0 text-muted-foreground">×</span>
-            <span className="truncate text-right font-semibold text-foreground">
-              {m.team_2?.name ?? 'TBD'}
-            </span>
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-);
-
-// ── Generic matches view (non-cumbuca formats) ────────────────────────────────
-
-const GenericMatchesView = ({
-  data,
-  timezone,
-}: {
-  data: ChampionshipMatchesData;
-  viewMode: 'bracket' | 'simple';
-  timezone: string | null;
-  t: (k: string) => string;
-}) => (
-  <div className="mt-6 space-y-4">
-    {data.groups.map((group) => (
-      <div
-        key={group.name}
-        className="rounded-2xl border border-border bg-background/20 p-4"
-      >
-        <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-neon-cyan">
-          {group.name}
-        </div>
-        <div className="space-y-2">
-          {group.matches.map((m) => (
-            <MatchCard
-              key={m.id}
-              match={toFrontendMatch(m, group.name, timezone)}
-              number={m.match_number}
-              round={group.name}
-            />
-          ))}
-          {group.matches.length === 0 && (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              Nenhuma partida ainda
+                  <span className={`text-xs font-bold tabular-nums ${i < 2 ? 'text-neon-cyan' : 'text-muted-foreground'}`}>
+                    {p.points}pts
+                  </span>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
+            {table.player_standings.length > 0 && (
+              <div className="mt-2.5 flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-neon-cyan shadow-[0_0_6px_hsl(var(--neon-cyan))]" />
+                avançam para fase seguinte
+              </div>
+            )}
+          </div>
+        )}
       </div>
-    ))}
-  </div>
-);
+    </div>
+  );
+};
 
 // ── Series divider ────────────────────────────────────────────────────────────
 
-const SeriesDivider = ({ color, label }: { color: 'gold' | 'silver'; label: string }) => {
+const SeriesDivider = ({
+  color,
+  label,
+  onToggle,
+}: {
+  color: 'gold' | 'silver';
+  label: string;
+  isOpen: boolean;
+  onToggle: () => void;
+}) => {
   const isGold = color === 'gold';
   return (
-    <div className="flex items-center gap-3 pt-2">
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex w-full items-center gap-3 pt-4 text-left transition-opacity hover:opacity-80"
+    >
       <div
         className={`h-px flex-1 bg-gradient-to-r from-transparent ${
           isGold ? 'via-yellow-500/40' : 'via-slate-400/40'
@@ -643,7 +562,7 @@ const SeriesDivider = ({ color, label }: { color: 'gold' | 'silver'; label: stri
           isGold ? 'via-yellow-500/40' : 'via-slate-400/40'
         } to-transparent`}
       />
-    </div>
+    </button>
   );
 };
 
