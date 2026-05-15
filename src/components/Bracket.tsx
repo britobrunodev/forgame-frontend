@@ -12,12 +12,14 @@ const SLOT_STEP = CARD_HEIGHT + SLOT_GAP;
 
 export const Bracket = ({
   rounds,
+  trailingRounds = [],
   canEdit,
   teamOptions,
   onScoreUpdate,
   onTeamUpdate,
 }: {
   rounds: BracketRounds;
+  trailingRounds?: BracketRounds;
   canEdit?: boolean;
   teamOptions?: ChampionshipTeamOut[];
   onScoreUpdate?: ScoreUpdateFn;
@@ -34,6 +36,7 @@ export const Bracket = ({
       <div className="md:hidden">
         <BracketMobile
           rounds={rounds}
+          trailingRounds={trailingRounds}
           canEdit={canEdit}
           teamOptions={teamOptions}
           onScoreUpdate={onScoreUpdate}
@@ -72,6 +75,25 @@ export const Bracket = ({
                 </div>
               </div>
             ))}
+            {trailingRounds.map((round) => (
+              <div key={round.name} className="flex flex-col">
+                <h4 className="mb-4 w-72 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
+                  {roundName(round.name)}
+                </h4>
+                <div className="flex flex-col gap-4">
+                  {round.matches.map((match) => (
+                    <MatchNode
+                      key={match.id}
+                      match={match}
+                      canEdit={canEdit}
+                      teamOptions={teamOptions}
+                      onScoreUpdate={onScoreUpdate}
+                      onTeamUpdate={onTeamUpdate}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
         <div className="flex gap-4 min-w-max">
@@ -101,6 +123,25 @@ export const Bracket = ({
                       />
                     )}
                   </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          {trailingRounds.map((round) => (
+            <div key={round.name} className="flex flex-col">
+              <h4 className="mb-4 w-72 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
+                {roundName(round.name)}
+              </h4>
+              <div className="flex flex-col gap-4">
+                {round.matches.map((match) => (
+                  <MatchNode
+                    key={match.id}
+                    match={match}
+                    canEdit={canEdit}
+                    teamOptions={teamOptions}
+                    onScoreUpdate={onScoreUpdate}
+                    onTeamUpdate={onTeamUpdate}
+                  />
                 ))}
               </div>
             </div>

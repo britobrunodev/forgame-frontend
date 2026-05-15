@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import {
   championshipApi,
+  type ChampionshipFormatConfig,
   type CategoryMatchSettingsOut,
   type ChampionshipMatchOut,
   type ChampionshipMatchesData,
@@ -76,6 +77,25 @@ const getAvailableTeamsForStage = (
   stageType: string | null | undefined,
 ) =>
   teams.filter((team) => (team.stage_type ?? 'group') === (stageType ?? 'group'));
+
+const getStageConfigName = (
+  config: ChampionshipFormatConfig | null | undefined,
+  stageKey: 'first_stage' | 'second_stage' | 'third_stage',
+  fallback: string,
+) => {
+  const value = config?.[stageKey]?.name;
+  return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+};
+
+const getStageConfigView = (
+  config: ChampionshipFormatConfig | null | undefined,
+  stageKey: 'first_stage' | 'second_stage' | 'third_stage',
+  fallback: string,
+) => {
+  const rawValue = config?.[stageKey]?.default_view;
+  if (typeof rawValue !== 'string' || !rawValue.trim()) return fallback;
+  return rawValue.toLowerCase() === 'brakets' ? 'brackets' : rawValue.toLowerCase();
+};
 
 const toFrontendMatch = (
   m: ChampionshipMatchOut,
@@ -418,14 +438,18 @@ const UnifiedMatchesView = ({
   );
 
   const isEmpty = data.tables.length === 0 && data.brackets.length === 0;
+  const firstStageTitle = getStageConfigName(data.format_config, 'first_stage', t('groupStage'));
+  const firstStageView = getStageConfigView(data.format_config, 'first_stage', 'table_with_points');
+  const secondStageName = getStageConfigName(data.format_config, 'second_stage', 'Gold');
+  const thirdStageName = getStageConfigName(data.format_config, 'third_stage', 'Silver');
 
   return (
     <div className="mt-6 space-y-4">
       {/* Group tables */}
-      {data.tables.length > 0 && (
+      {data.tables.length > 0 && firstStageView === 'table_with_points' && (
         <div className="mb-3">
           <BracketPanel
-            title={t('groupStage')}
+            title={firstStageTitle}
             isOpen={isOpen('__group_stage__')}
             onToggle={() => toggle('__group_stage__')}
           >
@@ -448,11 +472,8 @@ const UnifiedMatchesView = ({
       )}
 
       {/* Bracket groups */}
-      {data.brackets.map((bracket) => {
-        const nameLower = bracket.name.toLowerCase();
-        const isGolden = nameLower.includes('golden');
-        const isSilver = nameLower.includes('silver');
-        const defaultOpen = isGolden || (!isSilver && !isGolden);
+      {data.brackets.map((bracket, index) => {
+        const defaultOpen = index === 0;
         const seriesKey = `__series_${bracket.name}__`;
         const isSeriesOpen = isOpen(seriesKey, true);
 
@@ -466,14 +487,21 @@ const UnifiedMatchesView = ({
           }));
 
         const thirdPlaceRound = bracket.winner_rounds.find((r) => r.stage_type === 'third_place');
-        const thirdPlaceMatch = thirdPlaceRound?.matches[0]
-          ? toFrontendMatch(
-              thirdPlaceRound.matches[0],
-              thirdPlaceRound.name,
-              timezone,
-              settingsByStage.get('third_place') ?? undefined,
-            )
-          : null;
+        const trailingRounds: BracketRounds = thirdPlaceRound?.matches.length
+          ? [
+              {
+                name: thirdPlaceRound.name,
+                matches: thirdPlaceRound.matches.map((m) =>
+                  toFrontendMatch(
+                    m,
+                    thirdPlaceRound.name,
+                    timezone,
+                    settingsByStage.get('third_place') ?? undefined,
+                  ),
+                ),
+              },
+            ]
+          : [];
 
         const loserRounds: BracketRounds = bracket.loser_rounds.map((r) => ({
           name: r.name,
@@ -493,22 +521,12 @@ const UnifiedMatchesView = ({
 
         return (
           <div key={bracket.name}>
-            {isGolden && (
-              <SeriesDivider
-                color="gold"
-                label={t('goldBracket')}
-                isOpen={isSeriesOpen}
-                onToggle={() => toggle(seriesKey)}
-              />
-            )}
-            {isSilver && (
-              <SeriesDivider
-                color="silver"
-                label={t('silverBracket')}
-                isOpen={isSeriesOpen}
-                onToggle={() => toggle(seriesKey)}
-              />
-            )}
+            <SeriesDivider
+              color={bracket.name === thirdStageName ? 'silver' : 'gold'}
+              label={bracket.name === secondStageName ? secondStageName : bracket.name}
+              isOpen={isSeriesOpen}
+              onToggle={() => toggle(seriesKey)}
+            />
 
             {isSeriesOpen && (
               <div className="mt-3 space-y-3">
@@ -520,6 +538,7 @@ const UnifiedMatchesView = ({
                   >
                     <Bracket
                       rounds={mainRounds}
+                      trailingRounds={trailingRounds}
                       canEdit={canEdit}
                       teamOptions={getAvailableTeamsForStage(
                         data.available_teams,
@@ -547,24 +566,6 @@ const UnifiedMatchesView = ({
                       onScoreUpdate={onScoreUpdate}
                       onTeamUpdate={onTeamUpdate}
                     />
-                  </BracketPanel>
-                )}
-
-                {thirdPlaceMatch && (
-                  <BracketPanel
-                    title="3º Lugar"
-                    isOpen={isOpen(`__3rd_${bracket.name}__`, true)}
-                    onToggle={() => toggle(`__3rd_${bracket.name}__`, true)}
-                  >
-                    <div className="flex justify-center py-2">
-                      <MatchNode
-                        match={thirdPlaceMatch}
-                        canEdit={canEdit}
-                        teamOptions={getAvailableTeamsForStage(data.available_teams, thirdPlaceMatch.stageType)}
-                        onScoreUpdate={onScoreUpdate}
-                        onTeamUpdate={onTeamUpdate}
-                      />
-                    </div>
                   </BracketPanel>
                 )}
 

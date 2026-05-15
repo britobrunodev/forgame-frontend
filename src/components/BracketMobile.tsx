@@ -7,6 +7,7 @@ type BracketRounds = Championship['rounds'];
 
 export const BracketMobile = ({
   rounds,
+  trailingRounds = [],
   highlightRound,
   canEdit,
   teamOptions,
@@ -14,6 +15,7 @@ export const BracketMobile = ({
   onTeamUpdate,
 }: {
   rounds: BracketRounds;
+  trailingRounds?: BracketRounds;
   highlightRound?: string;
   canEdit?: boolean;
   teamOptions?: ChampionshipTeamOut[];
@@ -22,10 +24,11 @@ export const BracketMobile = ({
 }) => {
   const { roundName } = useLanguage();
   let counter = 0;
+  const allRounds = [...rounds, ...trailingRounds];
 
   return (
     <div className="space-y-6">
-      {rounds.map((round) => {
+      {allRounds.map((round) => {
         const isHighlighted = highlightRound === round.name;
         return (
           <section

@@ -423,7 +423,27 @@ export interface ChampionshipFormatData {
   sport_id: number;
   name: string;
   slug: string;
-  config_json: Record<string, unknown> | null;
+  config_json: ChampionshipFormatConfig | null;
+}
+
+export interface ChampionshipFormatStageConfig {
+  name?: string;
+  default_view?: string;
+  required_multiple?: number;
+  minimum_subscription_players?: number;
+  subscription_players?: number;
+  minimum_players_single_elimination?: number;
+  minimum_players_double_elimination?: number;
+  team_size?: number;
+  advancing_players_limit?: number;
+  include_third_place_match?: boolean;
+}
+
+export interface ChampionshipFormatConfig {
+  subscription?: ChampionshipFormatStageConfig;
+  first_stage?: ChampionshipFormatStageConfig;
+  second_stage?: ChampionshipFormatStageConfig;
+  third_stage?: ChampionshipFormatStageConfig;
 }
 
 export const championshipFormatsApi = {
@@ -915,6 +935,7 @@ export interface CategoryMatchSettingsOut {
 
 export interface ChampionshipMatchesData {
   format_slug: string;
+  format_config: ChampionshipFormatConfig | null;
   category_id: number;
   tables: ChampionshipTableOut[];
   brackets: ChampionshipBracketOut[];

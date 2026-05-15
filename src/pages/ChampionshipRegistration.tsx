@@ -87,7 +87,7 @@ const ChampionshipRegistration = () => {
     () => formats.find((f) => f.id === selectedCategory?.format_id) ?? null,
     [formats, selectedCategory],
   );
-  const rawSubscriptionPlayers = selectedFormat?.config_json?.subscription_players;
+  const rawSubscriptionPlayers = selectedFormat?.config_json?.subscription?.subscription_players;
   const subscriptionPlayers =
     typeof rawSubscriptionPlayers === 'number' && rawSubscriptionPlayers > 0
       ? rawSubscriptionPlayers
