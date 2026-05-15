@@ -67,7 +67,7 @@ const Bookings = () => {
                       <MobileInfoRow label={t('subscriptionTeam')} value={`${teamCount} ${t('playersLabel')}`} />
                       <MobileInfoRow
                         label={t('paymentStatusSummary')}
-                        value={subscription.status === 'paid' ? t('paidStatus') : subscription.status === 'draft' ? 'Rascunho' : t('pendingStatus')}
+                        value={subscriptionStatusLabel(effectiveStatus, t)}
                       />
                     </div>
                     {(canEdit || canPay || canReceipt) ? (
@@ -274,13 +274,22 @@ const StatusBadge = ({
       ? 'border-border bg-background/40 text-muted-foreground'
       : status === 'paid'
         ? 'border-neon-cyan/20 bg-neon-cyan/10 text-neon-cyan'
+        : status === 'waiting_approval'
+          ? 'border-amber-400/30 bg-amber-400/10 text-amber-300'
         : status === 'draft'
           ? 'border-border bg-background/40 text-muted-foreground'
           : 'border-neon-pink/20 bg-neon-pink/10 text-neon-pink'
     }`}>
-    {muted ? '—' : status === 'paid' ? t('confirmedSubscriptionStatus') : status === 'draft' ? 'Rascunho' : t('pendingStatus')}
+    {muted ? '—' : subscriptionStatusLabel(status, t)}
   </div>
 );
+
+const subscriptionStatusLabel = (status: string, t: (key: string) => string) => {
+  if (status === 'paid') return t('confirmedSubscriptionStatus');
+  if (status === 'draft') return t('draftStatus');
+  if (status === 'waiting_approval') return t('waitingApprovalStatus');
+  return t('pendingStatus');
+};
 
 const navigateToEdit = (
   navigate: ReturnType<typeof useNavigate>,

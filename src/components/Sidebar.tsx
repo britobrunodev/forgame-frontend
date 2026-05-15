@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Trophy, MapPin, LogOut, Building2, ChevronDown, ChevronLeft, ChevronRight, Receipt, GraduationCap, ShieldCheck, ClipboardList, Calendar } from 'lucide-react';
+import { LayoutDashboard, Trophy, MapPin, LogOut, Building2, ChevronDown, ChevronLeft, ChevronRight, GraduationCap, ShieldCheck, ClipboardList, Calendar } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 
@@ -128,10 +128,6 @@ export const Sidebar = () => {
                 <NavLink to="/management/championships" className={({ isActive }) => subLinkClass(isActive)}>
                   <Trophy className="h-4 w-4 text-neon-cyan" />
                   {t('championships')}
-                </NavLink>
-                <NavLink to="/management/payments" className={({ isActive }) => subLinkClass(isActive)}>
-                  <Receipt className="h-4 w-4 text-neon-pink" />
-                  {t('managementPayments')}
                 </NavLink>
                 <NavLink to="/management/complexes" className={({ isActive }) => subLinkClass(isActive)}>
                   <Building2 className="h-4 w-4 text-neon-pink" />

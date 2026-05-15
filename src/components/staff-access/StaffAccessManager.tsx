@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, GraduationCap, MapPin, Save, Search, ShieldCheck, Target, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, ChevronLeft, ChevronRight, Flag, GraduationCap, MapPin, Save, Search, ShieldCheck, Target, Users } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { notify } from '@/lib/notify';
@@ -16,7 +17,7 @@ import {
 import { RoleChipToggle, RoleIconToggle } from './RoleToggle';
 import { StatusBadge } from './StatusBadge';
 
-type AssignableRole = 'owner' | 'manager' | 'professor' | 'scorer';
+type AssignableRole = 'owner' | 'manager' | 'professor' | 'referee' | 'scorer';
 type AssignedRoles = Record<AssignableRole, boolean>;
 type AccessScope = 'complex' | 'championship';
 type ScopeSnapshot = AccessControlSnapshot | ChampionshipAccessControlSnapshot;
@@ -25,25 +26,29 @@ const EMPTY_ROLES: AssignedRoles = {
   owner: false,
   manager: false,
   professor: false,
+  referee: false,
   scorer: false,
 };
 
-const ROLE_ORDER: AssignableRole[] = ['owner', 'manager', 'professor', 'scorer'];
-const EXCLUSIVE_ROLES: AssignableRole[] = ['manager', 'professor', 'scorer'];
+const ROLE_ORDER: AssignableRole[] = ['owner', 'manager', 'professor', 'referee', 'scorer'];
+const EXCLUSIVE_ROLES: AssignableRole[] = ['manager', 'professor', 'referee', 'scorer'];
 
 export const StaffAccessManager = ({
   adminOnly = false,
   scope,
   title,
   intro,
+  showBackButton = false,
 }: {
   adminOnly?: boolean;
   scope: AccessScope;
   title: string;
   intro: string;
+  showBackButton?: boolean;
 }) => {
   const { t } = useLanguage();
   const { currentUser, token } = useSession();
+  const navigate = useNavigate();
   const [selectedScopeId, setSelectedScopeId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -106,10 +111,42 @@ export const StaffAccessManager = ({
   const totalPages = snapshot?.total_pages ?? 1;
   const totalUsers = snapshot?.total ?? 0;
   const selectorLabel = scope === 'complex' ? t('sportComplex') : t('championshipLabel');
-  const selectedScopeName = scopeOptions.find((item) => String(item.id) === selectedScopeId)?.name ?? '-';
+  const selectedScope = scopeOptions.find((item) => String(item.id) === selectedScopeId);
+  const selectedScopeName = selectedScope?.name ?? '-';
+  const selectedChampionshipOwner = scope === 'championship' && selectedScope && 'owner_id' in selectedScope
+    ? {
+        id: selectedScope.owner_id,
+        name: selectedScope.owner_name,
+        email: selectedScope.owner_email,
+      }
+    : null;
+
+  const visibleUsers = useMemo(() => {
+    if (scope !== 'championship' || !selectedChampionshipOwner?.id) return users;
+    const ownerAlreadyVisible = users.some((user) => Number(user.id) === Number(selectedChampionshipOwner.id));
+    if (ownerAlreadyVisible || !selectedChampionshipOwner.name || !selectedChampionshipOwner.email) return users;
+    return [
+      {
+        id: selectedChampionshipOwner.id,
+        name: selectedChampionshipOwner.name,
+        email: selectedChampionshipOwner.email,
+        is_admin: false,
+      },
+      ...users,
+    ];
+  }, [scope, selectedChampionshipOwner, users]);
+
+  const getDisplayAssignment = (userId: string): AssignedRoles => {
+    const stored = assignmentsByScope[selectedScopeId]?.[userId] ?? EMPTY_ROLES;
+    if (scope === 'championship' && selectedChampionshipOwner?.id != null && Number(userId) === Number(selectedChampionshipOwner.id)) {
+      return { ...stored, owner: true };
+    }
+    return stored;
+  };
 
   const toggleRole = (userId: string, role: AssignableRole) => {
     if (!selectedScopeId) return;
+    if (scope === 'championship' && selectedChampionshipOwner?.id != null && Number(userId) === Number(selectedChampionshipOwner.id)) return;
 
     setAssignmentsByScope((current) => {
       const currentScopeRoles = current[selectedScopeId] ?? {};
@@ -185,7 +222,19 @@ export const StaffAccessManager = ({
   return (
     <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-8">
       <header>
-        <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{title}</p>
+        <div className="flex items-center gap-3">
+          {showBackButton ? (
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
+              aria-label={t('back')}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+          ) : null}
+          <p className="font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{title}</p>
+        </div>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{intro}</p>
       </header>
 
@@ -225,16 +274,17 @@ export const StaffAccessManager = ({
           <div className="rounded-2xl border border-border bg-background/25 p-10 text-center">
             <Users className="mx-auto h-10 w-10 text-muted-foreground/30" />
           </div>
-        ) : users.length === 0 ? (
+        ) : visibleUsers.length === 0 ? (
           <div className="rounded-2xl border border-border bg-background/25 p-10 text-center">
             <Users className="mx-auto h-10 w-10 text-muted-foreground/30" />
           </div>
         ) : (
           <>
             <div className="space-y-3 md:hidden">
-              {users.map((user) => {
-                const assignment = assignmentsByScope[selectedScopeId]?.[user.id] ?? EMPTY_ROLES;
+              {visibleUsers.map((user) => {
+                const assignment = getDisplayAssignment(String(user.id));
                 const activeRoles = ROLE_ORDER.filter((role) => assignment[role]);
+                const readOnlyOwner = assignment.owner;
                 return (
                   <div key={user.id} className="rounded-2xl border border-border bg-background/40 p-4">
                     <div className="flex items-start justify-between gap-3">
@@ -249,13 +299,16 @@ export const StaffAccessManager = ({
                       <span className="truncate">{selectedScopeName}</span>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2 border-t border-border/60 pt-3">
-                      {allowedRoles.includes('professor') ? (
+                      {!readOnlyOwner && allowedRoles.includes('professor') ? (
                         <RoleChipToggle active={assignment.professor} icon={<GraduationCap className="h-3.5 w-3.5" />} label={t('professor')} tone="cyan" onClick={() => toggleRole(user.id, 'professor')} />
                       ) : null}
-                      {allowedRoles.includes('manager') ? (
+                      {!readOnlyOwner && allowedRoles.includes('manager') ? (
                         <RoleChipToggle active={assignment.manager} icon={<ShieldCheck className="h-3.5 w-3.5" />} label={t('manager')} tone="pink" onClick={() => toggleRole(user.id, 'manager')} />
                       ) : null}
-                      {allowedRoles.includes('scorer') ? (
+                      {!readOnlyOwner && allowedRoles.includes('referee') ? (
+                        <RoleChipToggle active={assignment.referee} icon={<Flag className="h-3.5 w-3.5" />} label={t('referee')} tone="violet" onClick={() => toggleRole(user.id, 'referee')} />
+                      ) : null}
+                      {!readOnlyOwner && allowedRoles.includes('scorer') ? (
                         <RoleChipToggle active={assignment.scorer} icon={<Target className="h-3.5 w-3.5" />} label={t('scorer')} tone="amber" onClick={() => toggleRole(user.id, 'scorer')} />
                       ) : null}
                     </div>
@@ -273,9 +326,10 @@ export const StaffAccessManager = ({
                   <div className="text-center">{t('actions')}</div>
                 </div>
                 <div className="mt-2 space-y-2">
-                  {users.map((user) => {
-                    const assignment = assignmentsByScope[selectedScopeId]?.[user.id] ?? EMPTY_ROLES;
+                  {visibleUsers.map((user) => {
+                    const assignment = getDisplayAssignment(String(user.id));
                     const activeRoles = ROLE_ORDER.filter((role) => assignment[role]);
+                    const readOnlyOwner = assignment.owner;
                     return (
                       <div key={user.id} className="grid grid-cols-[36%_28%_16%_20%] items-center rounded-xl border border-border px-5 py-4 transition-smooth hover:bg-primary/5 sm:px-6">
                         <div className="text-center">
@@ -287,13 +341,16 @@ export const StaffAccessManager = ({
                         </div>
                         <div className="text-center">
                           <div className="flex items-center justify-center gap-2">
-                            {allowedRoles.includes('professor') ? (
+                            {!readOnlyOwner && allowedRoles.includes('professor') ? (
                               <RoleIconToggle active={assignment.professor} icon={<GraduationCap className="h-4 w-4" />} tone="cyan" title={t('professor')} onClick={() => toggleRole(user.id, 'professor')} />
                             ) : null}
-                            {allowedRoles.includes('manager') ? (
+                            {!readOnlyOwner && allowedRoles.includes('manager') ? (
                               <RoleIconToggle active={assignment.manager} icon={<ShieldCheck className="h-4 w-4" />} tone="pink" title={t('manager')} onClick={() => toggleRole(user.id, 'manager')} />
                             ) : null}
-                            {allowedRoles.includes('scorer') ? (
+                            {!readOnlyOwner && allowedRoles.includes('referee') ? (
+                              <RoleIconToggle active={assignment.referee} icon={<Flag className="h-4 w-4" />} tone="violet" title={t('referee')} onClick={() => toggleRole(user.id, 'referee')} />
+                            ) : null}
+                            {!readOnlyOwner && allowedRoles.includes('scorer') ? (
                               <RoleIconToggle active={assignment.scorer} icon={<Target className="h-4 w-4" />} tone="amber" title={t('scorer')} onClick={() => toggleRole(user.id, 'scorer')} />
                             ) : null}
                           </div>

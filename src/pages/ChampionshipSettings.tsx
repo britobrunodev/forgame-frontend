@@ -25,6 +25,7 @@ type CategoryEntry = {
   entry_fee: string;
   max_subscriptions: string;
   auto_generate_matches: boolean;
+  requires_approval: boolean;
   start_date: string;
   start_time: string;
 };
@@ -37,6 +38,7 @@ const START_TIMES = [
   '19:00', '19:30', '20:00', '20:30', '21:00', '21:30',
 ];
 const STATUS_OPTIONS = ['draft', 'open', 'subscription_ended', 'live', 'ended'] as const;
+const HOST_VENUE_TYPES = ['complex', 'beach', 'arena', 'club', 'other'] as const;
 
 const TIMEZONE_OPTIONS = [
   { value: 'America/Sao_Paulo', label: 'São Paulo / Brasília (UTC-3)' },
@@ -90,11 +92,12 @@ const ChampionshipSettings = () => {
     enabled: !!token && isEditing,
   });
 
-  const { data: myComplexes = [] } = useQuery({
-    queryKey: ['complexes-mine'],
-    queryFn: () => sportComplexApi.listMine(token!),
+  const { data: accessibleComplexesResponse } = useQuery({
+    queryKey: ['complexes-accessible-for-championship'],
+    queryFn: () => sportComplexApi.list(token!, 1, 100),
     enabled: !!token,
   });
+  const accessibleComplexes = accessibleComplexesResponse?.items ?? [];
 
   const { data: sports = [] } = useQuery({
     queryKey: ['championship-sports'],
@@ -111,8 +114,10 @@ const ChampionshipSettings = () => {
   // ── Form state ─────────────────────────────────────────────────────────────
   const [name, setName] = useState('');
   const [sportId, setSportId] = useState<string>('');
+  const [venueType, setVenueType] = useState<(typeof HOST_VENUE_TYPES)[number]>('complex');
   const [complexId, setComplexId] = useState<string>('');
   const [status, setStatus] = useState<string>('draft');
+  const [isPublic, setIsPublic] = useState(true);
   const [transmissionUrl, setTransmissionUrl] = useState('');
   const [addressUrl, setAddressUrl] = useState('');
   const [notes, setNotes] = useState('');
@@ -143,10 +148,16 @@ const ChampionshipSettings = () => {
   // Populate form from existing data (edit mode)
   useEffect(() => {
     if (!isEditing || !existing || initialized) return;
+    const config = existing.config_json ?? {};
+    const savedVenueType = typeof config.host_venue_type === 'string'
+      ? config.host_venue_type
+      : (existing.complex_id != null ? 'complex' : 'other');
     setName(existing.name);
     setSportId(existing.sport_id != null ? String(existing.sport_id) : '');
+    setVenueType(HOST_VENUE_TYPES.includes(savedVenueType as (typeof HOST_VENUE_TYPES)[number]) ? savedVenueType as (typeof HOST_VENUE_TYPES)[number] : 'other');
     setComplexId(existing.complex_id != null ? String(existing.complex_id) : '');
     setStatus(existing.status);
+    setIsPublic(existing.is_public ?? true);
     setTransmissionUrl(existing.transmission_url ?? '');
     setAddressUrl(existing.address_url ?? '');
     setNotes(existing.notes ?? '');
@@ -179,6 +190,7 @@ const ChampionshipSettings = () => {
         entry_fee: cat.entry_fee != null ? String(cat.entry_fee) : '',
         max_subscriptions: cat.max_subscriptions != null ? String(cat.max_subscriptions) : '',
         auto_generate_matches: cat.auto_generate_matches ?? true,
+        requires_approval: cat.requires_approval ?? false,
         start_date: cat.start_date ?? '',
         start_time: cat.start_time ?? '',
       })),
@@ -247,6 +259,7 @@ const ChampionshipSettings = () => {
       entry_fee: '',
       max_subscriptions: '',
       auto_generate_matches: true,
+      requires_approval: false,
       start_date: eventDateOptions[0] ?? '',
       start_time: '09:00',
     }]);
@@ -268,8 +281,9 @@ const ChampionshipSettings = () => {
       const payload = {
         name: name.trim(),
         sport_id: sportId ? Number(sportId) : null,
-        complex_id: complexId ? Number(complexId) : null,
+        complex_id: venueType === 'complex' && complexId ? Number(complexId) : null,
         status: nextStatus,
+        is_public: isPublic,
         transmission_url: transmissionUrl.trim() || null,
         address_url: addressUrl.trim() || null,
         notes: notes.trim() || null,
@@ -278,6 +292,10 @@ const ChampionshipSettings = () => {
         image_offset_x: Math.round(imageOffsetX),
         image_offset_y: Math.round(imageOffsetY),
         image_zoom: imageZoom,
+        config_json: {
+          ...(existing?.config_json ?? {}),
+          host_venue_type: venueType,
+        },
         timezone: timezone || null,
         start_at: startDate ? localToUtcIso(startDate, startTime, timezone) : null,
         end_at: endDate ? localToUtcIso(endDate, endTime, timezone) : null,
@@ -290,6 +308,7 @@ const ChampionshipSettings = () => {
           entry_fee: c.entry_fee ? Number(c.entry_fee) : null,
           max_subscriptions: c.max_subscriptions ? Number(c.max_subscriptions) : null,
           auto_generate_matches: c.auto_generate_matches,
+          requires_approval: c.requires_approval,
           start_date: c.start_date || null,
           start_time: c.start_time || null,
         })),
@@ -352,10 +371,10 @@ const ChampionshipSettings = () => {
     name.trim().length > 0 &&
     status.length > 0 &&
     sportId.length > 0 &&
-    complexId.length > 0 &&
     !!startDate &&
     !!deadlineDate &&
     timezone.length > 0 &&
+    (venueType !== 'complex' || complexId.length > 0) &&
     categories.length > 0;
 
   return (
@@ -430,16 +449,39 @@ const ChampionshipSettings = () => {
             </Select>
           </Field>
 
-          <Field label={t('sportComplex')}>
-            <Select value={complexId} onValueChange={setComplexId}>
-              <SelectTrigger className="border-border bg-background/60"><SelectValue placeholder="Selecionar complexo" /></SelectTrigger>
+          <Field label={t('championshipVenueType')}>
+            <Select
+              value={venueType}
+              onValueChange={(value) => {
+                const nextValue = value as (typeof HOST_VENUE_TYPES)[number];
+                setVenueType(nextValue);
+                if (nextValue !== 'complex') setComplexId('');
+              }}
+            >
+              <SelectTrigger className="border-border bg-background/60"><SelectValue placeholder={t('championshipVenueTypePlaceholder')} /></SelectTrigger>
               <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                {myComplexes.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                ))}
+                <SelectItem value="complex">{t('championshipVenueTypeComplex')}</SelectItem>
+                <SelectItem value="beach">{t('championshipVenueTypeBeach')}</SelectItem>
+                <SelectItem value="arena">{t('championshipVenueTypeArena')}</SelectItem>
+                <SelectItem value="club">{t('championshipVenueTypeClub')}</SelectItem>
+                <SelectItem value="other">{t('championshipVenueTypeOther')}</SelectItem>
               </SelectContent>
             </Select>
           </Field>
+
+          {venueType === 'complex' ? (
+            <Field label={t('sportComplex')}>
+              <Select value={complexId} onValueChange={setComplexId}>
+                <SelectTrigger className="border-border bg-background/60"><SelectValue placeholder={t('selectComplex')} /></SelectTrigger>
+                <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                  {accessibleComplexes.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs text-muted-foreground">{t('championshipHostComplexHint')}</p>
+            </Field>
+          ) : null}
 
           {/* Event date range — spans 2 cols so start+end are visually grouped */}
           <div className="sm:col-span-2">
@@ -517,6 +559,15 @@ const ChampionshipSettings = () => {
 
         {/* Toggles */}
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="flex items-start justify-between rounded-2xl border border-border bg-background/40 px-4 py-4">
+            <div className="pr-4 pt-0.5">
+              <div className="font-semibold text-foreground">{t('championshipVisibility')}</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {isPublic ? t('championshipPublicDescription') : t('championshipPrivateDescription')}
+              </div>
+            </div>
+            <Switch checked={isPublic} onCheckedChange={setIsPublic} />
+          </div>
           <div className="flex items-start justify-between rounded-2xl border border-border bg-background/40 px-4 py-4">
             <div className="pr-4 pt-0.5">
               <div className="font-semibold text-foreground">{t('uniformIncluded')}</div>
@@ -640,6 +691,10 @@ const ChampionshipSettings = () => {
                     <div className="flex flex-1 items-center justify-between gap-3 rounded-xl border border-border bg-background/30 px-3 h-10">
                       <span className="text-xs font-semibold text-muted-foreground">{t('autoGenerateMatches')}</span>
                       <Switch checked={cat.auto_generate_matches} onCheckedChange={(v) => updateCategory(cat.id, 'auto_generate_matches', v)} />
+                    </div>
+                    <div className="flex flex-1 items-center justify-between gap-3 rounded-xl border border-border bg-background/30 px-3 h-10">
+                      <span className="text-xs font-semibold text-muted-foreground">{t('subscriptionApprovalRequired')}</span>
+                      <Switch checked={cat.requires_approval} onCheckedChange={(v) => updateCategory(cat.id, 'requires_approval', v)} />
                     </div>
                     <button type="button" onClick={() => removeCategory(cat.id)} title={t('remove')} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-background/40 text-muted-foreground transition-smooth hover:border-live/40 hover:bg-live/10 hover:text-live">
                       <Trash2 className="h-4 w-4" />

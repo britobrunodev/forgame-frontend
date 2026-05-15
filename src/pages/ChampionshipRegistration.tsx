@@ -178,6 +178,34 @@ const ChampionshipRegistration = () => {
       });
     };
 
+    const handleCheckoutResponse = (
+      subscription: {
+        payment_id: number | null;
+        payment_status: string | null;
+        total_amount: number | null;
+        subscription_status: string;
+        subscription_ids: number[];
+      },
+      resolvedSubscriptionId: number,
+    ) => {
+      if (
+        subscription.subscription_status === 'waiting_approval' ||
+        subscription.payment_id == null ||
+        subscription.payment_status == null ||
+        subscription.total_amount == null
+      ) {
+        notify.success(t('registrationPendingApproval'), t('registrationPendingApprovalDescription'));
+        navigate('/bookings');
+        return;
+      }
+      goToPayment(
+        subscription.payment_id,
+        subscription.payment_status,
+        subscription.total_amount,
+        resolvedSubscriptionId,
+      );
+    };
+
     setIsSubmitting(true);
 
     if (editState) {
@@ -185,7 +213,7 @@ const ChampionshipRegistration = () => {
         category_id: selectedCategory.id!,
         player_ids: playerIds,
       })
-        .then((subscription) => goToPayment(subscription.payment_id, subscription.payment_status, subscription.total_amount, editState.subscriptionId))
+        .then((subscription) => handleCheckoutResponse(subscription, editState.subscriptionId))
         .catch((err: unknown) => {
           notify.error(err instanceof Error ? err.message : 'Erro ao atualizar inscrição');
         })
@@ -197,7 +225,7 @@ const ChampionshipRegistration = () => {
       category_id: selectedCategory.id!,
       player_ids: playerIds,
     })
-      .then((subscription) => goToPayment(subscription.payment_id, subscription.payment_status, subscription.total_amount, subscription.subscription_ids[0]))
+      .then((subscription) => handleCheckoutResponse(subscription, subscription.subscription_ids[0]))
       .catch((err: unknown) => {
         if (err instanceof Error && err.message.includes('Já possui inscrição')) {
           notify.error('Já possui inscrição', 'Acesse minha área para finalizar inscrição');

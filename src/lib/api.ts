@@ -56,6 +56,9 @@ export interface ManagedChampionship {
   name: string;
   sport_name: string | null;
   complex_name: string | null;
+  owner_id: number | null;
+  owner_name: string | null;
+  owner_email: string | null;
 }
 
 export interface AccessControlUser {
@@ -200,9 +203,10 @@ export interface PlayerListItem {
 }
 
 export interface ChampionshipSubscriptionData {
-  payment_id: number;
-  payment_status: string;
-  total_amount: number;
+  payment_id: number | null;
+  payment_status: string | null;
+  total_amount: number | null;
+  subscription_status: string;
   team_id: number;
   subscription_ids: number[];
 }
@@ -652,6 +656,7 @@ export interface ChampionshipCategoryData {
   subscriptions_count: number;
   is_full: boolean;
   auto_generate_matches: boolean;
+  requires_approval: boolean;
   start_date: string | null;
   start_time: string | null;
 }
@@ -664,6 +669,7 @@ export interface ChampionshipCategoryInput {
   entry_fee: number | null;
   max_subscriptions: number | null;
   auto_generate_matches: boolean;
+  requires_approval: boolean;
   start_date: string | null;
   start_time: string | null;
 }
@@ -687,6 +693,7 @@ export interface ChampionshipData {
   registration_deadline_at: string | null;
   timezone: string | null;
   status: 'draft' | 'open' | 'subscription_ended' | 'live' | 'ended' | string;
+  is_public: boolean;
   transmission_url: string | null;
   address_url: string | null;
   notes: string | null;
@@ -711,6 +718,7 @@ export interface ChampionshipInput {
   registration_deadline_at?: string | null;
   timezone?: string | null;
   status?: string;
+  is_public?: boolean;
   transmission_url?: string | null;
   address_url?: string | null;
   notes?: string | null;
@@ -851,6 +859,12 @@ export const championshipSubscriptionsApi = {
       method: 'PATCH',
       headers: json(token),
       body: JSON.stringify(body),
+    }).then((r) => handle<ChampionshipSubscriptionData>(r)),
+
+  approve: (token: string, subscriptionId: number) =>
+    fetch(`${API_BASE}/championship-subscriptions/${subscriptionId}/approve`, {
+      method: 'POST',
+      headers: json(token),
     }).then((r) => handle<ChampionshipSubscriptionData>(r)),
 };
 

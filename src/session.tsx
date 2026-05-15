@@ -31,7 +31,7 @@ const gestorRolesStorageKey = 'joga-junto-available-gestor-roles';
 const tokenStorageKey = 'joga-junto-token';
 const pendingApprovalStorageKey = 'joga-junto-pending-approval';
 
-const GESTOR_ROLES: GestorRole[] = ['owner', 'manager', 'professor', 'scorer'];
+const GESTOR_ROLES: GestorRole[] = ['owner', 'manager', 'professor', 'referee', 'scorer'];
 
 const getAvailableProfiles = (user: User): UserProfile[] => {
   if (user.profiles && user.profiles.length > 0) return user.profiles;
@@ -136,7 +136,7 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
 
   const [activeGestorRole, setActiveGestorRoleState] = useState<GestorRole>(() => {
     const stored = window.localStorage.getItem(gestorRoleStorageKey);
-    if ((stored === 'owner' || stored === 'manager' || stored === 'professor' || stored === 'scorer') && availableGestorRoles.includes(stored)) {
+    if ((stored === 'owner' || stored === 'manager' || stored === 'professor' || stored === 'referee' || stored === 'scorer') && availableGestorRoles.includes(stored)) {
       return stored;
     }
     return availableGestorRoles[0] ?? 'owner';

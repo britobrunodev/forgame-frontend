@@ -10,7 +10,6 @@ import {
   Building2,
   ChevronDown,
   LogOut,
-  Receipt,
   GraduationCap,
   Users,
   ClipboardList,
@@ -42,6 +41,7 @@ export const TopBar = () => {
     if (currentUser.roles?.includes('owner')) return gestorRoleLabel('owner');
     if (currentUser.roles?.includes('manager')) return gestorRoleLabel('manager');
     if (currentUser.roles?.includes('professor')) return gestorRoleLabel('professor');
+    if (currentUser.roles?.includes('referee')) return gestorRoleLabel('referee');
     if (currentUser.roles?.includes('scorer')) return t('scorer');
     return t('player');
   })();
@@ -185,18 +185,6 @@ export const TopBar = () => {
                         >
                           <Building2 className="h-4 w-4 shrink-0 text-neon-pink" />
                           <span className="truncate">{t('sportComplexes')}</span>
-                        </NavLink>
-
-                        <NavLink
-                          to="/management/payments"
-                          onClick={closeMobileMenu}
-                          className={({ isActive }) =>
-                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                            }`
-                          }
-                        >
-                          <Receipt className="h-4 w-4 shrink-0 text-neon-pink" />
-                          <span className="truncate">{t('managementPayments')}</span>
                         </NavLink>
 
                       </div>

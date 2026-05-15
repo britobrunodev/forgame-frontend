@@ -4,8 +4,8 @@ export type SportId =
   | "beach-soccer"
   | "volleyball";
 export type UserProfile = "player" | "gestor";
-export type GestorRole = "owner" | "manager" | "professor" | "scorer";
-export type UserRole = "player" | "owner" | "manager" | "professor" | "scorer";
+export type GestorRole = "owner" | "manager" | "professor" | "referee" | "scorer";
+export type UserRole = "player" | "owner" | "manager" | "professor" | "referee" | "scorer";
 export type PlayerCharacteristic =
   | "right"
   | "left"

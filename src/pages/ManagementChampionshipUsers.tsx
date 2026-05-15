@@ -21,6 +21,7 @@ const ManagementChampionshipUsers = () => {
       scope="championship"
       title={t('users')}
       intro={t('managementChampionshipUsersIntro')}
+      showBackButton
     />
   );
 };

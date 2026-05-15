@@ -1,5 +1,5 @@
-import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleCheckBig, Receipt, Ticket, Trophy } from 'lucide-react';
 import { useLanguage } from '@/i18n';
@@ -13,6 +13,7 @@ type PaymentStatusFilter = 'all' | 'paid' | 'pending' | 'failed';
 const PAGE_SIZE = 20;
 
 const ManagementPayments = () => {
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { t, language } = useLanguage();
   const { currentUser, isGestorMode, token } = useSession();
@@ -20,13 +21,23 @@ const ManagementPayments = () => {
 
   const scopedType = (searchParams.get('type') as 'championship' | 'court' | null) ?? null;
   const scopedId = searchParams.get('id');
+  const routeLockedKind: Extract<PaymentKind, 'championship'> | null = location.pathname.startsWith('/management/championships/payments')
+    ? 'championship'
+    : null;
 
   const [selectedComplexId, setSelectedComplexId] = useState<'all' | string>('all');
-  const [selectedKind, setSelectedKind] = useState<PaymentKind>(scopedType ?? 'all');
+  const [selectedKind, setSelectedKind] = useState<PaymentKind>(scopedType ?? routeLockedKind ?? 'all');
   const [selectedStatus, setSelectedStatus] = useState<PaymentStatusFilter>('all');
   const [page, setPage] = useState(1);
+  const effectiveKind = routeLockedKind ?? selectedKind;
 
   const canManage = isGestorMode || currentUser.isAdmin;
+
+  useEffect(() => {
+    if (!routeLockedKind && !scopedType) return;
+    setSelectedKind(scopedType ?? routeLockedKind ?? 'all');
+    setPage(1);
+  }, [routeLockedKind, scopedType]);
 
   const { data: complexesResponse } = useQuery({
     queryKey: ['management-payments-complexes', currentUser.isAdmin],
@@ -41,12 +52,12 @@ const ManagementPayments = () => {
   const complexes = complexesResponse?.items ?? [];
 
   const { data: paymentsResponse, isLoading } = useQuery({
-    queryKey: ['management-payments', page, selectedKind, selectedStatus, selectedComplexId, scopedId, scopedType],
+    queryKey: ['management-payments', page, effectiveKind, selectedStatus, selectedComplexId, scopedId, scopedType],
     queryFn: () => paymentsApi.list(token!, {
       page,
       perPage: PAGE_SIZE,
-      sourceType: selectedKind,
-      sourceId: scopedType && selectedKind === scopedType ? (scopedId ?? undefined) : undefined,
+      sourceType: effectiveKind,
+      sourceId: scopedType && effectiveKind === scopedType ? (scopedId ?? undefined) : undefined,
       status: selectedStatus,
       complexId: selectedComplexId,
     }),
@@ -102,21 +113,23 @@ const ManagementPayments = () => {
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('paymentType')}</div>
-            <Select value={selectedKind} onValueChange={(value) => { setSelectedKind(value as PaymentKind); setPage(1); }}>
-              <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                <SelectItem value="all">{t('allPayments')}</SelectItem>
-                <SelectItem value="championship">{t('championships')}</SelectItem>
-                <SelectItem value="court">{t('courtManagement')}</SelectItem>
-                <SelectItem value="wellhub">{t('wellhub')}</SelectItem>
-                <SelectItem value="totalpass">{t('totalpass')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {routeLockedKind ? null : (
+            <div className="space-y-2">
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('paymentType')}</div>
+              <Select value={selectedKind} onValueChange={(value) => { setSelectedKind(value as PaymentKind); setPage(1); }}>
+                <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
+                  <SelectItem value="all">{t('allPayments')}</SelectItem>
+                  <SelectItem value="championship">{t('championships')}</SelectItem>
+                  <SelectItem value="court">{t('courtManagement')}</SelectItem>
+                  <SelectItem value="wellhub">{t('wellhub')}</SelectItem>
+                  <SelectItem value="totalpass">{t('totalpass')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('paymentStatusSummary')}</div>

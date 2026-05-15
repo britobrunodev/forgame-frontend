@@ -88,6 +88,7 @@ const App = () => (
                 <Route path="/management/courts" element={<ManagementDashboard />} />
                 <Route path="/management/approvals" element={<ManagementApprovals />} />
                 <Route path="/management/championships" element={<ManagementChampionships />} />
+                <Route path="/management/championships/payments" element={<ManagementPayments />} />
                 <Route path="/management/championships/users" element={<ManagementChampionshipUsers />} />
                 <Route path="/management/classes" element={<ManagementClasses />} />
                 <Route path="/management/classes/new" element={<ManagementClassCreate />} />
@@ -103,6 +104,7 @@ const App = () => (
                 <Route path="/admin/complexes" element={<AdminComplexes />} />
                 <Route path="/management/payments" element={<ManagementPayments />} />
                 <Route path="/management/complexes" element={<SportComplexesManagement />} />
+                <Route path="/management/complexes/payments" element={<ManagementPayments />} />
                 <Route path="/management/complexes/users" element={<ManagementComplexUsers />} />
                 <Route path="/management/complexes/new" element={<SportComplexSettings />} />
                 <Route path="/management/complexes/:complexId/edit" element={<SportComplexSettings />} />

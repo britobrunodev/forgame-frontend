@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Building2, ChevronLeft, ChevronRight, Loader2, Pencil, Plus, SlidersHorizontal, Users } from 'lucide-react';
+import { Building2, ChevronLeft, ChevronRight, Loader2, Pencil, Plus, Receipt, SlidersHorizontal, Users } from 'lucide-react';
 import { useState } from 'react';
 import { getCountryLabel } from '@/data/countries';
 import { useLanguage } from '@/i18n';
@@ -55,6 +55,14 @@ const SportComplexesManagement = () => {
           >
             <Users className="h-3.5 w-3.5" />
             {t('users')}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/management/complexes/payments')}
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-border bg-background/60 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
+          >
+            <Receipt className="h-3.5 w-3.5" />
+            {t('payments')}
           </button>
           <button
             type="button"

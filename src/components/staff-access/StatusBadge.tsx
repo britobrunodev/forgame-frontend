@@ -1,6 +1,6 @@
-import { Building2, GraduationCap, ShieldCheck, Target } from 'lucide-react';
+import { Building2, Flag, GraduationCap, ShieldCheck, Target } from 'lucide-react';
 
-type RoleKey = 'owner' | 'manager' | 'professor' | 'scorer';
+type RoleKey = 'owner' | 'manager' | 'professor' | 'referee' | 'scorer';
 
 export const StatusBadge = ({
   activeRoles,
@@ -30,6 +30,14 @@ export const StatusBadge = ({
       <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-neon-cyan/30 bg-neon-cyan/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-neon-cyan">
         <GraduationCap className="h-3 w-3 shrink-0" />
         {t('professor')}
+      </span>
+    );
+  }
+  if (activeRoles.includes('referee')) {
+    return (
+      <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-violet-400/30 bg-violet-400/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-violet-300">
+        <Flag className="h-3 w-3 shrink-0" />
+        {t('referee')}
       </span>
     );
   }

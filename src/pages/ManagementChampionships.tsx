@@ -74,6 +74,14 @@ const ManagementChampionships = () => {
           </button>
           <button
             type="button"
+            onClick={() => navigate('/management/championships/payments')}
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-border bg-background/60 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
+          >
+            <Receipt className="h-3.5 w-3.5" />
+            {t('payments')}
+          </button>
+          <button
+            type="button"
             onClick={() => navigate('/management/championships/new')}
             title={t('createChampionship')}
             className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
@@ -115,18 +123,10 @@ const ManagementChampionships = () => {
                   <button
                     type="button"
                     onClick={() => navigate(`/management/championships/${c.id}/edit`)}
-                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-background/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
+                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-background/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                     {t('edit')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/management/payments?type=championship&id=${c.id}`)}
-                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-background/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
-                  >
-                    <Receipt className="h-3.5 w-3.5" />
-                    {t('payments')}
                   </button>
                 </div>
               </article>
@@ -178,14 +178,6 @@ const ManagementChampionships = () => {
                       >
                         <Pencil className="h-3.5 w-3.5" />
                         {t('edit')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/management/payments?type=championship&id=${c.id}`)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
-                      >
-                        <Receipt className="h-3.5 w-3.5" />
-                        {t('payments')}
                       </button>
                     </div>
                   </div>

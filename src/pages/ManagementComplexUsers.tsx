@@ -21,6 +21,7 @@ const ManagementComplexUsers = () => {
       scope="complex"
       title={t('users')}
       intro={t('managementUsersIntro')}
+      showBackButton
     />
   );
 };
