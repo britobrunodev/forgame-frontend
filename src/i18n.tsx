@@ -250,9 +250,13 @@ const messages: Record<Language, MessageCatalog> = {
     advanced: 'Advanced',
     'high-advanced': 'High Advanced',
     professional: 'Professional',
-    winnerBracket: 'Winner Bracket',
-    loserBracket: 'Recap',
+    winnerBracket: 'Winners Bracket',
+    loserBracket: 'Losers Bracket',
+    doubleElimination: 'Double Elimination',
+    enableDoubleElimination: 'Enable Double Elimination',
     finalsBracket: 'Finals',
+    finais: 'Finals',
+    classificados: 'Classified',
     winners: 'Winners',
     oneLoss: 'One Loss',
     oneLossHint: 'Teams with one loss still have a path back to the final.',
@@ -283,6 +287,7 @@ const messages: Record<Language, MessageCatalog> = {
     finalsGold: 'Finals · Gold',
     finalsSilver: 'Finals · Silver',
     advancesToNextStage: 'Next stage',
+    randomTiebreakPending: 'Random tie-break pending',
     points: 'Points',
     addCategoryEntry: 'Add Category',
     group: 'Group',
@@ -560,6 +565,11 @@ const messages: Record<Language, MessageCatalog> = {
       Final: 'Final',
       Opening: 'Opening',
       'Group Stage': 'Group Stage',
+      'Losers QF': 'Losers QF',
+      'Losers SF': 'Losers SF',
+      'Losers Final': 'Losers Final',
+      'Grand Final': 'Grand Final',
+      'Finais Semi': 'Finals Semi',
     },
   },
   'pt-BR': {
@@ -803,9 +813,13 @@ const messages: Record<Language, MessageCatalog> = {
     advanced: 'Avançado',
     'high-advanced': 'Avançado Superior',
     professional: 'Profissional',
-    winnerBracket: 'Chave dos Vencedores',
-    loserBracket: 'Repescagem',
+    winnerBracket: 'Chave dos Ganhadores',
+    loserBracket: 'Chave dos Perdedores',
+    doubleElimination: 'Eliminação Dupla',
+    enableDoubleElimination: 'Ativar Eliminação Dupla',
     finalsBracket: 'Finais',
+    finais: 'Finais',
+    classificados: 'Classificados',
     winners: 'Winners',
     oneLoss: 'Uma Derrota',
     oneLossHint: 'Equipes com uma derrota ainda mantêm um caminho de volta para a final.',
@@ -836,6 +850,7 @@ const messages: Record<Language, MessageCatalog> = {
     finalsGold: 'Finais · Ouro',
     finalsSilver: 'Finais · Prata',
     advancesToNextStage: 'Próxima fase',
+    randomTiebreakPending: 'Empate pendente de sorteio',
     points: 'Pontos',
     addCategoryEntry: 'Adicionar Categoria',
     group: 'Grupo',
@@ -1113,6 +1128,11 @@ const messages: Record<Language, MessageCatalog> = {
       Final: 'Final',
       Opening: 'Abertura',
       'Group Stage': 'Fase de grupos',
+      'Losers QF': 'Quartas Perdedores',
+      'Losers SF': 'Semi Perdedores',
+      'Losers Final': 'Final Perdedores',
+      'Grand Final': 'Grande Final',
+      'Finais Semi': 'Semi',
     },
   },
 };
@@ -1156,7 +1176,17 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
         return typeof value === 'string' ? value : key;
       },
       sportName: (sportId) => lookupMap('sportsById', sportId),
-      roundName: (round) => lookupMap('rounds', round),
+      roundName: (round) => {
+        const mapped = lookupMap('rounds', round);
+        if (mapped !== round) return mapped;
+        // Dynamic losers bracket rounds: "Losers R1" → "Perdedores R1" (pt-BR)
+        const loserRoundMatch = round.match(/^Losers R(\d+)$/);
+        if (loserRoundMatch) {
+          const suffix = `R${loserRoundMatch[1]}`;
+          return language === 'pt-BR' ? `Perdedores ${suffix}` : `Losers ${suffix}`;
+        }
+        return round;
+      },
       userTypeLabel: (type) => lookupMap('userTypes', type),
       gestorRoleLabel: (role) => lookupMap('gestorRoles', role),
     };

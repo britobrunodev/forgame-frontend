@@ -26,6 +26,7 @@ type CategoryEntry = {
   max_subscriptions: string;
   auto_generate_matches: boolean;
   requires_approval: boolean;
+  double_elimination_enabled: boolean;
   start_date: string;
   start_time: string;
 };
@@ -191,6 +192,7 @@ const ChampionshipSettings = () => {
         max_subscriptions: cat.max_subscriptions != null ? String(cat.max_subscriptions) : '',
         auto_generate_matches: cat.auto_generate_matches ?? true,
         requires_approval: cat.requires_approval ?? false,
+        double_elimination_enabled: cat.double_elimination_enabled ?? true,
         start_date: cat.start_date ?? '',
         start_time: cat.start_time ?? '',
       })),
@@ -260,6 +262,7 @@ const ChampionshipSettings = () => {
       max_subscriptions: '',
       auto_generate_matches: true,
       requires_approval: false,
+      double_elimination_enabled: true,
       start_date: eventDateOptions[0] ?? '',
       start_time: '09:00',
     }]);
@@ -309,6 +312,7 @@ const ChampionshipSettings = () => {
           max_subscriptions: c.max_subscriptions ? Number(c.max_subscriptions) : null,
           auto_generate_matches: c.auto_generate_matches,
           requires_approval: c.requires_approval,
+          double_elimination_enabled: c.double_elimination_enabled,
           start_date: c.start_date || null,
           start_time: c.start_time || null,
         })),
@@ -599,6 +603,28 @@ const ChampionshipSettings = () => {
             <div className="space-y-3">
               {categories.map((cat) => (
                 <div key={cat.id} className="rounded-2xl border border-border bg-background/40 p-4">
+                  {(() => {
+                    const selectedFormat = formatsCatalog.find((format) => String(format.id) === cat.format_id) ?? null;
+                    const secondStageConfig = selectedFormat?.config_json?.second_stage;
+                    const thirdStageConfig = selectedFormat?.config_json?.third_stage;
+                    const doubleEliminationHints = [secondStageConfig, thirdStageConfig]
+                      .flatMap((stageConfig) => {
+                        const minimumPlayers = stageConfig?.double_elimination?.minimum_players;
+                        if (typeof minimumPlayers !== 'number' || minimumPlayers <= 0) return [];
+                        const requiredMultiple = stageConfig?.double_elimination?.required_multiple ?? 1;
+                        const stageName = stageConfig?.name?.trim() || t('bracket');
+                        return [{ stageName, minimumPlayers, requiredMultiple }];
+                      });
+                    const doubleEliminationAdvice = doubleEliminationHints.length > 0
+                      ? language === 'pt-BR'
+                        ? `Se ativada, a dupla eliminação só será gerada quando a fase tiver jogadores suficientes. ${doubleEliminationHints.map((hint) => `${hint.stageName}: mínimo ${hint.minimumPlayers} jogadores, múltiplo de ${hint.requiredMultiple} equipes`).join(' · ')}.`
+                        : `If enabled, double elimination will only be generated when the stage has enough players. ${doubleEliminationHints.map((hint) => `${hint.stageName}: minimum ${hint.minimumPlayers} players, multiple of ${hint.requiredMultiple} teams`).join(' · ')}.`
+                      : language === 'pt-BR'
+                        ? 'Se ativada, a dupla eliminação ainda depende da configuração do formato e da quantidade de jogadores classificados.'
+                        : 'If enabled, double elimination still depends on the format configuration and the number of qualified players.';
+
+                    return (
+                      <>
                   {/* Row 1: format | category | audience — equal thirds */}
                   <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
                     <Field label={t('bracketFormat')}>
@@ -700,6 +726,23 @@ const ChampionshipSettings = () => {
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
+                  <div className="mt-3 rounded-xl border border-border bg-background/30 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="pr-4">
+                        <div className="text-xs font-semibold text-foreground">{t('doubleElimination')}</div>
+                        <div className="mt-1 text-[11px] leading-5 text-muted-foreground">
+                          {doubleEliminationAdvice}
+                        </div>
+                      </div>
+                      <Switch
+                        checked={cat.double_elimination_enabled}
+                        onCheckedChange={(v) => updateCategory(cat.id, 'double_elimination_enabled', v)}
+                      />
+                    </div>
+                  </div>
+                      </>
+                    );
+                  })()}
                 </div>
               ))}
             </div>

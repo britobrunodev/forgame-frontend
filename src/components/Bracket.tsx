@@ -13,6 +13,7 @@ const SLOT_STEP = CARD_HEIGHT + SLOT_GAP;
 export const Bracket = ({
   rounds,
   trailingRounds = [],
+  classifiedRound,
   canEdit,
   teamOptions,
   onScoreUpdate,
@@ -20,6 +21,8 @@ export const Bracket = ({
 }: {
   rounds: BracketRounds;
   trailingRounds?: BracketRounds;
+  /** When set, the last round's match cards are styled as "Classificados". */
+  classifiedRound?: BracketRounds[number];
   canEdit?: boolean;
   teamOptions?: ChampionshipTeamOut[];
   onScoreUpdate?: ScoreUpdateFn;
@@ -30,6 +33,7 @@ export const Bracket = ({
   const minHeight = rounds.length === 1 ? baseHeight : Math.max(baseHeight, CARD_HEIGHT);
   const isStandardProgression = rounds.every((round, index) => index === 0 || rounds[index - 1].matches.length === round.matches.length * 2);
   const totalHeight = Math.max(((rounds[0]?.matches.length ?? 1) - 1) * SLOT_STEP + CARD_HEIGHT, CARD_HEIGHT);
+  const lastRoundIndex = rounds.length - 1;
 
   return (
     <>
@@ -46,35 +50,39 @@ export const Bracket = ({
       <div className="hidden md:block overflow-x-auto pb-4">
         {isStandardProgression ? (
           <div className="flex gap-4 min-w-max">
-            {rounds.map((round, ri) => (
-              <div key={round.name} className="flex flex-col">
-                <h4 className="mb-4 w-72 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
-                  {roundName(round.name)}
-                </h4>
-                <div className="relative" style={{ height: totalHeight, width: ri < rounds.length - 1 ? 352 : 288 }}>
-                  {round.matches.map((match, mi) => {
-                    const top = getStandardRoundTop(ri, mi);
-                    const nextTop = ri < rounds.length - 1 ? getStandardRoundTop(ri + 1, Math.floor(mi / 2)) : top;
-                    return (
-                      <div key={match.id} className="absolute left-0 overflow-visible" style={{ top, width: 352, height: CARD_HEIGHT }}>
-                        <div className="relative h-full w-full">
-                          <MatchNode
-                            match={match}
-                            canEdit={canEdit}
-                            teamOptions={teamOptions}
-                            onScoreUpdate={onScoreUpdate}
-                            onTeamUpdate={onTeamUpdate}
-                          />
-                        {ri < rounds.length - 1 && (
-                            <PreciseBracketConnector deltaToNext={nextTop - top} />
-                        )}
+            {rounds.map((round, ri) => {
+              const isClassifiedRound = !!classifiedRound && ri === lastRoundIndex;
+              return (
+                <div key={round.name} className="flex flex-col">
+                  <h4 className="mb-4 w-72 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
+                    {roundName(round.name)}
+                  </h4>
+                  <div className="relative" style={{ height: totalHeight, width: ri < rounds.length - 1 ? 352 : 288 }}>
+                    {round.matches.map((match, mi) => {
+                      const top = getStandardRoundTop(ri, mi);
+                      const nextTop = ri < rounds.length - 1 ? getStandardRoundTop(ri + 1, Math.floor(mi / 2)) : top;
+                      return (
+                        <div key={match.id} className="absolute left-0 overflow-visible" style={{ top, width: 352, height: CARD_HEIGHT }}>
+                          <div className="relative h-full w-full">
+                            <MatchNode
+                              match={match}
+                              isClassified={isClassifiedRound}
+                              canEdit={canEdit}
+                              teamOptions={teamOptions}
+                              onScoreUpdate={onScoreUpdate}
+                              onTeamUpdate={onTeamUpdate}
+                            />
+                            {ri < rounds.length - 1 && (
+                              <PreciseBracketConnector deltaToNext={nextTop - top} />
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {trailingRounds.map((round) => (
               <div key={round.name} className="flex flex-col">
                 <h4 className="mb-4 w-72 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
@@ -96,57 +104,63 @@ export const Bracket = ({
             ))}
           </div>
         ) : (
-        <div className="flex gap-4 min-w-max">
-          {rounds.map((round, ri) => (
-            <div key={round.name} className="flex flex-col">
-              <h4 className="mb-4 w-72 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
-                {roundName(round.name)}
-              </h4>
-              <div className="flex flex-col justify-around flex-1 gap-4" style={{ minHeight }}>
-                {round.matches.map((m, mi) => (
-                  <div
-                    key={m.id}
-                    className="flex items-center"
-                    style={{ marginTop: ri === 0 && mi === 0 ? 0 : `${ri * 8}px` }}
-                  >
+          <div className="flex gap-4 min-w-max">
+            {rounds.map((round, ri) => {
+              const isClassifiedRound = !!classifiedRound && ri === lastRoundIndex;
+              return (
+                <div key={round.name} className="flex flex-col">
+                  <h4 className="mb-4 w-72 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
+                    {roundName(round.name)}
+                  </h4>
+                  <div className="flex flex-col justify-around flex-1 gap-4" style={{ minHeight }}>
+                    {round.matches.map((m, mi) => {
+                      const nextRound = rounds[ri + 1];
+                      const sameLevel = nextRound && nextRound.matches.length === round.matches.length;
+                      return (
+                        <div key={m.id} className="flex items-center">
+                          <MatchNode
+                            match={m}
+                            isClassified={isClassifiedRound}
+                            canEdit={canEdit}
+                            teamOptions={teamOptions}
+                            onScoreUpdate={onScoreUpdate}
+                            onTeamUpdate={onTeamUpdate}
+                          />
+                          {ri < rounds.length - 1 && (
+                            sameLevel
+                              ? <div className="w-16 shrink-0 h-px bg-primary/60 self-center" />
+                              : <BracketConnector
+                                  position={mi % 2 === 0 ? 'top' : 'bottom'}
+                                  spacing={Math.max(minHeight / Math.max(round.matches.length, 1), 64)}
+                                />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+            {trailingRounds.map((round) => (
+              <div key={round.name} className="flex flex-col">
+                <h4 className="mb-4 w-72 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
+                  {roundName(round.name)}
+                </h4>
+                <div className="flex flex-col items-start justify-center gap-4" style={{ height: minHeight }}>
+                  {round.matches.map((match) => (
                     <MatchNode
-                      match={m}
+                      key={match.id}
+                      match={match}
                       canEdit={canEdit}
                       teamOptions={teamOptions}
                       onScoreUpdate={onScoreUpdate}
                       onTeamUpdate={onTeamUpdate}
                     />
-                    {ri < rounds.length - 1 && (
-                      <BracketConnector
-                        position={mi % 2 === 0 ? 'top' : 'bottom'}
-                        spacing={Math.max(minHeight / Math.max(round.matches.length, 1), 64)}
-                      />
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-          {trailingRounds.map((round) => (
-            <div key={round.name} className="flex flex-col">
-              <h4 className="mb-4 w-72 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
-                {roundName(round.name)}
-              </h4>
-              <div className="flex flex-col items-start justify-center gap-4" style={{ height: minHeight }}>
-                {round.matches.map((match) => (
-                  <MatchNode
-                    key={match.id}
-                    match={match}
-                    canEdit={canEdit}
-                    teamOptions={teamOptions}
-                    onScoreUpdate={onScoreUpdate}
-                    onTeamUpdate={onTeamUpdate}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
         )}
       </div>
     </>

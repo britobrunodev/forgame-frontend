@@ -20,6 +20,7 @@ export type TeamUpdateFn = (
 interface Props {
   match: Match;
   canEdit?: boolean;
+  isClassified?: boolean;
   teamOptions?: ChampionshipTeamOut[];
   onScoreUpdate?: ScoreUpdateFn;
   onTeamUpdate?: TeamUpdateFn;
@@ -28,6 +29,7 @@ interface Props {
 export const MatchNode = ({
   match,
   canEdit,
+  isClassified,
   teamOptions = [],
   onScoreUpdate,
   onTeamUpdate,
@@ -97,8 +99,8 @@ export const MatchNode = ({
   };
 
   return (
-    <div className="relative h-[109px] w-72 overflow-hidden rounded-lg border border-border bg-gradient-card transition-smooth hover:border-primary/40">
-      <div className="flex h-7 items-center justify-between border-b border-border bg-background/40 px-3">
+    <div className={`relative h-[109px] w-72 overflow-hidden rounded-lg border bg-gradient-card transition-smooth ${isClassified ? 'border-amber-500/40 hover:border-amber-500/60' : 'border-border hover:border-primary/40'}`}>
+      <div className={`flex h-7 items-center justify-between border-b px-3 ${isClassified ? 'border-amber-500/20 bg-amber-500/5' : 'border-border bg-background/40'}`}>
         {canEdit && hasChanges ? (
           <>
             <button
@@ -120,9 +122,15 @@ export const MatchNode = ({
           </>
         ) : (
           <>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {match.time ?? '15:30'}
-            </span>
+            {isClassified ? (
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-amber-400">
+                Classificados
+              </span>
+            ) : (
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {match.time ?? '15:30'}
+              </span>
+            )}
             <LiveBadge status={match.status} />
           </>
         )}
@@ -134,6 +142,7 @@ export const MatchNode = ({
         scores={scoresA}
         opponentScores={scoresB}
         winner={winnerA}
+        isClassified={isClassified}
         emptyLabel="-"
         canEdit={canEdit}
         teamOptions={teamOptions}
@@ -144,7 +153,14 @@ export const MatchNode = ({
           setEditTeamAId(value);
           setEditingTeamSlot(null);
         }}
-        onScoreChange={(index, value) => setEditScoresA(updateEditableScores(scoresA, index, value))}
+        onScoreChange={(index, value) =>
+          setEditScoresA(
+            updateEditableScores(scoresA, index, value, {
+              openTwo: match.openTwo,
+              minimumClose: match.minimumClose,
+            }),
+          )
+        }
       />
       <div className="h-px bg-border" />
       <TeamRow
@@ -154,6 +170,7 @@ export const MatchNode = ({
         scores={scoresB}
         opponentScores={scoresA}
         winner={winnerB}
+        isClassified={isClassified}
         emptyLabel="-"
         canEdit={canEdit}
         teamOptions={teamOptions}
@@ -164,7 +181,14 @@ export const MatchNode = ({
           setEditTeamBId(value);
           setEditingTeamSlot(null);
         }}
-        onScoreChange={(index, value) => setEditScoresB(updateEditableScores(scoresB, index, value))}
+        onScoreChange={(index, value) =>
+          setEditScoresB(
+            updateEditableScores(scoresB, index, value, {
+              openTwo: match.openTwo,
+              minimumClose: match.minimumClose,
+            }),
+          )
+        }
       />
     </div>
   );
@@ -216,12 +240,27 @@ const updateEditableScores = (
   scores: Array<string | null>,
   index: number,
   value: string,
+  rules?: { openTwo?: boolean; minimumClose?: number },
 ) =>
-  scores.map((score, scoreIndex) => (scoreIndex === index ? normalizeScoreInput(value) : score));
+  scores.map((score, scoreIndex) =>
+    scoreIndex === index ? normalizeScoreInput(value, rules) : score,
+  );
 
-const normalizeScoreInput = (value: string) => {
+const normalizeScoreInput = (
+  value: string,
+  rules?: { openTwo?: boolean; minimumClose?: number },
+) => {
   const digitsOnly = value.replace(/\D/g, '');
-  return digitsOnly === '' ? null : digitsOnly;
+  if (digitsOnly === '') return null;
+  const parsed = Number.parseInt(digitsOnly, 10);
+  if (
+    rules?.openTwo === false &&
+    typeof rules.minimumClose === 'number' &&
+    rules.minimumClose > 0
+  ) {
+    return String(Math.min(parsed, rules.minimumClose));
+  }
+  return String(parsed);
 };
 
 const TeamRow = ({
@@ -231,6 +270,7 @@ const TeamRow = ({
   scores,
   opponentScores,
   winner,
+  isClassified,
   emptyLabel,
   canEdit,
   teamOptions,
@@ -246,6 +286,7 @@ const TeamRow = ({
   scores: Array<string | null>;
   opponentScores: Array<string | null>;
   winner: boolean;
+  isClassified?: boolean;
   emptyLabel: string;
   canEdit?: boolean;
   teamOptions: ChampionshipTeamOut[];
@@ -259,8 +300,10 @@ const TeamRow = ({
     (team) => String(team.id) === teamId || String(team.id) !== blockedTeamId,
   );
 
+  const classifiedWinner = isClassified && winner;
+
   return (
-    <div className={`flex h-10 items-center gap-2 px-3 py-2 ${winner ? 'bg-primary/10' : ''}`}>
+    <div className={`flex h-10 items-center gap-2 px-3 py-2 ${classifiedWinner ? 'bg-amber-500/10' : winner ? 'bg-primary/10' : ''}`}>
       <div className="min-w-0 flex-1">
         {canEdit && isEditingTeam ? (
           <Select value={teamId ?? '__none__'} onValueChange={onTeamChange}>
@@ -285,13 +328,15 @@ const TeamRow = ({
             onClick={onStartEditingTeam}
             className={`flex h-7 w-full min-w-0 items-center rounded-md px-1 text-left text-sm ${
               name
-                ? winner
-                  ? 'font-bold text-foreground'
-                  : 'font-semibold text-foreground/90'
+                ? classifiedWinner
+                  ? 'font-bold text-amber-300'
+                  : winner
+                    ? 'font-bold text-foreground'
+                    : 'font-semibold text-foreground/90'
                 : 'italic text-muted-foreground'
             } ${canEdit ? 'cursor-pointer hover:bg-background/50 hover:text-primary-glow' : 'cursor-default'}`}
           >
-            <span className="block min-w-0 max-w-full truncate">
+            <span className={`block min-w-0 max-w-full truncate ${classifiedWinner ? 'rounded border border-amber-500/50 px-1' : ''}`}>
               {name ? stripSeedPrefix(name) : emptyLabel}
             </span>
           </button>
@@ -317,6 +362,7 @@ const TeamRow = ({
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
+              maxLength={2}
               value={currentScore}
               readOnly={!canEdit}
               placeholder={canEdit ? '' : '-'}

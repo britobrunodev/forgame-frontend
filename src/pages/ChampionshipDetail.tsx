@@ -8,7 +8,6 @@ import { MapsButton } from '@/components/MapsButton';
 import { MatchNode, type ScoreUpdateFn, type TeamUpdateFn } from '@/components/MatchNode';
 import { PositionedCoverImage } from '@/components/PositionedCoverImage';
 import { YouTubeButton } from '@/components/YouTubeButton';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -26,7 +25,6 @@ import {
   type ChampionshipTableOut,
 } from '@/lib/api';
 import { formatUtcDate } from '@/lib/datetime';
-import { notify } from '@/lib/notify';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import type { Match, SportId } from '@/types';
@@ -75,8 +73,15 @@ const getSetWins = (scoresA: Array<number | null>, scoresB: Array<number | null>
 const getAvailableTeamsForStage = (
   teams: ChampionshipTeamOut[],
   stageType: string | null | undefined,
-) =>
-  teams.filter((team) => (team.stage_type ?? 'group') === (stageType ?? 'group'));
+) => {
+  const target = stageType ?? 'group';
+  if (target === 'group') {
+    return teams.filter((team) => (team.stage_type ?? 'group') === 'group');
+  }
+  // The generator stamps all bracket teams as 'quarterfinal' regardless of the
+  // specific round, so we show every non-group team for bracket matches.
+  return teams.filter((team) => (team.stage_type ?? 'group') !== 'group');
+};
 
 const getStageConfigName = (
   config: ChampionshipFormatConfig | null | undefined,
@@ -95,15 +100,36 @@ const getStageConfigView = (
   return rawValue.toLowerCase() === 'brakets' ? 'brackets' : rawValue.toLowerCase();
 };
 
+const getStageConfigOpenTwo = (
+  config: ChampionshipFormatConfig | null | undefined,
+  stageKey: 'first_stage' | 'second_stage' | 'third_stage',
+): boolean => config?.[stageKey]?.open_two === true;
+
+const getStageConfigMinimumClose = (
+  config: ChampionshipFormatConfig | null | undefined,
+  stageKey: 'first_stage' | 'second_stage' | 'third_stage',
+): number => {
+  const rawValue = config?.[stageKey]?.minimum_close;
+  return typeof rawValue === 'number' ? rawValue : 0;
+};
+
 const toFrontendMatch = (
   m: ChampionshipMatchOut,
   round: string,
   timezone: string | null,
+  formatConfig: ChampionshipFormatConfig | null | undefined,
   maxSets?: number,
 ): Match => {
   const scoresA = normalizeSetScores(m.score_json?.scores_1, maxSets);
   const scoresB = normalizeSetScores(m.score_json?.scores_2, maxSets);
   const setWins = getSetWins(scoresA, scoresB);
+  const series = typeof m.config_json?.series === 'string' ? m.config_json.series : null;
+  const stageKey =
+    series === 'gold'
+      ? 'second_stage'
+      : series === 'silver'
+        ? 'third_stage'
+        : 'first_stage';
 
   return {
     id: String(m.id),
@@ -141,6 +167,8 @@ const toFrontendMatch = (
         })
       : undefined,
     maxSets,
+    openTwo: getStageConfigOpenTwo(formatConfig, stageKey),
+    minimumClose: getStageConfigMinimumClose(formatConfig, stageKey),
   };
 };
 
@@ -154,7 +182,6 @@ const ChampionshipDetail = () => {
   const locale = language === 'pt-BR' ? 'pt-BR' : 'en-US';
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-  const [generatingNextPhase, setGeneratingNextPhase] = useState(false);
 
   const { data: championship, isLoading: loadingChampionship } = useQuery({
     queryKey: ['championship', id],
@@ -206,33 +233,6 @@ const ChampionshipDetail = () => {
     [token, id, selectedCategoryId, queryClient],
   );
 
-  const handleGenerateNextPhase = useCallback(async () => {
-    if (!selectedCategoryId) return;
-
-    setGeneratingNextPhase(true);
-    try {
-      const result = await championshipApi.generateNextPhase(token ?? '', id!, {
-        category_id: selectedCategoryId,
-      });
-      await queryClient.invalidateQueries({
-        queryKey: ['championship-matches', id, selectedCategoryId],
-      });
-      notify.success(
-        t('nextPhaseGenerated'),
-        language === 'pt-BR'
-          ? `${result.advanced_player_count} jogadores foram colocados na próxima fase.`
-          : `${result.advanced_player_count} players were seeded into the next phase.`,
-      );
-    } catch (error) {
-      notify.error(
-        t('nextPhaseGenerationFailed'),
-        error instanceof Error ? error.message : undefined,
-      );
-    } finally {
-      setGeneratingNextPhase(false);
-    }
-  }, [token, id, selectedCategoryId, queryClient, t, language]);
-
   if (loadingChampionship) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -256,13 +256,6 @@ const ChampionshipDetail = () => {
   const startDate = formatUtcDate(championship.start_at, championship.timezone, locale);
   const endDate = formatUtcDate(championship.end_at, championship.timezone, locale);
   const location = championship.complex_name ?? championship.complex_city ?? '-';
-  const groupStageMatches = matchesData?.tables.flatMap((table) => table.matches) ?? [];
-  const showGenerateNextPhaseButton =
-    matchesData?.format_slug === 'cumbuca' && Boolean(matchesData?.user_can_edit_scores);
-  const canGenerateNextPhase =
-    showGenerateNextPhaseButton &&
-    groupStageMatches.length > 0 &&
-    groupStageMatches.every((match) => match.status === 'finished');
 
   return (
     <div className="mx-auto w-full max-w-[min(110rem,calc(100vw-2rem))] space-y-8 xl:max-w-[min(118rem,calc(100vw-3rem))]">
@@ -352,17 +345,6 @@ const ChampionshipDetail = () => {
                 {t('category')}
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                {showGenerateNextPhaseButton && (
-                  <Button
-                    type="button"
-                    onClick={handleGenerateNextPhase}
-                    disabled={!canGenerateNextPhase || generatingNextPhase}
-                    className="h-10 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 text-xs font-semibold uppercase tracking-[0.16em] text-violet-400 transition-smooth hover:bg-violet-500/20 disabled:opacity-50 disabled:hover:bg-violet-500/10"
-                  >
-                    {generatingNextPhase && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {t('generateNextPhase')}
-                  </Button>
-                )}
                 <Select
                   value={String(selectedCategoryId ?? '')}
                   onValueChange={(v) => setSelectedCategoryId(Number(v))}
@@ -466,6 +448,7 @@ const UnifiedMatchesView = ({
                   key={table.name}
                   table={table}
                   timezone={timezone}
+                  formatConfig={data.format_config}
                   settingsByStage={settingsByStage}
                   availableTeams={data.available_teams}
                   canEdit={canEdit}
@@ -481,17 +464,36 @@ const UnifiedMatchesView = ({
       {/* Bracket groups */}
       {data.brackets.map((bracket, index) => {
         const defaultOpen = index === 0;
+        const hasFinais = bracket.finais.length > 0;
 
-        const mainRounds: BracketRounds = bracket.winner_rounds
-          .filter((r) => r.stage_type !== 'third_place')
-          .map((r) => ({
-            name: r.name,
+        // WB rounds — when DE, final/third_place are in finais not here.
+        // Position-based names from end:
+        //   fromEnd=0 (last, SF) → 'Quartas'   fromEnd=1 → 'Oitavas'   fromEnd=2+ → backend name
+        const wbFiltered = bracket.winner_rounds.filter((r) => r.stage_type !== 'third_place');
+        const DE_NAMES_FROM_END: Record<number, string> = { 0: 'Quartas', 1: 'Oitavas' };
+        const mainRounds: BracketRounds = wbFiltered.map((r, idx) => {
+          const fromEnd = wbFiltered.length - 1 - idx;
+          const name = hasFinais && DE_NAMES_FROM_END[fromEnd] != null
+            ? DE_NAMES_FROM_END[fromEnd]
+            : r.name;
+          return {
+            name,
             matches: r.matches.map((m) =>
-              toFrontendMatch(m, r.name, timezone, settingsByStage.get(m.stage_type ?? '') ?? undefined),
+              toFrontendMatch(
+                m,
+                name,
+                timezone,
+                data.format_config,
+                settingsByStage.get(m.stage_type ?? '') ?? undefined,
+              ),
             ),
-          }));
+          };
+        });
 
-        const thirdPlaceRound = bracket.winner_rounds.find((r) => r.stage_type === 'third_place');
+        // For non-DE brackets, keep 3rd place as trailing
+        const thirdPlaceRound = !hasFinais
+          ? bracket.winner_rounds.find((r) => r.stage_type === 'third_place')
+          : undefined;
         const trailingRounds: BracketRounds = thirdPlaceRound?.matches.length
           ? [
               {
@@ -501,6 +503,7 @@ const UnifiedMatchesView = ({
                     m,
                     thirdPlaceRound.name,
                     timezone,
+                    data.format_config,
                     settingsByStage.get('third_place') ?? undefined,
                   ),
                 ),
@@ -508,21 +511,71 @@ const UnifiedMatchesView = ({
             ]
           : [];
 
-        const loserRounds: BracketRounds = bracket.loser_rounds.map((r) => ({
-          name: r.name,
-          matches: r.matches.map((m) =>
-            toFrontendMatch(m, r.name, timezone, settingsByStage.get(m.stage_type ?? '') ?? undefined),
-          ),
-        }));
+        // LB rounds — same position-based renaming: last→'Quartas', second-to-last→'Oitavas'
+        const lbRounds = bracket.loser_rounds;
+        const loserRounds: BracketRounds = lbRounds.map((r, idx) => {
+          const fromEnd = lbRounds.length - 1 - idx;
+          const name = hasFinais && DE_NAMES_FROM_END[fromEnd] != null
+            ? DE_NAMES_FROM_END[fromEnd]
+            : r.name;
+          return {
+            name,
+            matches: r.matches.map((m) =>
+              toFrontendMatch(
+                m,
+                name,
+                timezone,
+                data.format_config,
+                settingsByStage.get(m.stage_type ?? '') ?? undefined,
+              ),
+            ),
+          };
+        });
 
+        const lastWbRound = mainRounds[mainRounds.length - 1];
+        const lastLbRound = loserRounds[loserRounds.length - 1];
+
+        // Legacy grand_final (non-DE)
         const grandFinalMatch = bracket.grand_final
           ? toFrontendMatch(
               bracket.grand_final,
               'Grande Final',
               timezone,
+              data.format_config,
               settingsByStage.get('final') ?? undefined,
             )
           : null;
+
+        // DE Finais rounds — split 3rd place as trailing so it renders beside the bracket
+        const finaisMainRounds: BracketRounds = bracket.finais
+          .filter((r) => r.stage_type !== 'third_place')
+          .map((r) => ({
+            name: r.name,
+            matches: r.matches.map((m) =>
+              toFrontendMatch(
+                m,
+                r.name,
+                timezone,
+                data.format_config,
+                settingsByStage.get(m.stage_type ?? '') ?? undefined,
+              ),
+            ),
+          }));
+        const finaisThirdRound = bracket.finais.find((r) => r.stage_type === 'third_place');
+        const finaisTrailingRounds: BracketRounds = finaisThirdRound
+          ? [{
+              name: finaisThirdRound.name,
+              matches: finaisThirdRound.matches.map((m) =>
+                toFrontendMatch(
+                  m,
+                  finaisThirdRound.name,
+                  timezone,
+                  data.format_config,
+                  settingsByStage.get('third_place') ?? undefined,
+                ),
+              ),
+            }]
+          : [];
 
         return (
           <div key={bracket.name}>
@@ -541,6 +594,7 @@ const UnifiedMatchesView = ({
                   <Bracket
                     rounds={mainRounds}
                     trailingRounds={trailingRounds}
+                    classifiedRound={hasFinais ? lastWbRound : undefined}
                     canEdit={canEdit}
                     teamOptions={getAvailableTeamsForStage(
                       data.available_teams,
@@ -560,6 +614,7 @@ const UnifiedMatchesView = ({
                 >
                   <Bracket
                     rounds={loserRounds}
+                    classifiedRound={hasFinais ? lastLbRound : undefined}
                     canEdit={canEdit}
                     teamOptions={getAvailableTeamsForStage(
                       data.available_teams,
@@ -588,6 +643,27 @@ const UnifiedMatchesView = ({
                   </div>
                 </BracketPanel>
               )}
+
+              {hasFinais && (
+                <BracketPanel
+                  title={t('finais')}
+                  isOpen={isOpen(`__finais_${bracket.name}__`, false)}
+                  onToggle={() => toggle(`__finais_${bracket.name}__`, false)}
+                  accent="amber"
+                >
+                  <Bracket
+                    rounds={finaisMainRounds}
+                    trailingRounds={finaisTrailingRounds}
+                    canEdit={canEdit}
+                    teamOptions={getAvailableTeamsForStage(
+                      data.available_teams,
+                      finaisMainRounds[0]?.matches[0]?.stageType,
+                    )}
+                    onScoreUpdate={onScoreUpdate}
+                    onTeamUpdate={onTeamUpdate}
+                  />
+                </BracketPanel>
+              )}
             </div>
           </div>
         );
@@ -607,6 +683,7 @@ const UnifiedMatchesView = ({
 const GroupStandingsCard = ({
   table,
   timezone,
+  formatConfig,
   settingsByStage,
   availableTeams,
   canEdit,
@@ -615,6 +692,7 @@ const GroupStandingsCard = ({
 }: {
   table: ChampionshipTableOut;
   timezone: string | null;
+  formatConfig: ChampionshipFormatConfig | null | undefined;
   settingsByStage: Map<string, number>;
   availableTeams: ChampionshipTeamOut[];
   canEdit: boolean;
@@ -623,6 +701,15 @@ const GroupStandingsCard = ({
 }) => {
   const { t } = useLanguage();
   const groupMaxSets = settingsByStage.get('group') ?? 1;
+  const hasGoldQualified = table.player_standings.some(
+    (player) => player.qualification_status === 'gold',
+  );
+  const hasSilverQualified = table.player_standings.some(
+    (player) => player.qualification_status === 'silver',
+  );
+  const hasPendingTiebreak = table.player_standings.some(
+    (player) => player.qualification_status === 'tiebreak',
+  );
 
   return (
     <div className="rounded-2xl border border-border bg-background/30 p-4">
@@ -636,7 +723,7 @@ const GroupStandingsCard = ({
           {table.matches.map((m) => (
             <MatchNode
               key={m.id}
-              match={toFrontendMatch(m, table.name, timezone, groupMaxSets)}
+              match={toFrontendMatch(m, table.name, timezone, formatConfig, groupMaxSets)}
               teamOptions={getAvailableTeamsForStage(availableTeams, 'group')}
               canEdit={canEdit}
               onScoreUpdate={onScoreUpdate}
@@ -652,26 +739,84 @@ const GroupStandingsCard = ({
               {t('points')}
             </div>
             <div className="flex flex-col gap-1">
-              {table.player_standings.map((p, i) => (
-                <div key={p.user_id} className="flex items-center justify-between gap-3">
+              {table.player_standings.map((p, i) => {
+                const isTiebreak = p.qualification_status === 'tiebreak';
+                const isGoldQualified = p.qualification_status === 'gold';
+                const isSilverQualified = p.qualification_status === 'silver';
+                const isQualified =
+                  isGoldQualified ||
+                  isSilverQualified ||
+                  p.qualification_status === 'qualified' ||
+                  (!p.qualification_status && i < 2);
+                const showDot = isQualified || isTiebreak;
+
+                return (
+                  <div key={p.user_id} className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-1.5">
-                    {i < 2 && (
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-neon-cyan shadow-[0_0_6px_hsl(var(--neon-cyan))]" />
+                    {showDot && (
+                      <span
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                          isTiebreak
+                            ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]'
+                            : isGoldQualified
+                              ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)]'
+                              : isSilverQualified
+                                ? 'bg-slate-300 shadow-[0_0_6px_rgba(203,213,225,0.9)]'
+                                : 'bg-neon-cyan shadow-[0_0_6px_hsl(var(--neon-cyan))]'
+                        }`}
+                      />
                     )}
-                    <span className={`text-[13px] ${i < 2 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                    <span
+                      className={`text-[13px] ${
+                        isTiebreak
+                          ? 'font-semibold text-emerald-300'
+                          : isGoldQualified
+                            ? 'font-semibold text-amber-300'
+                            : isSilverQualified
+                              ? 'font-semibold text-slate-200'
+                          : isQualified
+                            ? 'font-semibold text-foreground'
+                            : 'text-muted-foreground'
+                      }`}
+                    >
                       {p.name}
                     </span>
                   </div>
-                  <span className={`text-[13px] font-bold tabular-nums ${i < 2 ? 'text-neon-cyan' : 'text-muted-foreground'}`}>
+                  <span
+                    className={`text-[13px] font-bold tabular-nums ${
+                      isTiebreak
+                        ? 'text-emerald-300'
+                        : isGoldQualified
+                          ? 'text-amber-300'
+                          : isSilverQualified
+                            ? 'text-slate-200'
+                        : isQualified
+                          ? 'text-neon-cyan'
+                          : 'text-muted-foreground'
+                    }`}
+                  >
                     {p.points}pts
                   </span>
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
-            {table.player_standings.length > 0 && (
+            {hasGoldQualified && (
               <div className="mt-2.5 flex items-center gap-1.5 text-[13px] text-muted-foreground">
-                <span className="h-1.5 w-1.5 rounded-full bg-neon-cyan shadow-[0_0_6px_hsl(var(--neon-cyan))]" />
-                {t('advancesToNextStage')}
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)]" />
+                {t('goldBracket')}
+              </div>
+            )}
+            {hasSilverQualified && (
+              <div className="mt-1.5 flex items-center gap-1.5 text-[13px] text-slate-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-300 shadow-[0_0_6px_rgba(203,213,225,0.9)]" />
+                {t('silverBracket')}
+              </div>
+            )}
+            {hasPendingTiebreak && (
+              <div className="mt-1.5 flex items-center gap-1.5 text-[13px] text-emerald-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
+                {t('randomTiebreakPending')}
               </div>
             )}
           </div>
@@ -723,22 +868,24 @@ const BracketPanel = ({
   isOpen,
   onToggle,
   children,
+  accent,
 }: {
   title: string;
   isOpen: boolean;
   onToggle: () => void;
   children: ReactNode;
+  accent?: 'amber';
 }) => (
-  <div className="rounded-2xl border border-border bg-background/20">
+  <div className={`rounded-2xl border bg-background/20 ${accent === 'amber' ? 'border-amber-500/30' : 'border-border'}`}>
     <button
       type="button"
       onClick={onToggle}
       className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition-smooth hover:bg-secondary/30"
     >
-      <div className="font-display text-sm font-bold uppercase tracking-[0.2em] text-foreground">
+      <div className={`font-display text-sm font-bold uppercase tracking-[0.2em] ${accent === 'amber' ? 'text-amber-400' : 'text-foreground'}`}>
         {title}
       </div>
-      <span className="flex h-8 w-8 items-center justify-center rounded-full border border-primary/30 bg-primary/10 font-display text-lg font-bold text-primary-glow">
+      <span className={`flex h-8 w-8 items-center justify-center rounded-full border font-display text-lg font-bold ${accent === 'amber' ? 'border-amber-500/40 bg-amber-500/10 text-amber-400' : 'border-primary/30 bg-primary/10 text-primary-glow'}`}>
         {isOpen ? '−' : '+'}
       </span>
     </button>

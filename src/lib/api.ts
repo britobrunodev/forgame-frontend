@@ -434,9 +434,12 @@ export interface ChampionshipFormatStageConfig {
   subscription_players?: number;
   minimum_players_single_elimination?: number;
   minimum_players_double_elimination?: number;
+  double_elimination?: { minimum_players?: number; required_multiple?: number };
   team_size?: number;
   advancing_players_limit?: number;
   include_third_place_match?: boolean;
+  open_two?: boolean;
+  minimum_close?: number;
 }
 
 export interface ChampionshipFormatConfig {
@@ -678,6 +681,7 @@ export interface ChampionshipCategoryData {
   is_full: boolean;
   auto_generate_matches: boolean;
   requires_approval: boolean;
+  double_elimination_enabled: boolean;
   start_date: string | null;
   start_time: string | null;
 }
@@ -691,6 +695,7 @@ export interface ChampionshipCategoryInput {
   max_subscriptions: number | null;
   auto_generate_matches: boolean;
   requires_approval: boolean;
+  double_elimination_enabled: boolean;
   start_date: string | null;
   start_time: string | null;
 }
@@ -847,6 +852,18 @@ export const championshipApi = {
       body: JSON.stringify(body),
     }).then((r) => handle<GenerateNextPhaseResponse>(r)),
 
+  updateCategorySettings: (
+    token: string,
+    championshipId: number | string,
+    categoryId: number,
+    body: { double_elimination_enabled?: boolean },
+  ) =>
+    fetch(`${API_BASE}/championships/${championshipId}/categories/${categoryId}/settings`, {
+      method: 'PATCH',
+      headers: json(token),
+      body: JSON.stringify(body),
+    }).then((r) => handle<{ double_elimination_enabled: boolean }>(r)),
+
   uploadImage: async (token: string, id: number | string, dataUrl: string): Promise<{ url: string }> => {
     const [, base64] = dataUrl.split(',');
     const binary = atob(base64);
@@ -905,6 +922,7 @@ export interface PlayerStandingRow {
   wins: number;
   losses: number;
   points: number;
+  qualification_status?: string | null;
 }
 
 export interface ChampionshipTableOut {
@@ -924,7 +942,8 @@ export interface ChampionshipBracketOut {
   name: string;
   winner_rounds: ChampionshipBracketRound[];
   loser_rounds: ChampionshipBracketRound[];
-  grand_final: ChampionshipMatchOut | null;
+  grand_final: ChampionshipMatchOut | null; // legacy non-DE
+  finais: ChampionshipBracketRound[]; // DE: semi + final + third_place
 }
 
 export interface CategoryMatchSettingsOut {
@@ -937,6 +956,7 @@ export interface ChampionshipMatchesData {
   format_slug: string;
   format_config: ChampionshipFormatConfig | null;
   category_id: number;
+  double_elimination_enabled: boolean;
   tables: ChampionshipTableOut[];
   brackets: ChampionshipBracketOut[];
   match_settings: CategoryMatchSettingsOut[];
