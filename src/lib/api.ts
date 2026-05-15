@@ -51,6 +51,13 @@ export interface ManagedComplex {
   address: string | null;
 }
 
+export interface ManagedChampionship {
+  id: number;
+  name: string;
+  sport_name: string | null;
+  complex_name: string | null;
+}
+
 export interface AccessControlUser {
   id: number;
   name: string;
@@ -60,6 +67,12 @@ export interface AccessControlUser {
 
 export interface ComplexRoleAssignment {
   complex_id: number;
+  user_id: number;
+  role: string;
+}
+
+export interface ChampionshipRoleAssignment {
+  championship_id: number;
   user_id: number;
   role: string;
 }
@@ -76,6 +89,17 @@ export interface AccessControlSnapshot {
   complexes: ManagedComplex[];
   users: AccessControlUser[];
   assignments: ComplexRoleAssignment[];
+  assignable_roles: string[];
+  page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
+}
+
+export interface ChampionshipAccessControlSnapshot {
+  championships: ManagedChampionship[];
+  users: AccessControlUser[];
+  assignments: ChampionshipRoleAssignment[];
   assignable_roles: string[];
   page: number;
   per_page: number;
@@ -509,6 +533,34 @@ export const accessControlApi = {
       headers: json(token),
       body: JSON.stringify(payload),
     }).then((r) => handle<ComplexRoleAssignment[]>(r)),
+};
+
+export const championshipAccessControlApi = {
+  getSnapshot: (
+    token: string,
+    page = 1,
+    perPage = 12,
+    search = '',
+  ) =>
+    fetch(
+      `${API_BASE}/championship-access-control?page=${page}&per_page=${perPage}&search=${encodeURIComponent(search)}`,
+      { headers: json(token) },
+    ).then((r) =>
+      handle<ChampionshipAccessControlSnapshot>(r),
+    ),
+
+  updateAssignments: (
+    token: string,
+    payload: {
+      championship_id: number;
+      assignments: Array<{ user_id: number; role: string }>;
+    },
+  ) =>
+    fetch(`${API_BASE}/championship-access-control`, {
+      method: "PUT",
+      headers: json(token),
+      body: JSON.stringify(payload),
+    }).then((r) => handle<ChampionshipRoleAssignment[]>(r)),
 };
 
 export const authApi = {

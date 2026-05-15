@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Building2, CalendarDays, GraduationCap, Receipt, Trophy, Users } from 'lucide-react';
+import { BookOpen, Building2, CalendarDays, GraduationCap, Receipt, Trophy } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 
 const ManagementHub = () => {
@@ -20,11 +20,6 @@ const ManagementHub = () => {
           icon={<Trophy className="h-4 w-4 text-neon-cyan sm:h-5 sm:w-5" />}
           label={t('championships')}
           onClick={() => navigate('/management/championships')}
-        />
-        <QuickAction
-          icon={<Users className="h-4 w-4 text-neon-cyan sm:h-5 sm:w-5" />}
-          label={t('users')}
-          onClick={() => navigate('/management/users')}
         />
         <QuickAction
           icon={<Receipt className="h-4 w-4 text-neon-pink sm:h-5 sm:w-5" />}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Trophy, MapPin, LogOut, Building2, ChevronDown, ChevronLeft, ChevronRight, Receipt, GraduationCap, Users, ShieldCheck, ClipboardList, Calendar } from 'lucide-react';
+import { LayoutDashboard, Trophy, MapPin, LogOut, Building2, ChevronDown, ChevronLeft, ChevronRight, Receipt, GraduationCap, ShieldCheck, ClipboardList, Calendar } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 
@@ -10,9 +10,8 @@ export const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useLanguage();
-  const { isGestorMode, currentUser, logout, activeGestorRole } = useSession();
+  const { isGestorMode, currentUser, logout } = useSession();
   const canManage = isGestorMode || currentUser.isAdmin;
-  const canManageUsers = currentUser.isAdmin || activeGestorRole === 'owner';
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) !== 'false');
   const [managementOpen, setManagementOpen] = useState(
     location.pathname.startsWith('/management'),
@@ -126,17 +125,6 @@ export const Sidebar = () => {
             </button>
             {managementOpen && (
               <div className="ml-3 space-y-1 border-l border-border pl-3">
-                {canManageUsers ? (
-                  <NavLink to="/management/users" className={({ isActive }) => subLinkClass(isActive)}>
-                    <Users className="h-4 w-4 text-neon-cyan" />
-                    {t('users')}
-                  </NavLink>
-                ) : (
-                  <span className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm cursor-not-allowed select-none opacity-40 text-sidebar-foreground">
-                    <Users className="h-4 w-4 text-neon-cyan" />
-                    {t('users')}
-                  </span>
-                )}
                 <NavLink to="/management/championships" className={({ isActive }) => subLinkClass(isActive)}>
                   <Trophy className="h-4 w-4 text-neon-cyan" />
                   {t('championships')}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Loader2, Pencil, Plus, Receipt, Trophy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Pencil, Plus, Receipt, Trophy, Users } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { championshipApi } from '@/lib/api';
@@ -63,14 +63,24 @@ const ManagementChampionships = () => {
           <p className="mb-2 font-display text-sm font-bold uppercase tracking-[0.28em] text-neon-cyan">{t('championships')}</p>
           <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{t('managementChampionshipsIntro')}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/management/championships/new')}
-          title={t('createChampionship')}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
-        >
-          <Plus className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/management/championships/users')}
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-border bg-background/60 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
+          >
+            <Users className="h-3.5 w-3.5" />
+            {t('users')}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/management/championships/new')}
+            title={t('createChampionship')}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background/60 text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
       </header>
 
       {isLoading ? (

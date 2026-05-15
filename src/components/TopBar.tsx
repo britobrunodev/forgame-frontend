@@ -161,18 +161,6 @@ export const TopBar = () => {
                           <span className="truncate">{t('students')}</span>
                         </span>
 
-                        <NavLink
-                          to="/management/users"
-                          onClick={closeMobileMenu}
-                          className={({ isActive }) =>
-                            `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                            }`
-                          }
-                        >
-                          <Users className="h-4 w-4 shrink-0 text-neon-cyan" />
-                          <span className="truncate">{t('users')}</span>
-                        </NavLink>
-
                         {currentUser.isAdmin ? (
                           <NavLink
                             to="/admin/approvals"

@@ -20,6 +20,8 @@ import ChampionshipRegistration from "./pages/ChampionshipRegistration.tsx";
 import Bookings from "./pages/Bookings.tsx";
 import ManagementDashboard from "./pages/ManagementDashboard.tsx";
 import ManagementChampionships from "./pages/ManagementChampionships.tsx";
+import ManagementChampionshipUsers from "./pages/ManagementChampionshipUsers.tsx";
+import ManagementComplexUsers from "./pages/ManagementComplexUsers.tsx";
 import ManagementPayments from "./pages/ManagementPayments.tsx";
 import ManagementClasses from "./pages/ManagementClasses.tsx";
 import ManagementClassCreate from "./pages/ManagementClassCreate.tsx";
@@ -86,6 +88,7 @@ const App = () => (
                 <Route path="/management/courts" element={<ManagementDashboard />} />
                 <Route path="/management/approvals" element={<ManagementApprovals />} />
                 <Route path="/management/championships" element={<ManagementChampionships />} />
+                <Route path="/management/championships/users" element={<ManagementChampionshipUsers />} />
                 <Route path="/management/classes" element={<ManagementClasses />} />
                 <Route path="/management/classes/new" element={<ManagementClassCreate />} />
                 <Route path="/management/classes/:id/edit" element={<ManagementClassEdit />} />
@@ -100,6 +103,7 @@ const App = () => (
                 <Route path="/admin/complexes" element={<AdminComplexes />} />
                 <Route path="/management/payments" element={<ManagementPayments />} />
                 <Route path="/management/complexes" element={<SportComplexesManagement />} />
+                <Route path="/management/complexes/users" element={<ManagementComplexUsers />} />
                 <Route path="/management/complexes/new" element={<SportComplexSettings />} />
                 <Route path="/management/complexes/:complexId/edit" element={<SportComplexSettings />} />
                 <Route path="/management/complexes/:complexId/preferences" element={<ComplexPreferences />} />

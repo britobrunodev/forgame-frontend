@@ -5,12 +5,21 @@ import { useSession } from '@/session';
 import { notify } from '@/lib/notify';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { accessControlApi, type AccessControlSnapshot, type ComplexRoleAssignment } from '@/lib/api';
+import {
+  accessControlApi,
+  championshipAccessControlApi,
+  type AccessControlSnapshot,
+  type ChampionshipAccessControlSnapshot,
+  type ChampionshipRoleAssignment,
+  type ComplexRoleAssignment,
+} from '@/lib/api';
 import { RoleChipToggle, RoleIconToggle } from './RoleToggle';
 import { StatusBadge } from './StatusBadge';
 
 type AssignableRole = 'owner' | 'manager' | 'professor' | 'scorer';
 type AssignedRoles = Record<AssignableRole, boolean>;
+type AccessScope = 'complex' | 'championship';
+type ScopeSnapshot = AccessControlSnapshot | ChampionshipAccessControlSnapshot;
 
 const EMPTY_ROLES: AssignedRoles = {
   owner: false,
@@ -24,22 +33,24 @@ const EXCLUSIVE_ROLES: AssignableRole[] = ['manager', 'professor', 'scorer'];
 
 export const StaffAccessManager = ({
   adminOnly = false,
+  scope,
   title,
   intro,
 }: {
   adminOnly?: boolean;
+  scope: AccessScope;
   title: string;
   intro: string;
 }) => {
   const { t } = useLanguage();
   const { currentUser, token } = useSession();
-  const [selectedComplexId, setSelectedComplexId] = useState<string>('');
+  const [selectedScopeId, setSelectedScopeId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
   const [saving, setSaving] = useState(false);
-  const [snapshot, setSnapshot] = useState<AccessControlSnapshot | null>(null);
-  const [assignmentsByComplex, setAssignmentsByComplex] = useState<Record<string, Record<string, AssignedRoles>>>({});
+  const [snapshot, setSnapshot] = useState<ScopeSnapshot | null>(null);
+  const [assignmentsByScope, setAssignmentsByScope] = useState<Record<string, Record<string, AssignedRoles>>>({});
   const PAGE_SIZE = 12;
 
   const canView = adminOnly ? currentUser.isAdmin : (currentUser.isAdmin || currentUser.roles?.includes('owner'));
@@ -60,17 +71,19 @@ export const StaffAccessManager = ({
 
     const load = async () => {
       try {
-        const data = await accessControlApi.getSnapshot(token, page, PAGE_SIZE, debouncedSearch);
+        const data = scope === 'complex'
+          ? await accessControlApi.getSnapshot(token, page, PAGE_SIZE, debouncedSearch)
+          : await championshipAccessControlApi.getSnapshot(token, page, PAGE_SIZE, debouncedSearch);
         if (cancelled) return;
 
         setSnapshot(data);
-        setAssignmentsByComplex((current) => {
-          const nextAssignments = buildAssignmentsIndex(data.assignments);
+        setAssignmentsByScope((current) => {
+          const nextAssignments = buildAssignmentsIndex(scope, data.assignments);
           return Object.keys(current).length > 0
             ? { ...nextAssignments, ...current }
             : nextAssignments;
         });
-        setSelectedComplexId((current) => current || String(data.complexes[0]?.id ?? ''));
+        setSelectedScopeId((current) => current || String(getScopeOptions(scope, data)[0]?.id ?? ''));
       } catch (err) {
         if (cancelled) return;
         notify.error(t('profileLoadError'), err instanceof Error ? err.message : undefined);
@@ -81,7 +94,7 @@ export const StaffAccessManager = ({
     return () => {
       cancelled = true;
     };
-  }, [token, canView, page, debouncedSearch]);
+  }, [token, canView, page, debouncedSearch, scope, t]);
 
   const allowedRoles = useMemo(
     () => (snapshot?.assignable_roles ?? []).filter((role): role is AssignableRole => ROLE_ORDER.includes(role as AssignableRole)),
@@ -89,16 +102,18 @@ export const StaffAccessManager = ({
   );
 
   const users = snapshot?.users ?? [];
-  const complexes = snapshot?.complexes ?? [];
+  const scopeOptions = snapshot ? getScopeOptions(scope, snapshot) : [];
   const totalPages = snapshot?.total_pages ?? 1;
   const totalUsers = snapshot?.total ?? 0;
+  const selectorLabel = scope === 'complex' ? t('sportComplex') : t('championshipLabel');
+  const selectedScopeName = scopeOptions.find((item) => String(item.id) === selectedScopeId)?.name ?? '-';
 
   const toggleRole = (userId: string, role: AssignableRole) => {
-    if (!selectedComplexId) return;
+    if (!selectedScopeId) return;
 
-    setAssignmentsByComplex((current) => {
-      const currentComplexRoles = current[selectedComplexId] ?? {};
-      const existing = currentComplexRoles[userId] ?? EMPTY_ROLES;
+    setAssignmentsByScope((current) => {
+      const currentScopeRoles = current[selectedScopeId] ?? {};
+      const existing = currentScopeRoles[userId] ?? EMPTY_ROLES;
       const nextValue = !existing[role];
       const nextRoles: AssignedRoles = { ...EMPTY_ROLES, ...existing, [role]: nextValue };
 
@@ -110,8 +125,8 @@ export const StaffAccessManager = ({
 
       return {
         ...current,
-        [selectedComplexId]: {
-          ...currentComplexRoles,
+        [selectedScopeId]: {
+          ...currentScopeRoles,
           [userId]: nextRoles,
         },
       };
@@ -119,9 +134,9 @@ export const StaffAccessManager = ({
   };
 
   const handleSave = async () => {
-    if (!token || !selectedComplexId) return;
+    if (!token || !selectedScopeId) return;
 
-    const assignments = Object.entries(assignmentsByComplex[selectedComplexId] ?? {}).flatMap(([userId, roles]) =>
+    const assignments = Object.entries(assignmentsByScope[selectedScopeId] ?? {}).flatMap(([userId, roles]) =>
       Object.entries(roles)
         .filter(([role, active]) => active && allowedRoles.includes(role as AssignableRole))
         .map(([role]) => ({ user_id: Number(userId), role })),
@@ -129,14 +144,19 @@ export const StaffAccessManager = ({
 
     setSaving(true);
     try {
-      const updated = await accessControlApi.updateAssignments(token, {
-        complex_id: Number(selectedComplexId),
-        assignments,
-      });
+      const updated = scope === 'complex'
+        ? await accessControlApi.updateAssignments(token, {
+            complex_id: Number(selectedScopeId),
+            assignments,
+          })
+        : await championshipAccessControlApi.updateAssignments(token, {
+            championship_id: Number(selectedScopeId),
+            assignments,
+          });
 
-      setAssignmentsByComplex((current) => ({
+      setAssignmentsByScope((current) => ({
         ...current,
-        [selectedComplexId]: buildAssignmentsIndex(updated)[selectedComplexId] ?? {},
+        [selectedScopeId]: buildAssignmentsIndex(scope, updated)[selectedScopeId] ?? {},
       }));
 
       notify.success(t('rolesSaved'), t('usersSavedDescription'));
@@ -172,15 +192,15 @@ export const StaffAccessManager = ({
       <div className="space-y-5">
         <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-[280px_minmax(0,1fr)]">
           <div className="space-y-1.5">
-            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('sportComplex')}</div>
-            <Select value={selectedComplexId} onValueChange={setSelectedComplexId}>
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{selectorLabel}</div>
+            <Select value={selectedScopeId} onValueChange={setSelectedScopeId}>
               <SelectTrigger className="border-border bg-background/60 text-sm font-semibold">
                 <SelectValue placeholder="—" />
               </SelectTrigger>
               <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                {complexes.map((complex) => (
-                  <SelectItem key={complex.id} value={String(complex.id)}>
-                    {complex.name}
+                {scopeOptions.map((item) => (
+                  <SelectItem key={item.id} value={String(item.id)}>
+                    {item.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -201,7 +221,7 @@ export const StaffAccessManager = ({
           </div>
         </div>
 
-        {!selectedComplexId ? (
+        {!selectedScopeId ? (
           <div className="rounded-2xl border border-border bg-background/25 p-10 text-center">
             <Users className="mx-auto h-10 w-10 text-muted-foreground/30" />
           </div>
@@ -213,8 +233,7 @@ export const StaffAccessManager = ({
           <>
             <div className="space-y-3 md:hidden">
               {users.map((user) => {
-                const complexName = complexes.find((complex) => String(complex.id) === selectedComplexId)?.name ?? '-';
-                const assignment = assignmentsByComplex[selectedComplexId]?.[user.id] ?? EMPTY_ROLES;
+                const assignment = assignmentsByScope[selectedScopeId]?.[user.id] ?? EMPTY_ROLES;
                 const activeRoles = ROLE_ORDER.filter((role) => assignment[role]);
                 return (
                   <div key={user.id} className="rounded-2xl border border-border bg-background/40 p-4">
@@ -227,7 +246,7 @@ export const StaffAccessManager = ({
                     </div>
                     <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
                       <MapPin className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{complexName}</span>
+                      <span className="truncate">{selectedScopeName}</span>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2 border-t border-border/60 pt-3">
                       {allowedRoles.includes('professor') ? (
@@ -249,15 +268,14 @@ export const StaffAccessManager = ({
               <div className="min-w-[860px]">
                 <div className="grid grid-cols-[36%_28%_16%_20%] border-t border-b border-border px-5 py-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground sm:px-6">
                   <div className="text-center">{t('fullName')}</div>
-                  <div className="text-center">{t('sportComplex')}</div>
+                  <div className="text-center">{selectorLabel}</div>
                   <div className="text-center">{t('role')}</div>
                   <div className="text-center">{t('actions')}</div>
                 </div>
                 <div className="mt-2 space-y-2">
                   {users.map((user) => {
-                    const assignment = assignmentsByComplex[selectedComplexId]?.[user.id] ?? EMPTY_ROLES;
+                    const assignment = assignmentsByScope[selectedScopeId]?.[user.id] ?? EMPTY_ROLES;
                     const activeRoles = ROLE_ORDER.filter((role) => assignment[role]);
-                    const complexName = complexes.find((complex) => String(complex.id) === selectedComplexId)?.name ?? '-';
                     return (
                       <div key={user.id} className="grid grid-cols-[36%_28%_16%_20%] items-center rounded-xl border border-border px-5 py-4 transition-smooth hover:bg-primary/5 sm:px-6">
                         <div className="text-center">
@@ -265,7 +283,7 @@ export const StaffAccessManager = ({
                           <div className="mt-0.5 truncate text-xs text-muted-foreground">{user.email}</div>
                         </div>
                         <div className="text-center">
-                          <span className="block truncate text-sm text-muted-foreground">{complexName}</span>
+                          <span className="block truncate text-sm text-muted-foreground">{selectedScopeName}</span>
                         </div>
                         <div className="text-center">
                           <div className="flex items-center justify-center gap-2">
@@ -316,7 +334,7 @@ export const StaffAccessManager = ({
               </button>
               <span className="ml-2 text-xs text-muted-foreground">{totalUsers} {t('users').toLowerCase()}</span>
             </div>
-            <button type="button" onClick={handleSave} disabled={saving || !selectedComplexId} title={t('saveChanges')} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110 disabled:opacity-60">
+            <button type="button" onClick={handleSave} disabled={saving || !selectedScopeId} title={t('saveChanges')} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary-glow shadow-[0_0_12px_hsl(var(--primary)/0.18)] transition-smooth hover:bg-primary/16 hover:brightness-110 disabled:opacity-60">
               <Save className="h-4 w-4" />
             </button>
           </div>
@@ -326,21 +344,33 @@ export const StaffAccessManager = ({
   );
 };
 
-const buildAssignmentsIndex = (assignments: ComplexRoleAssignment[]) =>
+const getScopeOptions = (
+  scope: AccessScope,
+  snapshot: ScopeSnapshot,
+) => (scope === 'complex' ? snapshot.complexes : snapshot.championships);
+
+const buildAssignmentsIndex = (
+  scope: AccessScope,
+  assignments: ComplexRoleAssignment[] | ChampionshipRoleAssignment[],
+) =>
   assignments.reduce<Record<string, Record<string, AssignedRoles>>>((acc, assignment) => {
     const role = assignment.role as AssignableRole;
     if (!ROLE_ORDER.includes(role)) return acc;
 
-    const complexKey = String(assignment.complex_id);
+    const scopeKey = String(
+      scope === 'complex'
+        ? (assignment as ComplexRoleAssignment).complex_id
+        : (assignment as ChampionshipRoleAssignment).championship_id,
+    );
     const userKey = String(assignment.user_id);
-    const byComplex = acc[complexKey] ?? {};
-    const userRoles = byComplex[userKey] ?? { ...EMPTY_ROLES };
+    const byScope = acc[scopeKey] ?? {};
+    const userRoles = byScope[userKey] ?? { ...EMPTY_ROLES };
     userRoles[role] = true;
 
     return {
       ...acc,
-      [complexKey]: {
-        ...byComplex,
+      [scopeKey]: {
+        ...byScope,
         [userKey]: userRoles,
       },
     };
