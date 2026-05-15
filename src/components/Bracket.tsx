@@ -80,7 +80,7 @@ export const Bracket = ({
                 <h4 className="mb-4 w-72 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
                   {roundName(round.name)}
                 </h4>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col items-start justify-center gap-4" style={{ height: totalHeight }}>
                   {round.matches.map((match) => (
                     <MatchNode
                       key={match.id}
@@ -132,7 +132,7 @@ export const Bracket = ({
               <h4 className="mb-4 w-72 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
                 {roundName(round.name)}
               </h4>
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col items-start justify-center gap-4" style={{ height: minHeight }}>
                 {round.matches.map((match) => (
                   <MatchNode
                     key={match.id}

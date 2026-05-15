@@ -81,19 +81,17 @@ const getAvailableTeamsForStage = (
 const getStageConfigName = (
   config: ChampionshipFormatConfig | null | undefined,
   stageKey: 'first_stage' | 'second_stage' | 'third_stage',
-  fallback: string,
-) => {
+): string | null => {
   const value = config?.[stageKey]?.name;
-  return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
 };
 
 const getStageConfigView = (
   config: ChampionshipFormatConfig | null | undefined,
   stageKey: 'first_stage' | 'second_stage' | 'third_stage',
-  fallback: string,
-) => {
+): string | null => {
   const rawValue = config?.[stageKey]?.default_view;
-  if (typeof rawValue !== 'string' || !rawValue.trim()) return fallback;
+  if (typeof rawValue !== 'string' || !rawValue.trim()) return null;
   return rawValue.toLowerCase() === 'brakets' ? 'brackets' : rawValue.toLowerCase();
 };
 
@@ -438,10 +436,19 @@ const UnifiedMatchesView = ({
   );
 
   const isEmpty = data.tables.length === 0 && data.brackets.length === 0;
-  const firstStageTitle = getStageConfigName(data.format_config, 'first_stage', t('groupStage'));
-  const firstStageView = getStageConfigView(data.format_config, 'first_stage', 'table_with_points');
-  const secondStageName = getStageConfigName(data.format_config, 'second_stage', 'Gold');
-  const thirdStageName = getStageConfigName(data.format_config, 'third_stage', 'Silver');
+  const rawFirstStageName = getStageConfigName(data.format_config, 'first_stage');
+  const firstStageView = getStageConfigView(data.format_config, 'first_stage');
+  const thirdStageName = getStageConfigName(data.format_config, 'third_stage');
+
+  const translateStageName = (name: string): string => {
+    const lower = name.toLowerCase();
+    if (lower === 'gold' || lower === 'golden') return t('goldBracket');
+    if (lower === 'silver') return t('silverBracket');
+    if (lower === 'groups' || lower === 'group stage') return t('groupStage');
+    return name;
+  };
+
+  const firstStageTitle = rawFirstStageName ? translateStageName(rawFirstStageName) : t('groupStage');
 
   return (
     <div className="mt-6 space-y-4">
@@ -474,8 +481,6 @@ const UnifiedMatchesView = ({
       {/* Bracket groups */}
       {data.brackets.map((bracket, index) => {
         const defaultOpen = index === 0;
-        const seriesKey = `__series_${bracket.name}__`;
-        const isSeriesOpen = isOpen(seriesKey, true);
 
         const mainRounds: BracketRounds = bracket.winner_rounds
           .filter((r) => r.stage_type !== 'third_place')
@@ -523,71 +528,67 @@ const UnifiedMatchesView = ({
           <div key={bracket.name}>
             <SeriesDivider
               color={bracket.name === thirdStageName ? 'silver' : 'gold'}
-              label={bracket.name === secondStageName ? secondStageName : bracket.name}
-              isOpen={isSeriesOpen}
-              onToggle={() => toggle(seriesKey)}
+              label={translateStageName(bracket.name)}
             />
 
-            {isSeriesOpen && (
-              <div className="mt-3 space-y-3">
-                {mainRounds.length > 0 && (
-                  <BracketPanel
-                    title={t('winnerBracket')}
-                    isOpen={isOpen(`__wb_${bracket.name}__`, defaultOpen)}
-                    onToggle={() => toggle(`__wb_${bracket.name}__`, defaultOpen)}
-                  >
-                    <Bracket
-                      rounds={mainRounds}
-                      trailingRounds={trailingRounds}
+            <div className="mt-3 space-y-3">
+              {mainRounds.length > 0 && (
+                <BracketPanel
+                  title={t('winnerBracket')}
+                  isOpen={isOpen(`__wb_${bracket.name}__`, defaultOpen)}
+                  onToggle={() => toggle(`__wb_${bracket.name}__`, defaultOpen)}
+                >
+                  <Bracket
+                    rounds={mainRounds}
+                    trailingRounds={trailingRounds}
+                    canEdit={canEdit}
+                    teamOptions={getAvailableTeamsForStage(
+                      data.available_teams,
+                      mainRounds[0]?.matches[0]?.stageType,
+                    )}
+                    onScoreUpdate={onScoreUpdate}
+                    onTeamUpdate={onTeamUpdate}
+                  />
+                </BracketPanel>
+              )}
+
+              {loserRounds.length > 0 && (
+                <BracketPanel
+                  title={t('loserBracket')}
+                  isOpen={isOpen(`__lb_${bracket.name}__`, false)}
+                  onToggle={() => toggle(`__lb_${bracket.name}__`, false)}
+                >
+                  <Bracket
+                    rounds={loserRounds}
+                    canEdit={canEdit}
+                    teamOptions={getAvailableTeamsForStage(
+                      data.available_teams,
+                      loserRounds[0]?.matches[0]?.stageType,
+                    )}
+                    onScoreUpdate={onScoreUpdate}
+                    onTeamUpdate={onTeamUpdate}
+                  />
+                </BracketPanel>
+              )}
+
+              {grandFinalMatch && (
+                <BracketPanel
+                  title="Grande Final"
+                  isOpen={isOpen(`__gf_${bracket.name}__`, true)}
+                  onToggle={() => toggle(`__gf_${bracket.name}__`, true)}
+                >
+                  <div className="flex justify-center py-2">
+                    <MatchNode
+                      match={grandFinalMatch}
                       canEdit={canEdit}
-                      teamOptions={getAvailableTeamsForStage(
-                        data.available_teams,
-                        mainRounds[0]?.matches[0]?.stageType,
-                      )}
+                      teamOptions={getAvailableTeamsForStage(data.available_teams, grandFinalMatch.stageType)}
                       onScoreUpdate={onScoreUpdate}
                       onTeamUpdate={onTeamUpdate}
                     />
-                  </BracketPanel>
-                )}
-
-                {loserRounds.length > 0 && (
-                  <BracketPanel
-                    title={t('loserBracket')}
-                    isOpen={isOpen(`__lb_${bracket.name}__`, false)}
-                    onToggle={() => toggle(`__lb_${bracket.name}__`, false)}
-                  >
-                    <Bracket
-                      rounds={loserRounds}
-                      canEdit={canEdit}
-                      teamOptions={getAvailableTeamsForStage(
-                        data.available_teams,
-                        loserRounds[0]?.matches[0]?.stageType,
-                      )}
-                      onScoreUpdate={onScoreUpdate}
-                      onTeamUpdate={onTeamUpdate}
-                    />
-                  </BracketPanel>
-                )}
-
-                {grandFinalMatch && (
-                  <BracketPanel
-                    title="Grande Final"
-                    isOpen={isOpen(`__gf_${bracket.name}__`, true)}
-                    onToggle={() => toggle(`__gf_${bracket.name}__`, true)}
-                  >
-                    <div className="flex justify-center py-2">
-                      <MatchNode
-                        match={grandFinalMatch}
-                        canEdit={canEdit}
-                        teamOptions={getAvailableTeamsForStage(data.available_teams, grandFinalMatch.stageType)}
-                        onScoreUpdate={onScoreUpdate}
-                        onTeamUpdate={onTeamUpdate}
-                      />
-                    </div>
-                  </BracketPanel>
-                )}
-              </div>
-            )}
+                  </div>
+                </BracketPanel>
+              )}
+            </div>
           </div>
         );
       })}
@@ -620,12 +621,13 @@ const GroupStandingsCard = ({
   onScoreUpdate: ScoreUpdateFn;
   onTeamUpdate: TeamUpdateFn;
 }) => {
+  const { t } = useLanguage();
   const groupMaxSets = settingsByStage.get('group') ?? 1;
 
   return (
     <div className="rounded-2xl border border-border bg-background/30 p-4">
       <div className="mb-4 text-center font-display text-sm font-bold uppercase tracking-[0.2em] text-neon-cyan">
-        {table.name}
+        {table.name.replace(/^Group(\s+)/i, `${t('group')}$1`)}
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
@@ -646,8 +648,8 @@ const GroupStandingsCard = ({
         {/* Per-player points column */}
         {table.player_standings.length > 0 && (
           <div className="min-w-[120px] flex-1">
-            <div className="mb-2 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-              Pontos
+            <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              {t('points')}
             </div>
             <div className="flex flex-col gap-1">
               {table.player_standings.map((p, i) => (
@@ -656,20 +658,20 @@ const GroupStandingsCard = ({
                     {i < 2 && (
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-neon-cyan shadow-[0_0_6px_hsl(var(--neon-cyan))]" />
                     )}
-                    <span className={`text-xs ${i < 2 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                    <span className={`text-[13px] ${i < 2 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
                       {p.name}
                     </span>
                   </div>
-                  <span className={`text-xs font-bold tabular-nums ${i < 2 ? 'text-neon-cyan' : 'text-muted-foreground'}`}>
+                  <span className={`text-[13px] font-bold tabular-nums ${i < 2 ? 'text-neon-cyan' : 'text-muted-foreground'}`}>
                     {p.points}pts
                   </span>
                 </div>
               ))}
             </div>
             {table.player_standings.length > 0 && (
-              <div className="mt-2.5 flex items-center gap-1.5 text-[9px] text-muted-foreground">
+              <div className="mt-2.5 flex items-center gap-1.5 text-[13px] text-muted-foreground">
                 <span className="h-1.5 w-1.5 rounded-full bg-neon-cyan shadow-[0_0_6px_hsl(var(--neon-cyan))]" />
-                avançam para fase seguinte
+                {t('advancesToNextStage')}
               </div>
             )}
           </div>
@@ -684,29 +686,22 @@ const GroupStandingsCard = ({
 const SeriesDivider = ({
   color,
   label,
-  onToggle,
 }: {
   color: 'gold' | 'silver';
   label: string;
-  isOpen: boolean;
-  onToggle: () => void;
 }) => {
   const isGold = color === 'gold';
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="flex w-full items-center gap-3 pt-4 text-left transition-opacity hover:opacity-80"
-    >
+    <div className="flex w-full items-center gap-3 pt-4">
       <div
         className={`h-px flex-1 bg-gradient-to-r from-transparent ${
-          isGold ? 'via-yellow-500/40' : 'via-slate-400/40'
+          isGold ? 'via-amber-700/50 dark:via-yellow-500/40' : 'via-slate-400/40'
         } to-transparent`}
       />
       <span
         className={`rounded-full border px-4 py-1 text-[10px] font-bold uppercase tracking-[0.3em] ${
           isGold
-            ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-400'
+            ? 'border-amber-700/40 bg-amber-700/10 text-amber-700 dark:border-yellow-500/30 dark:bg-yellow-500/10 dark:text-yellow-400'
             : 'border-slate-400/30 bg-slate-400/10 text-slate-300'
         }`}
       >
@@ -714,10 +709,10 @@ const SeriesDivider = ({
       </span>
       <div
         className={`h-px flex-1 bg-gradient-to-l from-transparent ${
-          isGold ? 'via-yellow-500/40' : 'via-slate-400/40'
+          isGold ? 'via-amber-700/50 dark:via-yellow-500/40' : 'via-slate-400/40'
         } to-transparent`}
       />
-    </button>
+    </div>
   );
 };
 
