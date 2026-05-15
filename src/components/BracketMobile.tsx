@@ -1,5 +1,6 @@
 import type { Championship } from '@/types';
-import { MatchNode, type ScoreUpdateFn } from './MatchNode';
+import type { ChampionshipTeamOut } from '@/lib/api';
+import { MatchNode, type ScoreUpdateFn, type TeamUpdateFn } from './MatchNode';
 import { useLanguage } from '@/i18n';
 
 type BracketRounds = Championship['rounds'];
@@ -8,12 +9,16 @@ export const BracketMobile = ({
   rounds,
   highlightRound,
   canEdit,
+  teamOptions,
   onScoreUpdate,
+  onTeamUpdate,
 }: {
   rounds: BracketRounds;
   highlightRound?: string;
   canEdit?: boolean;
+  teamOptions?: ChampionshipTeamOut[];
   onScoreUpdate?: ScoreUpdateFn;
+  onTeamUpdate?: TeamUpdateFn;
 }) => {
   const { roundName } = useLanguage();
   let counter = 0;
@@ -38,7 +43,13 @@ export const BracketMobile = ({
                     <div className="px-1 text-center font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                       #{String(counter).padStart(2, '0')} {roundName(round.name)}
                     </div>
-                    <MatchNode match={m} canEdit={canEdit} onScoreUpdate={onScoreUpdate} />
+                    <MatchNode
+                      match={m}
+                      canEdit={canEdit}
+                      teamOptions={teamOptions}
+                      onScoreUpdate={onScoreUpdate}
+                      onTeamUpdate={onTeamUpdate}
+                    />
                   </div>
                 );
               })}

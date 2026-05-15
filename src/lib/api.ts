@@ -803,6 +803,18 @@ export const championshipApi = {
       body: JSON.stringify(body),
     }).then((r) => handle<ChampionshipMatchOut>(r)),
 
+  updateMatch: (
+    token: string,
+    championshipId: number | string,
+    matchId: number | string,
+    body: { team_1_id?: number | null; team_2_id?: number | null },
+  ) =>
+    fetch(`${API_BASE}/championships/${championshipId}/matches/${matchId}`, {
+      method: 'PATCH',
+      headers: json(token),
+      body: JSON.stringify(body),
+    }).then((r) => handle<ChampionshipMatchOut>(r)),
+
   uploadImage: async (token: string, id: number | string, dataUrl: string): Promise<{ url: string }> => {
     const [, base64] = dataUrl.split(',');
     const binary = atob(base64);
@@ -824,6 +836,8 @@ export interface ChampionshipTeamOut {
   id: number;
   name: string;
   user_ids: number[];
+  stage_type?: string | null;
+  team_type?: string | null;
 }
 
 export interface ChampionshipMatchOut {
@@ -893,6 +907,7 @@ export interface ChampionshipMatchesData {
   tables: ChampionshipTableOut[];
   brackets: ChampionshipBracketOut[];
   match_settings: CategoryMatchSettingsOut[];
+  available_teams: ChampionshipTeamOut[];
   user_can_edit_scores: boolean;
 }
 

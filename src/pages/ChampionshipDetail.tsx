@@ -5,7 +5,7 @@ import { Loader2, MapPin, Calendar } from 'lucide-react';
 import { Bracket } from '@/components/Bracket';
 import { LiveBadge } from '@/components/LiveBadge';
 import { MapsButton } from '@/components/MapsButton';
-import { MatchNode, type ScoreUpdateFn } from '@/components/MatchNode';
+import { MatchNode, type ScoreUpdateFn, type TeamUpdateFn } from '@/components/MatchNode';
 import { PositionedCoverImage } from '@/components/PositionedCoverImage';
 import { YouTubeButton } from '@/components/YouTubeButton';
 import {
@@ -20,6 +20,7 @@ import {
   type CategoryMatchSettingsOut,
   type ChampionshipMatchOut,
   type ChampionshipMatchesData,
+  type ChampionshipTeamOut,
   type ChampionshipTableOut,
 } from '@/lib/api';
 import { formatUtcDate } from '@/lib/datetime';
@@ -68,6 +69,12 @@ const getSetWins = (scoresA: Array<number | null>, scoresB: Array<number | null>
     { a: 0, b: 0 },
   );
 
+const getAvailableTeamsForStage = (
+  teams: ChampionshipTeamOut[],
+  stageType: string | null | undefined,
+) =>
+  teams.filter((team) => (team.stage_type ?? 'group') === (stageType ?? 'group'));
+
 const toFrontendMatch = (
   m: ChampionshipMatchOut,
   round: string,
@@ -81,8 +88,25 @@ const toFrontendMatch = (
   return {
     id: String(m.id),
     round,
-    teamA: m.team_1 ? { id: String(m.team_1.id), name: m.team_1.name } : null,
-    teamB: m.team_2 ? { id: String(m.team_2.id), name: m.team_2.name } : null,
+    stageType: m.stage_type,
+    teamA: m.team_1
+      ? {
+          id: String(m.team_1.id),
+          name: m.team_1.name,
+          stageType: m.team_1.stage_type,
+          teamType: m.team_1.team_type,
+          userIds: m.team_1.user_ids,
+        }
+      : null,
+    teamB: m.team_2
+      ? {
+          id: String(m.team_2.id),
+          name: m.team_2.name,
+          stageType: m.team_2.stage_type,
+          teamType: m.team_2.team_type,
+          userIds: m.team_2.user_ids,
+        }
+      : null,
     scoresA,
     scoresB,
     setScoreA: m.score_json?.sets_1 ?? setWins.a,
@@ -140,6 +164,19 @@ const ChampionshipDetail = () => {
       await championshipApi.updateMatchScore(token ?? '', id!, matchId, {
         scores_1: scores1,
         scores_2: scores2,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['championship-matches', id, selectedCategoryId],
+      });
+    },
+    [token, id, selectedCategoryId, queryClient],
+  );
+
+  const handleMatchUpdate = useCallback(
+    async (matchId: string, team1Id: number | null, team2Id: number | null) => {
+      await championshipApi.updateMatch(token ?? '', id!, matchId, {
+        team_1_id: team1Id,
+        team_2_id: team2Id,
       });
       await queryClient.invalidateQueries({
         queryKey: ['championship-matches', id, selectedCategoryId],
@@ -294,6 +331,7 @@ const ChampionshipDetail = () => {
               t={t}
               canEdit={matchesData.user_can_edit_scores}
               onScoreUpdate={handleScoreUpdate}
+              onTeamUpdate={handleMatchUpdate}
             />
           ) : null}
         </div>
@@ -310,12 +348,14 @@ const UnifiedMatchesView = ({
   t,
   canEdit,
   onScoreUpdate,
+  onTeamUpdate,
 }: {
   data: ChampionshipMatchesData;
   timezone: string | null;
   t: (k: string) => string;
   canEdit: boolean;
   onScoreUpdate: ScoreUpdateFn;
+  onTeamUpdate: TeamUpdateFn;
 }) => {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
@@ -346,8 +386,10 @@ const UnifiedMatchesView = ({
                   table={table}
                   timezone={timezone}
                   settingsByStage={settingsByStage}
+                  availableTeams={data.available_teams}
                   canEdit={canEdit}
                   onScoreUpdate={onScoreUpdate}
+                  onTeamUpdate={onTeamUpdate}
                 />
               ))}
             </div>
@@ -426,7 +468,16 @@ const UnifiedMatchesView = ({
                     isOpen={isOpen(`__wb_${bracket.name}__`, defaultOpen)}
                     onToggle={() => toggle(`__wb_${bracket.name}__`, defaultOpen)}
                   >
-                    <Bracket rounds={mainRounds} canEdit={canEdit} onScoreUpdate={onScoreUpdate} />
+                    <Bracket
+                      rounds={mainRounds}
+                      canEdit={canEdit}
+                      teamOptions={getAvailableTeamsForStage(
+                        data.available_teams,
+                        mainRounds[0]?.matches[0]?.stageType,
+                      )}
+                      onScoreUpdate={onScoreUpdate}
+                      onTeamUpdate={onTeamUpdate}
+                    />
                   </BracketPanel>
                 )}
 
@@ -436,7 +487,16 @@ const UnifiedMatchesView = ({
                     isOpen={isOpen(`__lb_${bracket.name}__`, false)}
                     onToggle={() => toggle(`__lb_${bracket.name}__`, false)}
                   >
-                    <Bracket rounds={loserRounds} canEdit={canEdit} onScoreUpdate={onScoreUpdate} />
+                    <Bracket
+                      rounds={loserRounds}
+                      canEdit={canEdit}
+                      teamOptions={getAvailableTeamsForStage(
+                        data.available_teams,
+                        loserRounds[0]?.matches[0]?.stageType,
+                      )}
+                      onScoreUpdate={onScoreUpdate}
+                      onTeamUpdate={onTeamUpdate}
+                    />
                   </BracketPanel>
                 )}
 
@@ -447,7 +507,13 @@ const UnifiedMatchesView = ({
                     onToggle={() => toggle(`__3rd_${bracket.name}__`, true)}
                   >
                     <div className="flex justify-center py-2">
-                      <MatchNode match={thirdPlaceMatch} canEdit={canEdit} onScoreUpdate={onScoreUpdate} />
+                      <MatchNode
+                        match={thirdPlaceMatch}
+                        canEdit={canEdit}
+                        teamOptions={getAvailableTeamsForStage(data.available_teams, thirdPlaceMatch.stageType)}
+                        onScoreUpdate={onScoreUpdate}
+                        onTeamUpdate={onTeamUpdate}
+                      />
                     </div>
                   </BracketPanel>
                 )}
@@ -459,7 +525,13 @@ const UnifiedMatchesView = ({
                     onToggle={() => toggle(`__gf_${bracket.name}__`, true)}
                   >
                     <div className="flex justify-center py-2">
-                      <MatchNode match={grandFinalMatch} canEdit={canEdit} onScoreUpdate={onScoreUpdate} />
+                      <MatchNode
+                        match={grandFinalMatch}
+                        canEdit={canEdit}
+                        teamOptions={getAvailableTeamsForStage(data.available_teams, grandFinalMatch.stageType)}
+                        onScoreUpdate={onScoreUpdate}
+                        onTeamUpdate={onTeamUpdate}
+                      />
                     </div>
                   </BracketPanel>
                 )}
@@ -484,14 +556,18 @@ const GroupStandingsCard = ({
   table,
   timezone,
   settingsByStage,
+  availableTeams,
   canEdit,
   onScoreUpdate,
+  onTeamUpdate,
 }: {
   table: ChampionshipTableOut;
   timezone: string | null;
   settingsByStage: Map<string, number>;
+  availableTeams: ChampionshipTeamOut[];
   canEdit: boolean;
   onScoreUpdate: ScoreUpdateFn;
+  onTeamUpdate: TeamUpdateFn;
 }) => {
   const groupMaxSets = settingsByStage.get('group') ?? 1;
 
@@ -508,8 +584,10 @@ const GroupStandingsCard = ({
             <MatchNode
               key={m.id}
               match={toFrontendMatch(m, table.name, timezone, groupMaxSets)}
+              teamOptions={getAvailableTeamsForStage(availableTeams, 'group')}
               canEdit={canEdit}
               onScoreUpdate={onScoreUpdate}
+              onTeamUpdate={onTeamUpdate}
             />
           ))}
         </div>

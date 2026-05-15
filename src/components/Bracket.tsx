@@ -1,5 +1,6 @@
 import type { Championship } from '@/types';
-import { MatchNode, type ScoreUpdateFn } from './MatchNode';
+import type { ChampionshipTeamOut } from '@/lib/api';
+import { MatchNode, type ScoreUpdateFn, type TeamUpdateFn } from './MatchNode';
 import { BracketMobile } from './BracketMobile';
 import { useLanguage } from '@/i18n';
 
@@ -12,11 +13,15 @@ const SLOT_STEP = CARD_HEIGHT + SLOT_GAP;
 export const Bracket = ({
   rounds,
   canEdit,
+  teamOptions,
   onScoreUpdate,
+  onTeamUpdate,
 }: {
   rounds: BracketRounds;
   canEdit?: boolean;
+  teamOptions?: ChampionshipTeamOut[];
   onScoreUpdate?: ScoreUpdateFn;
+  onTeamUpdate?: TeamUpdateFn;
 }) => {
   const { roundName } = useLanguage();
   const baseHeight = Math.max(((rounds[0]?.matches.length ?? 1) - 1) * SLOT_STEP + CARD_HEIGHT, CARD_HEIGHT);
@@ -27,7 +32,13 @@ export const Bracket = ({
   return (
     <>
       <div className="md:hidden">
-        <BracketMobile rounds={rounds} canEdit={canEdit} onScoreUpdate={onScoreUpdate} />
+        <BracketMobile
+          rounds={rounds}
+          canEdit={canEdit}
+          teamOptions={teamOptions}
+          onScoreUpdate={onScoreUpdate}
+          onTeamUpdate={onTeamUpdate}
+        />
       </div>
       <div className="hidden md:block overflow-x-auto pb-4">
         {isStandardProgression ? (
@@ -44,7 +55,13 @@ export const Bracket = ({
                     return (
                       <div key={match.id} className="absolute left-0 overflow-visible" style={{ top, width: 352, height: CARD_HEIGHT }}>
                         <div className="relative h-full w-full">
-                          <MatchNode match={match} canEdit={canEdit} onScoreUpdate={onScoreUpdate} />
+                          <MatchNode
+                            match={match}
+                            canEdit={canEdit}
+                            teamOptions={teamOptions}
+                            onScoreUpdate={onScoreUpdate}
+                            onTeamUpdate={onTeamUpdate}
+                          />
                         {ri < rounds.length - 1 && (
                             <PreciseBracketConnector deltaToNext={nextTop - top} />
                         )}
@@ -70,7 +87,13 @@ export const Bracket = ({
                     className="flex items-center"
                     style={{ marginTop: ri === 0 && mi === 0 ? 0 : `${ri * 8}px` }}
                   >
-                    <MatchNode match={m} canEdit={canEdit} onScoreUpdate={onScoreUpdate} />
+                    <MatchNode
+                      match={m}
+                      canEdit={canEdit}
+                      teamOptions={teamOptions}
+                      onScoreUpdate={onScoreUpdate}
+                      onTeamUpdate={onTeamUpdate}
+                    />
                     {ri < rounds.length - 1 && (
                       <BracketConnector
                         position={mi % 2 === 0 ? 'top' : 'bottom'}

@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import type { ChampionshipTeamOut } from '@/lib/api';
 import type { Match } from '@/types';
 import { LiveBadge } from './LiveBadge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 export type ScoreUpdateFn = (
   matchId: string,
@@ -9,15 +11,32 @@ export type ScoreUpdateFn = (
   scores2: Array<number | null>,
 ) => Promise<void>;
 
+export type TeamUpdateFn = (
+  matchId: string,
+  team1Id: number | null,
+  team2Id: number | null,
+) => Promise<void>;
+
 interface Props {
   match: Match;
   canEdit?: boolean;
+  teamOptions?: ChampionshipTeamOut[];
   onScoreUpdate?: ScoreUpdateFn;
+  onTeamUpdate?: TeamUpdateFn;
 }
 
-export const MatchNode = ({ match, canEdit, onScoreUpdate }: Props) => {
+export const MatchNode = ({
+  match,
+  canEdit,
+  teamOptions = [],
+  onScoreUpdate,
+  onTeamUpdate,
+}: Props) => {
   const [editScoresA, setEditScoresA] = useState<Array<string | null> | null>(null);
   const [editScoresB, setEditScoresB] = useState<Array<string | null> | null>(null);
+  const [editTeamAId, setEditTeamAId] = useState<string | null>(null);
+  const [editTeamBId, setEditTeamBId] = useState<string | null>(null);
+  const [editingTeamSlot, setEditingTeamSlot] = useState<'A' | 'B' | null>(null);
   const [saving, setSaving] = useState(false);
 
   const maxSets = match.maxSets ?? 1;
@@ -32,18 +51,38 @@ export const MatchNode = ({ match, canEdit, onScoreUpdate }: Props) => {
   const scoresA = editScoresA ?? baseScoresA.map((score) => toEditableScore(score));
   const scoresB = editScoresB ?? baseScoresB.map((score) => toEditableScore(score));
   const setWins = getSetWins(scoresA, scoresB);
-  const hasChanges = editScoresA !== null || editScoresB !== null;
+
+  const currentTeamAId = editTeamAId ?? match.teamA?.id ?? null;
+  const currentTeamBId = editTeamBId ?? match.teamB?.id ?? null;
+  const currentTeamAName = getSelectedTeamName(currentTeamAId, teamOptions, match.teamA?.name);
+  const currentTeamBName = getSelectedTeamName(currentTeamBId, teamOptions, match.teamB?.name);
+  const scoresChanged = editScoresA !== null || editScoresB !== null;
+  const teamsChanged =
+    currentTeamAId !== (match.teamA?.id ?? null) || currentTeamBId !== (match.teamB?.id ?? null);
+  const hasChanges = scoresChanged || teamsChanged;
 
   const winnerA = match.status === 'finished' && setWins.a > setWins.b;
   const winnerB = match.status === 'finished' && setWins.b > setWins.a;
 
   const handleSave = async () => {
-    if (!onScoreUpdate) return;
+    if (!onScoreUpdate && !onTeamUpdate) return;
     setSaving(true);
     try {
-      await onScoreUpdate(match.id, scoresA.map(parseScoreValue), scoresB.map(parseScoreValue));
+      if (teamsChanged && onTeamUpdate) {
+        await onTeamUpdate(
+          match.id,
+          parseTeamId(currentTeamAId),
+          parseTeamId(currentTeamBId),
+        );
+      }
+      if (scoresChanged && onScoreUpdate) {
+        await onScoreUpdate(match.id, scoresA.map(parseScoreValue), scoresB.map(parseScoreValue));
+      }
       setEditScoresA(null);
       setEditScoresB(null);
+      setEditTeamAId(null);
+      setEditTeamBId(null);
+      setEditingTeamSlot(null);
     } finally {
       setSaving(false);
     }
@@ -52,10 +91,13 @@ export const MatchNode = ({ match, canEdit, onScoreUpdate }: Props) => {
   const handleCancel = () => {
     setEditScoresA(null);
     setEditScoresB(null);
+    setEditTeamAId(null);
+    setEditTeamBId(null);
+    setEditingTeamSlot(null);
   };
 
   return (
-    <div className="relative h-[109px] w-72 rounded-lg border border-border bg-gradient-card overflow-hidden transition-smooth hover:border-primary/40">
+    <div className="relative h-[109px] w-72 overflow-hidden rounded-lg border border-border bg-gradient-card transition-smooth hover:border-primary/40">
       <div className="flex h-7 items-center justify-between border-b border-border bg-background/40 px-3">
         {canEdit && hasChanges ? (
           <>
@@ -86,24 +128,42 @@ export const MatchNode = ({ match, canEdit, onScoreUpdate }: Props) => {
         )}
       </div>
       <TeamRow
-        name={match.teamA?.name}
+        name={currentTeamAName}
+        teamId={currentTeamAId}
         maxSets={maxSets}
         scores={scoresA}
         opponentScores={scoresB}
         winner={winnerA}
         emptyLabel="-"
         canEdit={canEdit}
+        teamOptions={teamOptions}
+        isEditingTeam={editingTeamSlot === 'A'}
+        blockedTeamId={currentTeamBId}
+        onStartEditingTeam={() => setEditingTeamSlot('A')}
+        onTeamChange={(value) => {
+          setEditTeamAId(value);
+          setEditingTeamSlot(null);
+        }}
         onScoreChange={(index, value) => setEditScoresA(updateEditableScores(scoresA, index, value))}
       />
       <div className="h-px bg-border" />
       <TeamRow
-        name={match.teamB?.name}
+        name={currentTeamBName}
+        teamId={currentTeamBId}
         maxSets={maxSets}
         scores={scoresB}
         opponentScores={scoresA}
         winner={winnerB}
         emptyLabel="-"
         canEdit={canEdit}
+        teamOptions={teamOptions}
+        isEditingTeam={editingTeamSlot === 'B'}
+        blockedTeamId={currentTeamAId}
+        onStartEditingTeam={() => setEditingTeamSlot('B')}
+        onTeamChange={(value) => {
+          setEditTeamBId(value);
+          setEditingTeamSlot(null);
+        }}
         onScoreChange={(index, value) => setEditScoresB(updateEditableScores(scoresB, index, value))}
       />
     </div>
@@ -111,13 +171,31 @@ export const MatchNode = ({ match, canEdit, onScoreUpdate }: Props) => {
 };
 
 const stripSeedPrefix = (name?: string) => name?.replace(/^\d+\s*-\s*/, '') ?? name;
+
 const toEditableScore = (score: number | null | undefined) =>
   score === null || score === undefined ? null : String(score);
+
 const parseScoreValue = (value: string | null) => {
   if (value === null || value.trim() === '') return null;
   const parsed = Number.parseInt(value, 10);
   return Number.isNaN(parsed) ? null : parsed;
 };
+
+const parseTeamId = (value: string | null) => {
+  if (value === null || value === '__none__') return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+const getSelectedTeamName = (
+  teamId: string | null,
+  teamOptions: ChampionshipTeamOut[],
+  fallbackName?: string,
+) => {
+  if (teamId === null) return undefined;
+  return teamOptions.find((team) => String(team.id) === teamId)?.name ?? fallbackName;
+};
+
 const getSetWins = (
   scoresA: Array<string | null>,
   scoresB: Array<string | null>,
@@ -133,12 +211,14 @@ const getSetWins = (
     },
     { a: 0, b: 0 },
   );
+
 const updateEditableScores = (
   scores: Array<string | null>,
   index: number,
   value: string,
 ) =>
   scores.map((score, scoreIndex) => (scoreIndex === index ? normalizeScoreInput(value) : score));
+
 const normalizeScoreInput = (value: string) => {
   const digitsOnly = value.replace(/\D/g, '');
   return digitsOnly === '' ? null : digitsOnly;
@@ -146,66 +226,117 @@ const normalizeScoreInput = (value: string) => {
 
 const TeamRow = ({
   name,
+  teamId,
   maxSets,
   scores,
   opponentScores,
   winner,
   emptyLabel,
   canEdit,
+  teamOptions,
+  isEditingTeam,
+  blockedTeamId,
+  onStartEditingTeam,
+  onTeamChange,
   onScoreChange,
 }: {
   name?: string;
+  teamId: string | null;
   maxSets: number;
   scores: Array<string | null>;
   opponentScores: Array<string | null>;
   winner: boolean;
   emptyLabel: string;
   canEdit?: boolean;
+  teamOptions: ChampionshipTeamOut[];
+  isEditingTeam: boolean;
+  blockedTeamId: string | null;
+  onStartEditingTeam?: () => void;
+  onTeamChange?: (value: string) => void;
   onScoreChange?: (index: number, val: string) => void;
-}) => (
-  <div className={`flex h-10 items-center gap-2 px-3 py-2 ${winner ? 'bg-primary/10' : ''}`}>
-    <span className={`min-w-0 flex-1 text-sm truncate ${name ? (winner ? 'font-bold text-foreground' : 'font-semibold text-foreground/90') : 'text-muted-foreground italic'}`}>
-      {name ? stripSeedPrefix(name) : emptyLabel}
-    </span>
-    <div className="flex shrink-0 items-center gap-1">
-      {Array.from({ length: maxSets }, (_, index) => {
-        const currentScore = scores[index] ?? '';
-        const opponentScore = parseScoreValue(opponentScores[index] ?? null);
-        const teamScore = parseScoreValue(scores[index] ?? null);
-        const setWon =
-          teamScore !== null &&
-          opponentScore !== null &&
-          teamScore > opponentScore;
-        const setLost =
-          teamScore !== null &&
-          opponentScore !== null &&
-          teamScore < opponentScore;
+}) => {
+  const filteredTeamOptions = teamOptions.filter(
+    (team) => String(team.id) === teamId || String(team.id) !== blockedTeamId,
+  );
 
-        return (
-          <input
-            key={index}
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={currentScore}
-            readOnly={!canEdit}
-            placeholder={canEdit ? '' : '–'}
-            onChange={(event) => onScoreChange?.(index, event.target.value)}
-            onFocus={(event) => canEdit && event.target.select()}
-            className={`h-[28px] w-[28px] rounded-full border bg-transparent text-center font-display text-xs font-bold transition-colors focus:outline-none ${
-              canEdit ? 'cursor-text' : 'cursor-default'
-            } ${
-              setWon
+  return (
+    <div className={`flex h-10 items-center gap-2 px-3 py-2 ${winner ? 'bg-primary/10' : ''}`}>
+      <div className="min-w-0 flex-1">
+        {canEdit && isEditingTeam ? (
+          <Select value={teamId ?? '__none__'} onValueChange={onTeamChange}>
+            <SelectTrigger className="h-7 w-full min-w-0 rounded-md border-border/60 bg-background/60 px-2 text-left text-xs font-semibold text-foreground shadow-none">
+              <SelectValue placeholder={emptyLabel} />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-border bg-gradient-card text-foreground shadow-card backdrop-blur-xl">
+              <SelectItem value="__none__" className="text-xs">
+                {emptyLabel}
+              </SelectItem>
+              {filteredTeamOptions.map((team) => (
+                <SelectItem key={team.id} value={String(team.id)} className="text-xs">
+                  {stripSeedPrefix(team.name)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <button
+            type="button"
+            disabled={!canEdit}
+            onClick={onStartEditingTeam}
+            className={`flex h-7 w-full min-w-0 items-center rounded-md px-1 text-left text-sm ${
+              name
                 ? winner
-                  ? 'border-neon-cyan bg-neon-cyan/20 text-neon-cyan'
-                  : 'border-primary/50 bg-primary/15 text-primary-glow'
-                : setLost
-                  ? 'border-muted-foreground/30 bg-background/20 text-muted-foreground'
-                  : 'border-muted-foreground/20 text-foreground'
-            }`}
-          />
-        );
-      })}
+                  ? 'font-bold text-foreground'
+                  : 'font-semibold text-foreground/90'
+                : 'italic text-muted-foreground'
+            } ${canEdit ? 'cursor-pointer hover:bg-background/50 hover:text-primary-glow' : 'cursor-default'}`}
+          >
+            <span className="block min-w-0 max-w-full truncate">
+              {name ? stripSeedPrefix(name) : emptyLabel}
+            </span>
+          </button>
+        )}
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        {Array.from({ length: maxSets }, (_, index) => {
+          const currentScore = scores[index] ?? '';
+          const opponentScore = parseScoreValue(opponentScores[index] ?? null);
+          const teamScore = parseScoreValue(scores[index] ?? null);
+          const setWon =
+            teamScore !== null &&
+            opponentScore !== null &&
+            teamScore > opponentScore;
+          const setLost =
+            teamScore !== null &&
+            opponentScore !== null &&
+            teamScore < opponentScore;
+
+          return (
+            <input
+              key={index}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={currentScore}
+              readOnly={!canEdit}
+              placeholder={canEdit ? '' : '-'}
+              onChange={(event) => onScoreChange?.(index, event.target.value)}
+              onFocus={(event) => canEdit && event.target.select()}
+              className={`h-[28px] w-[28px] rounded-full border bg-transparent text-center font-display text-xs font-bold transition-colors focus:outline-none ${
+                canEdit ? 'cursor-text' : 'cursor-default'
+              } ${
+                setWon
+                  ? winner
+                    ? 'border-neon-cyan bg-neon-cyan/20 text-neon-cyan'
+                    : 'border-primary/50 bg-primary/15 text-primary-glow'
+                  : setLost
+                    ? 'border-muted-foreground/30 bg-background/20 text-muted-foreground'
+                    : 'border-muted-foreground/20 text-foreground'
+              }`}
+            />
+          );
+        })}
+      </div>
     </div>
-  </div>
-);
+  );
+};

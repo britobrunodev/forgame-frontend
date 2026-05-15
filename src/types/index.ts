@@ -43,11 +43,15 @@ export interface Team {
   id: string;
   name: string;
   seed?: number;
+  stageType?: string | null;
+  teamType?: string | null;
+  userIds?: number[];
 }
 
 export interface Match {
   id: string;
   round: string;
+  stageType?: string | null;
   teamA: Team | null;
   teamB: Team | null;
   scoresA?: Array<number | null>;
