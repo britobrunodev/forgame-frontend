@@ -46,31 +46,59 @@ const mapChampionshipStatus = (
   return 'upcoming';
 };
 
+const normalizeSetScores = (
+  rawScores: Array<number | null> | undefined,
+  maxSets?: number,
+): Array<number | null> => {
+  const size = Math.max(maxSets ?? rawScores?.length ?? 0, rawScores?.length ?? 0, 1);
+  return Array.from({ length: size }, (_, index) => rawScores?.[index] ?? null);
+};
+
+const getSetWins = (scoresA: Array<number | null>, scoresB: Array<number | null>) =>
+  scoresA.reduce(
+    (totals, scoreA, index) => {
+      const scoreB = scoresB[index];
+      if (scoreA === null || scoreA === undefined || scoreB === null || scoreB === undefined) {
+        return totals;
+      }
+      if (scoreA > scoreB) totals.a += 1;
+      if (scoreB > scoreA) totals.b += 1;
+      return totals;
+    },
+    { a: 0, b: 0 },
+  );
+
 const toFrontendMatch = (
   m: ChampionshipMatchOut,
   round: string,
   timezone: string | null,
   maxSets?: number,
-): Match => ({
-  id: String(m.id),
-  round,
-  teamA: m.team_1 ? { id: String(m.team_1.id), name: m.team_1.name } : null,
-  teamB: m.team_2 ? { id: String(m.team_2.id), name: m.team_2.name } : null,
-  scoreA: m.score_json?.score_1,
-  scoreB: m.score_json?.score_2,
-  setScoreA: m.score_json?.sets_1,
-  setScoreB: m.score_json?.sets_2,
-  status:
-    m.status === 'finished' ? 'finished' : m.status === 'live' ? 'live' : 'scheduled',
-  time: m.scheduled_at
-    ? new Date(m.scheduled_at).toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: timezone || 'UTC',
-      })
-    : undefined,
-  maxSets,
-});
+): Match => {
+  const scoresA = normalizeSetScores(m.score_json?.scores_1, maxSets);
+  const scoresB = normalizeSetScores(m.score_json?.scores_2, maxSets);
+  const setWins = getSetWins(scoresA, scoresB);
+
+  return {
+    id: String(m.id),
+    round,
+    teamA: m.team_1 ? { id: String(m.team_1.id), name: m.team_1.name } : null,
+    teamB: m.team_2 ? { id: String(m.team_2.id), name: m.team_2.name } : null,
+    scoresA,
+    scoresB,
+    setScoreA: m.score_json?.sets_1 ?? setWins.a,
+    setScoreB: m.score_json?.sets_2 ?? setWins.b,
+    status:
+      m.status === 'finished' ? 'finished' : m.status === 'live' ? 'live' : 'scheduled',
+    time: m.scheduled_at
+      ? new Date(m.scheduled_at).toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: timezone || 'UTC',
+        })
+      : undefined,
+    maxSets,
+  };
+};
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -108,12 +136,10 @@ const ChampionshipDetail = () => {
   });
 
   const handleScoreUpdate = useCallback(
-    async (matchId: string, sets1: number, sets2: number, score1?: number, score2?: number) => {
+    async (matchId: string, scores1: Array<number | null>, scores2: Array<number | null>) => {
       await championshipApi.updateMatchScore(token ?? '', id!, matchId, {
-        sets_1: sets1,
-        sets_2: sets2,
-        score_1: score1,
-        score_2: score2,
+        scores_1: scores1,
+        scores_2: scores2,
       });
       await queryClient.invalidateQueries({
         queryKey: ['championship-matches', id, selectedCategoryId],
@@ -313,7 +339,7 @@ const UnifiedMatchesView = ({
             isOpen={isOpen('__group_stage__')}
             onToggle={() => toggle('__group_stage__')}
           >
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap justify-center gap-4">
               {data.tables.map((table) => (
                 <GroupStandingsCard
                   key={table.name}
@@ -471,13 +497,13 @@ const GroupStandingsCard = ({
 
   return (
     <div className="rounded-2xl border border-border bg-background/30 p-4">
-      <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-neon-cyan">
+      <div className="mb-4 text-center font-display text-sm font-bold uppercase tracking-[0.2em] text-neon-cyan">
         {table.name}
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
         {/* Matches column */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col items-center gap-2 sm:items-stretch">
           {table.matches.map((m) => (
             <MatchNode
               key={m.id}

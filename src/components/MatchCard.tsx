@@ -8,8 +8,23 @@ interface Props {
 }
 
 export const MatchCard = ({ match, number, round }: Props) => {
-  const winnerA = match.status === 'finished' && (match.scoreA ?? 0) > (match.scoreB ?? 0);
-  const winnerB = match.status === 'finished' && (match.scoreB ?? 0) > (match.scoreA ?? 0);
+  const scoresA = match.scoresA ?? [];
+  const scoresB = match.scoresB ?? [];
+  const setWins = scoresA.reduce(
+    (totals, scoreA, index) => {
+      const scoreB = scoresB[index];
+      if (scoreA === null || scoreA === undefined || scoreB === null || scoreB === undefined) {
+        return totals;
+      }
+      if (scoreA > scoreB) totals.a += 1;
+      if (scoreB > scoreA) totals.b += 1;
+      return totals;
+    },
+    { a: 0, b: 0 },
+  );
+  const winnerA = match.status === 'finished' && setWins.a > setWins.b;
+  const winnerB = match.status === 'finished' && setWins.b > setWins.a;
+
   return (
     <div className="rounded-lg border border-border bg-gradient-card overflow-hidden transition-smooth">
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-background/40">
@@ -27,16 +42,16 @@ export const MatchCard = ({ match, number, round }: Props) => {
           #{String(number).padStart(2, '0')} {round}
         </span>
       </div>
-      <TeamRow name={match.teamA?.name} setScore={match.setScoreA} score={match.scoreA} winner={winnerA} emptyLabel="-" />
+      <TeamRow name={match.teamA?.name} scores={scoresA} winner={winnerA} emptyLabel="-" />
       <div className="h-px bg-border" />
-      <TeamRow name={match.teamB?.name} setScore={match.setScoreB} score={match.scoreB} winner={winnerB} emptyLabel="-" />
+      <TeamRow name={match.teamB?.name} scores={scoresB} winner={winnerB} emptyLabel="-" />
     </div>
   );
 };
 
 const stripSeedPrefix = (name?: string) => name?.replace(/^\d+\s*-\s*/, '') ?? name;
 
-const TeamRow = ({ name, setScore, score, winner, emptyLabel }: { name?: string; setScore?: number; score?: number; winner: boolean; emptyLabel: string }) => (
+const TeamRow = ({ name, scores, winner, emptyLabel }: { name?: string; scores: Array<number | null>; winner: boolean; emptyLabel: string }) => (
   <div className={`flex items-center justify-between gap-2 px-3 py-2.5 ${winner ? 'bg-primary/10' : ''}`}>
     <span
       className={`min-w-0 flex-1 text-sm truncate ${
@@ -49,17 +64,21 @@ const TeamRow = ({ name, setScore, score, winner, emptyLabel }: { name?: string;
     >
       {name ? stripSeedPrefix(name) : emptyLabel}
     </span>
-    <div className="ml-2 flex shrink-0 items-center gap-1.5">
-      <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-bold ${setScore !== undefined ? winner ? 'border-neon-cyan/45 text-neon-cyan' : 'border-muted-foreground/35 text-muted-foreground' : 'border-transparent text-transparent'}`}>
-        {setScore ?? '0'}
-      </span>
-      <span
-        className={`font-display font-bold text-sm ${
-          winner ? 'text-neon-cyan' : 'text-muted-foreground'
-        }`}
-      >
-        {score ?? '-'}
-      </span>
+    <div className="ml-2 flex shrink-0 items-center gap-1">
+      {scores.map((score, index) => (
+        <span
+          key={index}
+          className={`inline-flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-bold ${
+            score !== null && score !== undefined
+              ? winner
+                ? 'border-neon-cyan/45 bg-neon-cyan/10 text-neon-cyan'
+                : 'border-muted-foreground/35 text-foreground'
+              : 'border-muted-foreground/20 text-muted-foreground/50'
+          }`}
+        >
+          {score ?? '–'}
+        </span>
+      ))}
     </div>
   </div>
 );

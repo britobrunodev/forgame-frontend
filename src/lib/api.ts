@@ -795,7 +795,7 @@ export const championshipApi = {
     token: string,
     championshipId: number | string,
     matchId: number | string,
-    body: { sets_1?: number; sets_2?: number; score_1?: number; score_2?: number },
+    body: { scores_1?: Array<number | null>; scores_2?: Array<number | null> },
   ) =>
     fetch(`${API_BASE}/championships/${championshipId}/matches/${matchId}/score`, {
       method: 'PATCH',
@@ -836,7 +836,12 @@ export interface ChampionshipMatchOut {
   team_1: ChampionshipTeamOut | null;
   team_2: ChampionshipTeamOut | null;
   winner_team_id: number | null;
-  score_json: { score_1?: number; score_2?: number; sets_1?: number; sets_2?: number } | null;
+  score_json: {
+    sets_1?: number;
+    sets_2?: number;
+    scores_1?: Array<number | null>;
+    scores_2?: Array<number | null>;
+  } | null;
   scheduled_at: string | null;
   config_json: Record<string, unknown> | null;
 }

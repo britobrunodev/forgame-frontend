@@ -50,10 +50,10 @@ export interface Match {
   round: string;
   teamA: Team | null;
   teamB: Team | null;
+  scoresA?: Array<number | null>;
+  scoresB?: Array<number | null>;
   setScoreA?: number;
   setScoreB?: number;
-  scoreA?: number;
-  scoreB?: number;
   status: "scheduled" | "live" | "finished";
   time?: string;
   maxSets?: number;

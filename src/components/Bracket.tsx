@@ -27,7 +27,7 @@ export const Bracket = ({
   return (
     <>
       <div className="md:hidden">
-        <BracketMobile rounds={rounds} />
+        <BracketMobile rounds={rounds} canEdit={canEdit} onScoreUpdate={onScoreUpdate} />
       </div>
       <div className="hidden md:block overflow-x-auto pb-4">
         {isStandardProgression ? (
