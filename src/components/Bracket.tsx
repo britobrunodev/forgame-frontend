@@ -14,6 +14,7 @@ export const Bracket = ({
   rounds,
   trailingRounds = [],
   classifiedRound,
+  variant = 'default',
   canEdit,
   teamOptions,
   onScoreUpdate,
@@ -23,6 +24,7 @@ export const Bracket = ({
   trailingRounds?: BracketRounds;
   /** When set, the last round's match cards are styled as "Classificados". */
   classifiedRound?: BracketRounds[number];
+  variant?: 'default' | 'loser';
   canEdit?: boolean;
   teamOptions?: ChampionshipTeamOut[];
   onScoreUpdate?: ScoreUpdateFn;
@@ -84,7 +86,7 @@ export const Bracket = ({
               );
             })}
             {trailingRounds.map((round) => (
-              <div key={round.name} className="flex flex-col">
+              <div key={round.name} className="ml-16 flex flex-col">
                 <h4 className="mb-4 w-72 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
                   {roundName(round.name)}
                 </h4>
@@ -112,28 +114,42 @@ export const Bracket = ({
                   <h4 className="mb-4 w-72 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
                     {roundName(round.name)}
                   </h4>
-                  <div className="flex flex-col justify-around flex-1 gap-4" style={{ minHeight }}>
+                  <div
+                    className="relative"
+                    style={{ height: totalHeight, width: ri < rounds.length - 1 ? 352 : 288 }}
+                  >
                     {round.matches.map((m, mi) => {
                       const nextRound = rounds[ri + 1];
                       const sameLevel = nextRound && nextRound.matches.length === round.matches.length;
+                      const top = getDistributedRoundTop(round.matches.length, mi, totalHeight);
+                      const nextIndex = nextRound
+                        ? getNextRoundIndex(mi, round.matches.length, nextRound.matches.length)
+                        : mi;
+                      const nextTop = nextRound
+                        ? getDistributedRoundTop(nextRound.matches.length, nextIndex, totalHeight)
+                        : top;
+
                       return (
-                        <div key={m.id} className="flex items-center">
-                          <MatchNode
-                            match={m}
-                            isClassified={isClassifiedRound}
-                            canEdit={canEdit}
-                            teamOptions={teamOptions}
-                            onScoreUpdate={onScoreUpdate}
-                            onTeamUpdate={onTeamUpdate}
-                          />
-                          {ri < rounds.length - 1 && (
-                            sameLevel
-                              ? <div className="w-16 shrink-0 h-px bg-primary/60 self-center" />
-                              : <BracketConnector
-                                  position={mi % 2 === 0 ? 'top' : 'bottom'}
-                                  spacing={Math.max(minHeight / Math.max(round.matches.length, 1), 64)}
-                                />
-                          )}
+                        <div
+                          key={m.id}
+                          className="absolute left-0 overflow-visible"
+                          style={{ top, width: 352, height: CARD_HEIGHT }}
+                        >
+                          <div className="relative h-full w-full">
+                            <MatchNode
+                              match={m}
+                              isClassified={isClassifiedRound}
+                              canEdit={canEdit}
+                              teamOptions={teamOptions}
+                              onScoreUpdate={onScoreUpdate}
+                              onTeamUpdate={onTeamUpdate}
+                            />
+                            {ri < rounds.length - 1 && (
+                              sameLevel
+                                ? <div className="absolute left-72 top-1/2 h-px w-16 -translate-y-1/2 bg-primary/60" />
+                                : <PreciseBracketConnector deltaToNext={nextTop - top} />
+                            )}
+                          </div>
                         </div>
                       );
                     })}
@@ -142,7 +158,7 @@ export const Bracket = ({
               );
             })}
             {trailingRounds.map((round) => (
-              <div key={round.name} className="flex flex-col">
+              <div key={round.name} className="ml-16 flex flex-col">
                 <h4 className="mb-4 w-72 text-center font-display font-bold text-xs uppercase tracking-[0.2em] text-neon-cyan">
                   {roundName(round.name)}
                 </h4>
@@ -170,6 +186,20 @@ export const Bracket = ({
 const getStandardRoundTop = (roundIndex: number, matchIndex: number) =>
   ((Math.pow(2, roundIndex) - 1) * SLOT_STEP) / 2 + matchIndex * Math.pow(2, roundIndex) * SLOT_STEP;
 
+const getDistributedRoundTop = (matchCount: number, matchIndex: number, height: number) => {
+  const safeCount = Math.max(matchCount, 1);
+  const step = height / safeCount;
+  return step * matchIndex + (step - CARD_HEIGHT) / 2;
+};
+
+const getNextRoundIndex = (matchIndex: number, currentCount: number, nextCount: number) => {
+  if (nextCount >= currentCount) return Math.min(matchIndex, Math.max(nextCount - 1, 0));
+  return Math.min(
+    Math.floor((matchIndex * nextCount) / Math.max(currentCount, 1)),
+    Math.max(nextCount - 1, 0),
+  );
+};
+
 export const PreciseBracketConnector = ({ deltaToNext }: { deltaToNext: number }) => {
   const delta = deltaToNext;
   const absDelta = Math.max(Math.abs(delta), 1);
@@ -192,10 +222,12 @@ export const BracketConnector = ({
   position,
   spacing,
   deltaToNext,
+  variant = 'default',
 }: {
   position?: 'top' | 'bottom';
   spacing?: number;
   deltaToNext?: number;
+  variant?: 'default' | 'loser';
 }) => {
   if (typeof deltaToNext === 'number') {
     const centerOffset = deltaToNext;
@@ -219,6 +251,34 @@ export const BracketConnector = ({
 
   const safeSpacing = Math.max((spacing ?? 64) / 2, 44);
   const direction = position ?? 'top';
+  const isLoserBracket = variant === 'loser';
+
+  if (isLoserBracket) {
+    const connectorHeight = safeSpacing * 2;
+    const centerY = connectorHeight / 2 - 0.5;
+    const verticalHeight = Math.max(centerY, 1);
+
+    return (
+      <div className="relative w-16 shrink-0" style={{ height: connectorHeight }}>
+        <div
+          className="absolute left-0 h-px w-5 bg-primary/60"
+          style={{ top: centerY }}
+        />
+        <div
+          className="absolute left-5 w-px bg-primary/60"
+          style={direction === 'top'
+            ? { top: centerY, height: verticalHeight }
+            : { top: 0, height: verticalHeight }}
+        />
+        <div
+          className="absolute left-5 h-px w-11 bg-primary/60"
+          style={direction === 'top'
+            ? { bottom: 0 }
+            : { top: 0 }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-16 shrink-0" style={{ height: safeSpacing }}>

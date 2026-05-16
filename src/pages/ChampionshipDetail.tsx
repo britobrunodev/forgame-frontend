@@ -614,6 +614,7 @@ const UnifiedMatchesView = ({
                 >
                   <Bracket
                     rounds={loserRounds}
+                    variant="loser"
                     classifiedRound={hasFinais ? lastLbRound : undefined}
                     canEdit={canEdit}
                     teamOptions={getAvailableTeamsForStage(
