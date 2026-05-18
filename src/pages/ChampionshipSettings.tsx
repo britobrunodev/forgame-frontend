@@ -781,7 +781,7 @@ const ChampionshipSettings = () => {
                         <SelectTrigger className="border-border bg-background/60"><SelectValue /></SelectTrigger>
                         <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
                           {formatsCatalog.map((f) => (
-                            <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>
+                            <SelectItem key={f.id} value={String(f.id)}>{formatDisplayName(f.slug, f.name, t)}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -1066,5 +1066,16 @@ const Field = ({ label, children, className = '' }: { label: string; children: R
     {children}
   </label>
 );
+
+const FORMAT_SLUG_I18N_KEY: Record<string, string> = {
+  'cumbuca': 'cumbucaFormat',
+  'closed-doubles': 'duplaFechada',
+  'rei-da-praia': 'reiDaPraia',
+};
+
+const formatDisplayName = (slug: string, fallback: string, t: (key: string) => string) => {
+  const key = FORMAT_SLUG_I18N_KEY[slug];
+  return key ? t(key) : fallback;
+};
 
 export default ChampionshipSettings;

@@ -17,7 +17,7 @@ type TournamentType = 'open-pairs' | 'mixed-pairs' | 'king-of-the-court';
 type Category = 'professional' | 'high-advanced' | 'high-intermediate' | 'advanced' | 'intermediate' | 'beginner';
 type BracketSize = '8' | '16' | '32';
 type Audience = 'mixed' | 'male' | 'female';
-type ChampFormat = 'dupla-fechada' | 'cumbuca' | 'rei-da-praia';
+type ChampFormat = 'closed-doubles' | 'cumbuca' | 'rei-da-praia';
 type CategoryEntry = { id: string; format: ChampFormat; category: Category; audience: Audience; date: string; time: string; entryFee: string };
 
 const CATEGORY_ORDER: Category[] = ['beginner', 'intermediate', 'advanced', 'high-intermediate', 'high-advanced', 'professional'];
@@ -78,7 +78,7 @@ const TournamentSettings = () => {
   const [sport, setSport] = useState<'footvolley'>('footvolley');
   const [tournamentType, setTournamentType] = useState<TournamentType>('open-pairs');
   const [categoryEntries, setCategoryEntries] = useState<CategoryEntry[]>([
-    { id: '1', format: 'dupla-fechada' as ChampFormat, category: 'professional', audience: 'mixed', date: '2026-05-20', time: '15:00', entryFee: '180' },
+    { id: '1', format: 'closed-doubles' as ChampFormat, category: 'professional', audience: 'mixed', date: '2026-05-20', time: '15:00', entryFee: '180' },
   ]);
   const [uniformIncluded, setUniformIncluded] = useState(true);
   const [eventDateRange, setEventDateRange] = useState<DateRange | undefined>({
@@ -164,7 +164,7 @@ const TournamentSettings = () => {
       ...current,
       {
         id: makeEntryId(),
-        format: 'dupla-fechada' as ChampFormat,
+        format: 'closed-doubles' as ChampFormat,
         category: 'beginner',
         audience: 'mixed',
         date: eventDateOptions[0] ?? '',
@@ -396,7 +396,7 @@ const TournamentSettings = () => {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
-                            <SelectItem value="dupla-fechada">{t('duplaFechada')}</SelectItem>
+                            <SelectItem value="closed-doubles">{t('duplaFechada')}</SelectItem>
                             <SelectItem value="cumbuca">{t('cumbucaFormat')}</SelectItem>
                             <SelectItem value="rei-da-praia">{t('reiDaPraia')}</SelectItem>
                           </SelectContent>
@@ -559,7 +559,7 @@ const TournamentSettings = () => {
               <div className="mt-5 flex flex-wrap gap-2">
                 {categoryEntries.map((entry) => (
                   <Tag key={entry.id}>
-                    {t(entry.format === 'dupla-fechada' ? 'duplaFechada' : entry.format === 'cumbuca' ? 'cumbucaFormat' : 'reiDaPraia')} · {t(entry.category)} · {t(entry.audience)} · R$ {entry.entryFee}
+                    {t(entry.format === 'closed-doubles' ? 'duplaFechada' : entry.format === 'cumbuca' ? 'cumbucaFormat' : 'reiDaPraia')} · {t(entry.category)} · {t(entry.audience)} · R$ {entry.entryFee}
                   </Tag>
                 ))}
                 <Tag>{bracketSize} {t('teams')}</Tag>

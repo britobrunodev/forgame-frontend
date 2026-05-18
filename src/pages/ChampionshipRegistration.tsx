@@ -25,7 +25,7 @@ const mapSportSlug = (slug: string | null | undefined): SportId | null => {
 const formatLabel = (format: string, t: (key: string) => string) => {
   if (format === 'cumbuca') return t('cumbucaFormat');
   if (format === 'rei-da-praia') return t('reiDaPraia');
-  if (format === 'dupla-fechada') return t('doublesFormat');
+  if (format === 'closed-doubles') return t('doublesFormat');
   return format;
 };
 
