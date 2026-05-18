@@ -271,7 +271,7 @@ const ReservationDetail = () => {
                         {t('monthlyRate')}: {new Intl.NumberFormat(language === 'pt-BR' ? 'pt-BR' : 'en-US', { style: 'currency', currency: 'BRL' }).format(court.monthlyRate)}
                       </p>
                     </div>
-                    <span className="rounded-full border border-border bg-background/40 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                    <span className="inline-flex items-center rounded-full border border-border bg-background/40 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                       {t('chooseTime')}
                     </span>
                   </div>

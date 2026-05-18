@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Trash2, ShieldCheck } from 'lucide-react';
+import { ClipboardList, Settings2, Trash2, ShieldCheck } from 'lucide-react';
 import { useSession } from '@/session';
 
 const AdminHub = () => {
@@ -34,6 +34,11 @@ const AdminHub = () => {
           icon={<ClipboardList className="h-4 w-4 text-violet-300 sm:h-5 sm:w-5" />}
           label="Aprovações"
           onClick={() => navigate('/admin/approvals')}
+        />
+        <QuickAction
+          icon={<Settings2 className="h-4 w-4 text-violet-300 sm:h-5 sm:w-5" />}
+          label="Configurações"
+          onClick={() => navigate('/admin/settings')}
         />
         <QuickAction
           icon={<Trash2 className="h-4 w-4 text-violet-300 sm:h-5 sm:w-5" />}

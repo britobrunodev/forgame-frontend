@@ -282,9 +282,9 @@ export interface ComplexPreference {
   complexId: string;
   weekSchedule: DaySchedule[];
   holidays: HolidaySchedule[];
-  paymentMethods: PaymentMethod[];
-  classesPaymentMethods: PaymentMethod[];
-  rentalPaymentMethods: PaymentMethod[];
-  championshipPaymentMethods: PaymentMethod[];
+  paymentMethods: string[];
+  classesPaymentMethods: string[];
+  rentalPaymentMethods: string[];
+  championshipPaymentMethods: string[];
   pricingRules: PricingRule[];
 }

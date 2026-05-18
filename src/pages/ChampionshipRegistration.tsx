@@ -228,7 +228,7 @@ const ChampionshipRegistration = () => {
       .then((subscription) => handleCheckoutResponse(subscription, subscription.subscription_ids[0]))
       .catch((err: unknown) => {
         if (err instanceof Error && err.message.includes('Já possui inscrição')) {
-          notify.error('Já possui inscrição', 'Acesse minha área para finalizar inscrição');
+          notify.error('Já possui inscrição', 'Acesse minha área para verificar status da inscrição');
         } else {
           notify.error(err instanceof Error ? err.message : 'Erro ao criar inscrição');
         }
@@ -341,7 +341,7 @@ const ChampionshipRegistration = () => {
                             {categoryName(category.category_slug, category.audience_slug, t)}
                           </div>
                           {isFull && (
-                            <span className="rounded-full border border-neon-pink/30 bg-neon-pink/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-neon-pink">
+                            <span className="inline-flex items-center rounded-full border border-neon-pink/30 bg-neon-pink/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-neon-pink">
                               {t('full')}
                             </span>
                           )}

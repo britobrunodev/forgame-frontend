@@ -86,7 +86,7 @@ const ManagementApprovals = () => {
                   <td className="px-4 py-3 text-center font-medium">{req.user_name}</td>
                   <td className="px-4 py-3 text-center text-muted-foreground">{req.user_email}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.15em] text-neon-cyan">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.15em] text-neon-cyan">
                       <Clock className="h-3 w-3" />
                       {req.requested_role}
                     </span>

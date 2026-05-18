@@ -258,6 +258,7 @@ export interface PaymentData {
   total_amount: number;
   paid_amount: number;
   remaining_amount: number;
+  preferred_payment_methods?: string[] | null;
   created_at: string;
   transactions: PaymentTransactionData[];
 }
@@ -443,6 +444,7 @@ export interface ChampionshipFormatStageConfig {
 }
 
 export interface ChampionshipFormatConfig {
+  stage_types?: string[];
   subscription?: ChampionshipFormatStageConfig;
   first_stage?: ChampionshipFormatStageConfig;
   second_stage?: ChampionshipFormatStageConfig;
@@ -684,6 +686,7 @@ export interface ChampionshipCategoryData {
   double_elimination_enabled: boolean;
   start_date: string | null;
   start_time: string | null;
+  match_settings: CategoryMatchSettingsOut[];
 }
 
 export interface ChampionshipCategoryInput {
@@ -698,6 +701,7 @@ export interface ChampionshipCategoryInput {
   double_elimination_enabled: boolean;
   start_date: string | null;
   start_time: string | null;
+  match_settings?: CategoryMatchSettingsOut[];
 }
 
 export interface SportData {
@@ -729,6 +733,7 @@ export interface ChampionshipData {
   image_offset_x: number;
   image_offset_y: number;
   image_zoom: number;
+  preferred_payment_methods: string[];
   config_json: Record<string, unknown> | null;
   categories: ChampionshipCategoryData[];
   created_at: string;
@@ -753,6 +758,7 @@ export interface ChampionshipInput {
   image_offset_x?: number;
   image_offset_y?: number;
   image_zoom?: number;
+  preferred_payment_methods?: string[];
   config_json?: Record<string, unknown> | null;
   categories?: ChampionshipCategoryInput[];
 }
@@ -1026,6 +1032,13 @@ export interface ComplexPreferenceData {
   pricing_rules: unknown[];
 }
 
+export interface PaymentMethodOptionData {
+  id: number;
+  code: string;
+  name: string;
+  is_active: boolean;
+}
+
 export interface PixChargeData {
   charge_id: string;
   qr_code_image: string;
@@ -1050,6 +1063,90 @@ export const complexPreferencesApi = {
       headers: json(token),
       body: JSON.stringify(data),
     }).then((r) => handle<ComplexPreferenceData>(r)),
+};
+
+export const paymentMethodsApi = {
+  list: (token: string) =>
+    fetch(`${API_BASE}/payment-methods`, {
+      headers: json(token),
+    }).then((r) => handle<PaymentMethodOptionData[]>(r)),
+};
+
+export const adminSettingsApi = {
+  listCategories: (token: string) =>
+    fetch(`${API_BASE}/admin/settings/categories`, {
+      headers: json(token),
+    }).then((r) => handle<CategoryData[]>(r)),
+
+  createCategory: (token: string, body: { slug: string; name: string; sort_order: number }) =>
+    fetch(`${API_BASE}/admin/settings/categories`, {
+      method: 'POST',
+      headers: json(token),
+      body: JSON.stringify(body),
+    }).then((r) => handle<CategoryData>(r)),
+
+  updateCategory: (token: string, categoryId: number, body: { slug: string; name: string; sort_order: number }) =>
+    fetch(`${API_BASE}/admin/settings/categories/${categoryId}`, {
+      method: 'PUT',
+      headers: json(token),
+      body: JSON.stringify(body),
+    }).then((r) => handle<CategoryData>(r)),
+
+  listSports: (token: string) =>
+    fetch(`${API_BASE}/admin/settings/sports`, {
+      headers: json(token),
+    }).then((r) => handle<SportData[]>(r)),
+
+  createSport: (token: string, body: { slug: string; name: string }) =>
+    fetch(`${API_BASE}/admin/settings/sports`, {
+      method: 'POST',
+      headers: json(token),
+      body: JSON.stringify(body),
+    }).then((r) => handle<SportData>(r)),
+
+  updateSport: (token: string, sportId: number, body: { slug: string; name: string }) =>
+    fetch(`${API_BASE}/admin/settings/sports/${sportId}`, {
+      method: 'PUT',
+      headers: json(token),
+      body: JSON.stringify(body),
+    }).then((r) => handle<SportData>(r)),
+
+  listPaymentMethods: (token: string) =>
+    fetch(`${API_BASE}/admin/settings/payment-methods`, {
+      headers: json(token),
+    }).then((r) => handle<PaymentMethodOptionData[]>(r)),
+
+  createPaymentMethod: (token: string, body: { code: string; name: string; is_active: boolean }) =>
+    fetch(`${API_BASE}/admin/settings/payment-methods`, {
+      method: 'POST',
+      headers: json(token),
+      body: JSON.stringify(body),
+    }).then((r) => handle<PaymentMethodOptionData>(r)),
+
+  updatePaymentMethod: (token: string, paymentMethodId: number, body: { code: string; name: string; is_active: boolean }) =>
+    fetch(`${API_BASE}/admin/settings/payment-methods/${paymentMethodId}`, {
+      method: 'PUT',
+      headers: json(token),
+      body: JSON.stringify(body),
+    }).then((r) => handle<PaymentMethodOptionData>(r)),
+
+  deleteCategory: (token: string, categoryId: number) =>
+    fetch(`${API_BASE}/admin/settings/categories/${categoryId}`, {
+      method: 'DELETE',
+      headers: json(token),
+    }).then((r) => { if (!r.ok) throw new Error('Erro ao excluir categoria'); }),
+
+  deleteSport: (token: string, sportId: number) =>
+    fetch(`${API_BASE}/admin/settings/sports/${sportId}`, {
+      method: 'DELETE',
+      headers: json(token),
+    }).then((r) => { if (!r.ok) throw new Error('Erro ao excluir esporte'); }),
+
+  deletePaymentMethod: (token: string, paymentMethodId: number) =>
+    fetch(`${API_BASE}/admin/settings/payment-methods/${paymentMethodId}`, {
+      method: 'DELETE',
+      headers: json(token),
+    }).then((r) => { if (!r.ok) throw new Error('Erro ao excluir forma de pagamento'); }),
 };
 
 export const paymentsApi = {

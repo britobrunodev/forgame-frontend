@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Clock, Copy, CreditCard, QrCode, Receipt, Wallet } from 'lucide-react';
+import { ArrowLeft, Clock, Copy, CreditCard, Loader2, QrCode, Receipt, Wallet } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useLanguage } from '@/i18n';
 import { notify } from '@/lib/notify';
 import { Input } from '@/components/ui/input';
-import { complexPreferencesApi, paymentsApi, usersApi } from '@/lib/api';
+import { complexPreferencesApi, paymentMethodsApi, paymentsApi, usersApi } from '@/lib/api';
 import type { PixChargeData } from '@/lib/api';
 import { useSession } from '@/session';
-import type { PaymentMethod } from '@/types';
 
 type PaymentState = {
   paymentId?: number;
@@ -36,6 +35,16 @@ const emptyAddress = (): BillingAddress => ({
   street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zip: '',
 });
 
+const PAYMENT_METHOD_META: Record<string, { icon: typeof QrCode; fallbackLabelKey: string }> = {
+  pix: { icon: QrCode, fallbackLabelKey: 'pix' },
+  'credit-card': { icon: CreditCard, fallbackLabelKey: 'creditCard' },
+  'debit-card': { icon: Wallet, fallbackLabelKey: 'debitCard' },
+  'pay-on-site': { icon: Receipt, fallbackLabelKey: 'payOnSite' },
+};
+
+const getPaymentMethodMeta = (method: string) =>
+  PAYMENT_METHOD_META[method] ?? { icon: Receipt, fallbackLabelKey: 'payOnSite' };
+
 const Payment = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,23 +53,30 @@ const Payment = () => {
   const { paymentId: paymentIdParam } = useParams<{ paymentId: string }>();
   const state = (location.state as PaymentState | null) ?? null;
   const resolvedPaymentId = paymentIdParam ? Number(paymentIdParam) : state?.paymentId;
-  const complexIdNumber = state?.complexId
-    ? Number(state.complexId)
-    : payment?.complex_id ?? null;
 
   const [pixCharge, setPixCharge] = useState<PixChargeData | null>(null);
 
-  const { data: payment } = useQuery({
+  const { data: payment, isLoading: isPaymentLoading } = useQuery({
     queryKey: ['payment', resolvedPaymentId],
     queryFn: () => paymentsApi.get(token!, resolvedPaymentId!),
     enabled: !!token && !!resolvedPaymentId,
     refetchInterval: pixCharge ? 3000 : false,
   });
 
-  const { data: complexPrefs } = useQuery({
+  const complexIdNumber = state?.complexId
+    ? Number(state.complexId)
+    : payment?.complex_id ?? null;
+
+  const { data: complexPrefs, isLoading: isComplexPrefsLoading, isError: isComplexPrefsError } = useQuery({
     queryKey: ['complex-preferences', complexIdNumber],
     queryFn: () => complexPreferencesApi.get(token!, complexIdNumber!),
     enabled: !!token && complexIdNumber != null,
+  });
+
+  const { data: paymentMethodOptions = [], isLoading: isPaymentMethodsLoading } = useQuery({
+    queryKey: ['payment-methods'],
+    queryFn: () => paymentMethodsApi.list(token!),
+    enabled: !!token,
   });
 
   const { data: userProfile } = useQuery({
@@ -69,23 +85,43 @@ const Payment = () => {
     enabled: !!token,
   });
 
-  // Championship payments fall back to general payment_methods if championship-specific list is empty
-  const availableMethods = useMemo<PaymentMethod[]>(() => {
-    if (!complexPrefs) return ['pix', 'credit-card'];
-    const championship = complexPrefs.championship_payment_methods ?? [];
-    const general = complexPrefs.payment_methods ?? [];
-    const raw = state?.sourceType === 'championship'
-      ? (championship.length ? championship : general)
+  const paymentMethodNameByCode = useMemo(
+    () => new Map(paymentMethodOptions.map((method) => [method.code, method.name])),
+    [paymentMethodOptions],
+  );
+
+  const resolvedSourceType = state?.sourceType ?? payment?.source_type ?? '';
+
+  const activeCodes = useMemo(
+    () => new Set(paymentMethodOptions.map((method) => method.code)),
+    [paymentMethodOptions],
+  );
+
+  const availableMethods = useMemo<string[]>(() => {
+    const general = (complexPrefs?.payment_methods ?? []).filter((code) => activeCodes.has(code));
+    const championshipFromComplex = (complexPrefs?.championship_payment_methods ?? []).filter((code) => activeCodes.has(code));
+    const championshipFromChampionship = (payment?.preferred_payment_methods ?? []).filter((code) => activeCodes.has(code));
+    const raw = resolvedSourceType === 'championship'
+      ? (championshipFromChampionship.length
+        ? championshipFromChampionship
+        : championshipFromComplex.length
+          ? championshipFromComplex
+          : general)
       : general;
-    const methods = raw.length ? (raw as PaymentMethod[]) : ['pix', 'credit-card'];
+    const methods = raw.length ? raw : ['pix', 'credit-card'];
     // Debit card is only available for championship payments
-    if (state?.sourceType !== 'championship') {
+    if (resolvedSourceType !== 'championship') {
       return methods.filter(m => m !== 'debit-card');
     }
     return methods;
-  }, [complexPrefs, state?.sourceType]);
+  }, [activeCodes, complexPrefs, payment?.preferred_payment_methods, resolvedSourceType]);
 
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('credit-card');
+  const isMethodCardLoading =
+    isPaymentLoading
+    || isPaymentMethodsLoading
+    || (complexIdNumber != null && !isComplexPrefsError && isComplexPrefsLoading);
+
+  const [paymentMethod, setPaymentMethod] = useState<string>('credit-card');
 
   // When available methods change, switch to first non-PIX if current method is no longer available
   useEffect(() => {
@@ -182,12 +218,11 @@ const Payment = () => {
     ];
   }, [payment, resolvedAmount, state?.summary, t]);
 
-  const paymentOptions = [
-    { id: 'pix' as const, label: t('pix'), icon: QrCode },
-    { id: 'credit-card' as const, label: t('creditCard'), icon: CreditCard },
-    { id: 'debit-card' as const, label: t('debitCard'), icon: Wallet },
-    { id: 'pay-on-site' as const, label: t('payOnSite'), icon: Receipt },
-  ];
+  const paymentOptions = availableMethods.map((method) => ({
+    id: method,
+    label: paymentMethodNameByCode.get(method) ?? method,
+    icon: getPaymentMethodMeta(method).icon,
+  }));
 
   const handlePay = () => {
     if (!resolvedPaymentId) {
@@ -252,33 +287,38 @@ const Payment = () => {
       <div className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,1.2fr)_320px]">
         {/* ── Main panel ──────────────────────────────── */}
         <section className="h-full rounded-[2rem] border border-border bg-gradient-card p-5 shadow-card sm:p-6">
-
-          {/* Payment method selector */}
-          <div className="space-y-3">
-            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('paymentMethod')}</div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
-              {paymentOptions.filter(({ id }) => availableMethods.includes(id)).map(({ id, label, icon: Icon }) => {
-                const isActive = paymentMethod === id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setPaymentMethod(id)}
-                    className={`flex items-center gap-2.5 rounded-2xl border px-3 py-3 text-left transition-smooth sm:flex-col sm:items-start sm:px-4 sm:py-4 ${
-                      isActive
-                        ? 'border-primary/35 bg-primary/10 text-primary-glow shadow-[0_0_14px_hsl(var(--primary)/0.18)]'
-                        : 'border-border bg-background/35 text-foreground hover:border-primary/35'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0 sm:mb-2 sm:h-5 sm:w-5" />
-                    <div className="text-sm font-semibold leading-tight">{label}</div>
-                  </button>
-                );
-              })}
+          {isMethodCardLoading ? (
+            <div className="flex min-h-[20rem] flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-background/20">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Carregando formas de pagamento…</p>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="space-y-3">
+                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('paymentMethod')}</div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+                  {paymentOptions.map(({ id, label, icon: Icon }) => {
+                    const isActive = paymentMethod === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setPaymentMethod(id)}
+                        className={`flex items-center gap-2.5 rounded-2xl border px-3 py-3 text-left transition-smooth sm:flex-col sm:items-start sm:px-4 sm:py-4 ${
+                          isActive
+                            ? 'border-primary/35 bg-primary/10 text-primary-glow shadow-[0_0_14px_hsl(var(--primary)/0.18)]'
+                            : 'border-border bg-background/35 text-foreground hover:border-primary/35'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4 shrink-0 sm:mb-2 sm:h-5 sm:w-5" />
+                        <div className="text-sm font-semibold leading-tight">{label}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-          <div className="mt-6">
+              <div className="mt-6">
             {/* ── Credit / Debit card form ── */}
             {(paymentMethod === 'credit-card' || paymentMethod === 'debit-card') && (
               <div className="space-y-4">
@@ -497,7 +537,9 @@ const Payment = () => {
                 <p className="max-w-sm text-sm text-muted-foreground">{t('payOnSiteInfo')}</p>
               </div>
             )}
-          </div>
+              </div>
+            </>
+          )}
         </section>
 
         {/* ── Sidebar ──────────────────────────────────── */}

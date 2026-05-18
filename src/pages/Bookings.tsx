@@ -268,8 +268,8 @@ const StatusBadge = ({
   compact?: boolean;
 }) => (
   <div className={`inline-flex items-center justify-center rounded-full border font-bold uppercase ${compact
-      ? 'shrink-0 whitespace-nowrap px-2 py-0.5 text-[10px] tracking-[0.08em]'
-      : 'mx-auto h-[26px] whitespace-nowrap px-2 text-[11px] tracking-[0.08em]'
+      ? 'shrink-0 whitespace-nowrap px-2 py-1 text-[10px] tracking-[0.08em]'
+      : 'mx-auto whitespace-nowrap px-2 py-1 text-[11px] tracking-[0.08em]'
     } ${muted
       ? 'border-border bg-background/40 text-muted-foreground'
       : status === 'paid'

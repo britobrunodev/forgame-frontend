@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Trophy, MapPin, LogOut, Building2, ChevronDown, ChevronLeft, ChevronRight, GraduationCap, ShieldCheck, ClipboardList, Calendar } from 'lucide-react';
+import { LayoutDashboard, Trophy, MapPin, LogOut, Building2, ChevronDown, ChevronLeft, ChevronRight, GraduationCap, ShieldCheck, ClipboardList, Calendar, Settings2 } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 
@@ -109,7 +109,7 @@ export const Sidebar = () => {
           ),
         )}
 
-        {canManage && !collapsed && (
+        {!collapsed && (
           <>
             <button
               type="button"
@@ -129,10 +129,17 @@ export const Sidebar = () => {
                   <Trophy className="h-4 w-4 text-neon-cyan" />
                   {t('championships')}
                 </NavLink>
-                <NavLink to="/management/complexes" className={({ isActive }) => subLinkClass(isActive)}>
-                  <Building2 className="h-4 w-4 text-neon-pink" />
-                  {t('sportComplexes')}
-                </NavLink>
+                {canManage ? (
+                  <NavLink to="/management/complexes" className={({ isActive }) => subLinkClass(isActive)}>
+                    <Building2 className="h-4 w-4 text-neon-pink" />
+                    {t('sportComplexes')}
+                  </NavLink>
+                ) : (
+                  <span className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm cursor-not-allowed select-none opacity-40 text-sidebar-foreground">
+                    <Building2 className="h-4 w-4 text-neon-pink" />
+                    {t('sportComplexes')}
+                  </span>
+                )}
                 <span className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm cursor-not-allowed select-none opacity-40 text-sidebar-foreground">
                   <Building2 className="h-4 w-4 text-neon-pink" />
                   {t('courtManagement')}
@@ -150,7 +157,7 @@ export const Sidebar = () => {
           </>
         )}
 
-        {canManage && collapsed && (
+        {collapsed && (
           <NavLink
             to="/management"
             title={t('management')}
@@ -185,6 +192,10 @@ export const Sidebar = () => {
                 <NavLink to="/admin/approvals" className={({ isActive }) => subLinkClass(isActive)}>
                   <ClipboardList className="h-4 w-4 text-violet-300" />
                   Aprovações
+                </NavLink>
+                <NavLink to="/admin/settings" className={({ isActive }) => subLinkClass(isActive)}>
+                  <Settings2 className="h-4 w-4 text-violet-300" />
+                  Configurações
                 </NavLink>
                 <NavLink to="/admin/complexes" className={({ isActive }) => subLinkClass(isActive)}>
                   <Building2 className="h-4 w-4 text-violet-300" />

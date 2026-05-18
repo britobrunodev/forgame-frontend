@@ -59,13 +59,13 @@ const Dashboard = () => {
               </h1>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {currentUser.level && (
-                  <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${levelColor}`}>
+                  <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${levelColor}`}>
                     <Trophy className="h-2.5 w-2.5" />
                     {t(currentUser.level)}
                   </span>
                 )}
                 {(currentUser.preferences ?? []).map((sportId) => (
-                  <span key={sportId} className="inline-flex items-center gap-1 rounded-full border border-border bg-background/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                  <span key={sportId} className="inline-flex items-center gap-1 rounded-full border border-border bg-background/40 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                     <SportIcon sportId={sportId} className="h-2.5 w-2.5" />
                     {sportName(sportId)}
                   </span>

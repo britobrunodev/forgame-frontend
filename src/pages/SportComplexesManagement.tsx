@@ -91,7 +91,7 @@ const SportComplexesManagement = () => {
                       <div className="mt-1 truncate text-xs text-muted-foreground">{buildComplexAddress(complex, { includeComplement: false })}</div>
                     )}
                   </div>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] ${complex.is_active ? 'bg-live/10 text-live' : 'bg-muted/60 text-muted-foreground'}`}>
+                  <span className={`inline-flex items-center shrink-0 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.15em] ${complex.is_active ? 'bg-live/10 text-live' : 'bg-muted/60 text-muted-foreground'}`}>
                     {complex.is_active ? t('active') : t('inactive')}
                   </span>
                 </div>

@@ -13,6 +13,7 @@ import {
   GraduationCap,
   Users,
   ClipboardList,
+  Settings2,
 } from 'lucide-react';
 import { LanguageSelector } from './LanguageSelector';
 import { ThemeSelector } from './ThemeSelector';
@@ -162,17 +163,30 @@ export const TopBar = () => {
                         </span>
 
                         {currentUser.isAdmin ? (
-                          <NavLink
-                            to="/admin/approvals"
-                            onClick={closeMobileMenu}
-                            className={({ isActive }) =>
-                              `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
-                              }`
-                            }
-                          >
-                            <ClipboardList className="h-4 w-4 shrink-0 text-violet-300" />
-                            <span className="truncate">{t('approvals')}</span>
-                          </NavLink>
+                          <>
+                            <NavLink
+                              to="/admin/approvals"
+                              onClick={closeMobileMenu}
+                              className={({ isActive }) =>
+                                `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                                }`
+                              }
+                            >
+                              <ClipboardList className="h-4 w-4 shrink-0 text-violet-300" />
+                              <span className="truncate">{t('approvals')}</span>
+                            </NavLink>
+                            <NavLink
+                              to="/admin/settings"
+                              onClick={closeMobileMenu}
+                              className={({ isActive }) =>
+                                `grid min-w-0 grid-cols-[16px_minmax(0,1fr)] items-center gap-2 rounded-lg px-3 py-2 text-sm transition-smooth ${isActive ? 'bg-sidebar-accent text-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/80'
+                                }`
+                              }
+                            >
+                              <Settings2 className="h-4 w-4 shrink-0 text-violet-300" />
+                              <span className="truncate">Configurações</span>
+                            </NavLink>
+                          </>
                         ) : null}
 
                         <NavLink

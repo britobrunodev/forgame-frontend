@@ -9,12 +9,18 @@ import { useLanguage } from '@/i18n';
 import { useSession } from '@/session';
 import { notify } from '@/lib/notify';
 import { localToUtcIso, utcIsoToLocal } from '@/lib/datetime';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { categoriesApi, championshipApi, championshipFormatsApi, sportComplexApi } from '@/lib/api';
+import { categoriesApi, championshipApi, championshipFormatsApi, paymentMethodsApi, sportComplexApi } from '@/lib/api';
 import type { SportId } from '@/types';
+
+type MatchSettingEntry = {
+  stage_type: string;
+  max_sets: 1 | 3;
+};
 
 type CategoryEntry = {
   id: string;
@@ -29,6 +35,7 @@ type CategoryEntry = {
   double_elimination_enabled: boolean;
   start_date: string;
   start_time: string;
+  match_settings: MatchSettingEntry[];
 };
 
 const AUDIENCE_SLUGS = ['mixed', 'male', 'female'] as const;
@@ -40,6 +47,25 @@ const START_TIMES = [
 ];
 const STATUS_OPTIONS = ['draft', 'open', 'subscription_ended', 'live', 'ended'] as const;
 const HOST_VENUE_TYPES = ['complex', 'beach', 'arena', 'club', 'other'] as const;
+const DEFAULT_STAGE_TYPES = ['other'] as const;
+const STAGE_LABELS: Record<string, string> = {
+  other: 'Outros Jogos',
+  default: 'Outros Jogos',
+  group: 'Fase de grupos',
+  round_of_256: 'Round of 256',
+  round_of_128: 'Round of 128',
+  round_of_64: 'Round of 64',
+  round_of_32: 'Round of 32',
+  round_of_16: 'Round of 16',
+  quarterfinal: 'Quartas de final',
+  semifinal: 'Semifinal',
+  winners_bracket: 'Chave vencedores',
+  losers_bracket: 'Chave perdedores',
+  grand_final: 'Grande final',
+  finais_semi: 'Semi final DE',
+  final: 'Final',
+  third_place: '3º lugar',
+};
 
 const TIMEZONE_OPTIONS = [
   { value: 'America/Sao_Paulo', label: 'São Paulo / Brasília (UTC-3)' },
@@ -76,12 +102,45 @@ const mapSportSlug = (slug: string | null | undefined): SportId | null => {
   return null;
 };
 
+const getStageTypesForFormat = (formatId: string, formatsCatalog: Array<{ id: number; config_json: Record<string, unknown> | null }>) => {
+  const selectedFormat = formatsCatalog.find((format) => String(format.id) === formatId);
+  const rawStageTypes = selectedFormat?.config_json?.stage_types;
+  if (!Array.isArray(rawStageTypes) || rawStageTypes.length === 0) {
+    return [...DEFAULT_STAGE_TYPES];
+  }
+  return rawStageTypes
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .map((value) => value.toLowerCase());
+};
+
+const normalizeMatchSettingsForStages = (
+  existing: MatchSettingEntry[],
+  stageTypes: string[],
+): MatchSettingEntry[] => {
+  const existingByStage = new Map(
+    existing.map((setting) => [
+      setting.stage_type === 'default' ? 'other' : setting.stage_type,
+      {
+        ...setting,
+        stage_type: setting.stage_type === 'default' ? 'other' : setting.stage_type,
+      },
+    ]),
+  );
+  return stageTypes.map((stageType) => {
+    const current = existingByStage.get(stageType);
+    return {
+      stage_type: stageType,
+      max_sets: current?.max_sets === 3 ? 3 : 1,
+    };
+  });
+};
+
 const ChampionshipSettings = () => {
   const { championshipId } = useParams<{ championshipId: string }>();
   const isEditing = !!championshipId;
   const navigate = useNavigate();
   const { t, language, sportName } = useLanguage();
-  const { token, currentUser, isGestorMode } = useSession();
+  const { token } = useSession();
   const queryClient = useQueryClient();
   const today = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
   const locale = language === 'pt-BR' ? 'pt-BR' : 'en-US';
@@ -112,6 +171,12 @@ const ChampionshipSettings = () => {
     enabled: !!token,
   });
 
+  const { data: paymentMethodOptions = [] } = useQuery({
+    queryKey: ['payment-methods'],
+    queryFn: () => paymentMethodsApi.list(token!),
+    enabled: !!token,
+  });
+
   // ── Form state ─────────────────────────────────────────────────────────────
   const [name, setName] = useState('');
   const [sportId, setSportId] = useState<string>('');
@@ -136,6 +201,7 @@ const ChampionshipSettings = () => {
   const [imageOffsetX, setImageOffsetX] = useState(0);
   const [imageOffsetY, setImageOffsetY] = useState(0);
   const [imageZoom, setImageZoom] = useState(1);
+  const [preferredPaymentMethods, setPreferredPaymentMethods] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [initialized, setInitialized] = useState(false);
@@ -195,12 +261,17 @@ const ChampionshipSettings = () => {
         double_elimination_enabled: cat.double_elimination_enabled ?? true,
         start_date: cat.start_date ?? '',
         start_time: cat.start_time ?? '',
+        match_settings: (cat.match_settings ?? []).map((setting) => ({
+          stage_type: setting.stage_type,
+          max_sets: setting.max_sets === 3 ? 3 : 1,
+        })),
       })),
     );
     setImage(existing.image_url ?? '');
     setImageOffsetX(existing.image_offset_x ?? 0);
     setImageOffsetY(existing.image_offset_y);
     setImageZoom(existing.image_zoom ?? 1);
+    setPreferredPaymentMethods(existing.preferred_payment_methods ?? []);
     setInitialized(true);
   }, [existing, isEditing, initialized]);
 
@@ -225,6 +296,27 @@ const ChampionshipSettings = () => {
       }),
     );
   }, [categoriesCatalog]);
+
+  useEffect(() => {
+    if (!formatsCatalog.length) return;
+    setCategories((prev) =>
+      prev.map((category) => {
+        const nextMatchSettings = normalizeMatchSettingsForStages(
+          category.match_settings,
+          getStageTypesForFormat(category.format_id, formatsCatalog),
+        );
+        const currentSerialized = JSON.stringify(category.match_settings);
+        const nextSerialized = JSON.stringify(nextMatchSettings);
+        if (currentSerialized === nextSerialized) {
+          return category;
+        }
+        return {
+          ...category,
+          match_settings: nextMatchSettings,
+        };
+      }),
+    );
+  }, [formatsCatalog]);
 
   const eventDateOptions = useMemo(() => {
     if (!startDate) return [];
@@ -252,33 +344,59 @@ const ChampionshipSettings = () => {
 
   // ── Category helpers ───────────────────────────────────────────────────────
   const addCategory = () =>
-    setCategories((prev) => [...prev, {
-      id: genId(),
-      backend_id: undefined,
-      format_id: formatsCatalog[0]?.id != null ? String(formatsCatalog[0].id) : '',
-      category_slug: categoriesCatalog[0]?.slug ?? 'beginner',
-      audience_slug: 'mixed',
-      entry_fee: '',
-      max_subscriptions: '',
-      auto_generate_matches: true,
-      requires_approval: false,
-      double_elimination_enabled: true,
-      start_date: eventDateOptions[0] ?? '',
-      start_time: '09:00',
-    }]);
+    setCategories((prev) => {
+      const nextFormatId = formatsCatalog[0]?.id != null ? String(formatsCatalog[0].id) : '';
+      return [...prev, {
+        id: genId(),
+        backend_id: undefined,
+        format_id: nextFormatId,
+        category_slug: categoriesCatalog[0]?.slug ?? 'beginner',
+        audience_slug: 'mixed',
+        entry_fee: '15',
+        max_subscriptions: '',
+        auto_generate_matches: true,
+        requires_approval: false,
+        double_elimination_enabled: true,
+        start_date: eventDateOptions[0] ?? '',
+        start_time: '09:00',
+        match_settings: normalizeMatchSettingsForStages([], getStageTypesForFormat(nextFormatId, formatsCatalog)),
+      }];
+    });
 
   const removeCategory = (id: string) => setCategories((prev) => prev.filter((c) => c.id !== id));
 
   const updateCategory = (
     id: string,
     field: keyof Omit<CategoryEntry, 'id' | 'backend_id'>,
-    value: string | boolean,
+    value: string | boolean | MatchSettingEntry[],
   ) =>
     setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
+
+  const updateCategoryMatchSetting = (
+    categoryId: string,
+    stageType: string,
+    maxSets: 1 | 3,
+  ) =>
+    setCategories((prev) => prev.map((category) => {
+      if (category.id !== categoryId) return category;
+      return {
+        ...category,
+        match_settings: category.match_settings.map((setting) => (
+          setting.stage_type === stageType
+            ? { ...setting, max_sets: maxSets }
+            : setting
+        )),
+      };
+    }));
 
   // ── Save ───────────────────────────────────────────────────────────────────
   const handleSave = async (nextStatus = status) => {
     if (!name.trim()) return;
+    const hasInvalidEntryFee = categories.some((category) => category.entry_fee && Number(category.entry_fee) < 15);
+    if (hasInvalidEntryFee) {
+      notify.error('Valor da inscrição deve ser no mínimo R$ 15,00');
+      return;
+    }
     setIsSaving(true);
     try {
       const payload = {
@@ -295,6 +413,7 @@ const ChampionshipSettings = () => {
         image_offset_x: Math.round(imageOffsetX),
         image_offset_y: Math.round(imageOffsetY),
         image_zoom: imageZoom,
+        preferred_payment_methods: preferredPaymentMethods,
         config_json: {
           ...(existing?.config_json ?? {}),
           host_venue_type: venueType,
@@ -315,6 +434,11 @@ const ChampionshipSettings = () => {
           double_elimination_enabled: c.double_elimination_enabled,
           start_date: c.start_date || null,
           start_time: c.start_time || null,
+          match_settings: c.match_settings.map((setting) => ({
+            stage_type: setting.stage_type,
+            max_sets: setting.max_sets,
+            sets_to_win: setting.max_sets === 3 ? 2 : 1,
+          })),
         })),
       };
 
@@ -350,22 +474,6 @@ const ChampionshipSettings = () => {
       notify.error('Erro ao excluir campeonato');
     }
   };
-
-  // ── Access guard ───────────────────────────────────────────────────────────
-  if (!isGestorMode && !currentUser.isAdmin) {
-    return (
-      <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))]">
-        <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
-          <div className="inline-flex items-center gap-2 rounded-full border border-live/30 bg-live/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-live">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            {t('ownerOnlyTitle')}
-          </div>
-          <h1 className="mt-5 font-display text-4xl font-black"><span className="neon-text">{t('championships')}</span></h1>
-          <p className="mt-3 max-w-xl text-sm text-muted-foreground">{t('ownerOnlyDescription')}</p>
-        </div>
-      </div>
-    );
-  }
 
   if (isEditing && isLoadingChamp) {
     return <div className="flex items-center justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
@@ -588,6 +696,31 @@ const ChampionshipSettings = () => {
           </div>
         </div>
 
+        <div className="mt-6 rounded-2xl border border-border bg-background/25 p-4 sm:p-5">
+          <div className="mb-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('paymentMethods')}</div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {paymentMethodOptions.map((method) => {
+              const code = method.code;
+              const isSelected = preferredPaymentMethods.includes(code);
+              return (
+                <label key={method.id} className="flex items-center gap-3 rounded-xl border border-border bg-background/30 px-4 py-3 text-sm">
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={(checked) => {
+                      setPreferredPaymentMethods((current) => (
+                        checked
+                          ? Array.from(new Set([...current, code]))
+                          : current.filter((value) => value !== code)
+                      ));
+                    }}
+                  />
+                  <span className="font-medium">{method.name}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Categories */}
         <div className="mt-6 rounded-2xl border border-border bg-background/25 p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between gap-4">
@@ -622,13 +755,29 @@ const ChampionshipSettings = () => {
                       : language === 'pt-BR'
                         ? 'Se ativada, a dupla eliminação ainda depende da configuração do formato e da quantidade de jogadores classificados.'
                         : 'If enabled, double elimination still depends on the format configuration and the number of qualified players.';
+                    const configurableStageTypes = getStageTypesForFormat(cat.format_id, formatsCatalog);
+                    const matchSettings = normalizeMatchSettingsForStages(cat.match_settings, configurableStageTypes);
 
                     return (
                       <>
                   {/* Row 1: format | category | audience — equal thirds */}
                   <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
                     <Field label={t('bracketFormat')}>
-                      <Select value={cat.format_id} onValueChange={(v) => updateCategory(cat.id, 'format_id', v)}>
+                      <Select
+                        value={cat.format_id}
+                        onValueChange={(v) => {
+                          const nextStageTypes = getStageTypesForFormat(v, formatsCatalog);
+                          setCategories((prev) => prev.map((category) => (
+                            category.id === cat.id
+                              ? {
+                                  ...category,
+                                  format_id: v,
+                                  match_settings: normalizeMatchSettingsForStages(category.match_settings, nextStageTypes),
+                                }
+                              : category
+                          )));
+                        }}
+                      >
                         <SelectTrigger className="border-border bg-background/60"><SelectValue /></SelectTrigger>
                         <SelectContent className="border-border bg-popover/95 backdrop-blur-xl">
                           {formatsCatalog.map((f) => (
@@ -676,10 +825,11 @@ const ChampionshipSettings = () => {
                               }
                             }
                           }}
-                          placeholder="0.00"
+                          placeholder="15.00"
                           className="h-full border-0 bg-transparent shadow-none focus-visible:ring-0"
                         />
                       </div>
+                      <p className="mt-1 text-[11px] text-muted-foreground">Mínimo R$ 15,00</p>
                     </Field>
                     <Field label={t('maxSubscriptions')}>
                       <NumberStepper
@@ -712,15 +862,17 @@ const ChampionshipSettings = () => {
                     </Field>
                   </div>
 
-                  {/* Row 3: auto-generate (grows) | delete (last) */}
-                  <div className="mt-3 flex items-center gap-3">
-                    <div className="flex flex-1 items-center justify-between gap-3 rounded-xl border border-border bg-background/30 px-3 h-10">
-                      <span className="text-xs font-semibold text-muted-foreground">{t('autoGenerateMatches')}</span>
-                      <Switch checked={cat.auto_generate_matches} onCheckedChange={(v) => updateCategory(cat.id, 'auto_generate_matches', v)} />
-                    </div>
-                    <div className="flex flex-1 items-center justify-between gap-3 rounded-xl border border-border bg-background/30 px-3 h-10">
-                      <span className="text-xs font-semibold text-muted-foreground">{t('subscriptionApprovalRequired')}</span>
-                      <Switch checked={cat.requires_approval} onCheckedChange={(v) => updateCategory(cat.id, 'requires_approval', v)} />
+                  {/* Row 3: auto-generate | approval (stack on mobile, side-by-side on sm+) | delete */}
+                  <div className="mt-3 flex items-start gap-3">
+                    <div className="flex flex-1 flex-col gap-3 sm:flex-row">
+                      <div className="flex flex-1 items-center justify-between gap-3 rounded-xl border border-border bg-background/30 px-3 h-10">
+                        <span className="text-xs font-semibold text-muted-foreground">{t('autoGenerateMatches')}</span>
+                        <Switch checked={cat.auto_generate_matches} onCheckedChange={(v) => updateCategory(cat.id, 'auto_generate_matches', v)} />
+                      </div>
+                      <div className="flex flex-1 items-center justify-between gap-3 rounded-xl border border-border bg-background/30 px-3 h-10">
+                        <span className="text-xs font-semibold text-muted-foreground">{t('subscriptionApprovalRequired')}</span>
+                        <Switch checked={cat.requires_approval} onCheckedChange={(v) => updateCategory(cat.id, 'requires_approval', v)} />
+                      </div>
                     </div>
                     <button type="button" onClick={() => removeCategory(cat.id)} title={t('remove')} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-background/40 text-muted-foreground transition-smooth hover:border-live/40 hover:bg-live/10 hover:text-live">
                       <Trash2 className="h-4 w-4" />
@@ -738,6 +890,50 @@ const ChampionshipSettings = () => {
                         checked={cat.double_elimination_enabled}
                         onCheckedChange={(v) => updateCategory(cat.id, 'double_elimination_enabled', v)}
                       />
+                    </div>
+                  </div>
+                  <div className="mt-3 rounded-xl border border-border bg-background/30 p-3">
+                    <div className="mb-3">
+                      <div className="text-xs font-semibold text-foreground">Sets por fase</div>
+                      <div className="mt-1 text-[11px] text-muted-foreground">
+                        Escolha 1 set (vence 1) ou 3 sets (vence 2) para cada fase configurada pelo formato.
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {matchSettings.map((setting) => (
+                        <div key={`${cat.id}-${setting.stage_type}`} className="flex flex-col gap-2 rounded-xl border border-border/70 bg-background/40 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <div className="text-sm font-semibold text-foreground">{STAGE_LABELS[setting.stage_type] ?? setting.stage_type}</div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {setting.max_sets === 3 ? 'Melhor de 3, vence 2 sets' : 'Jogo único, vence 1 set'}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => updateCategoryMatchSetting(cat.id, setting.stage_type, 1)}
+                              className={`rounded-lg border px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] transition-smooth ${
+                                setting.max_sets === 1
+                                  ? 'border-primary/40 bg-primary/10 text-foreground'
+                                  : 'border-border bg-background/50 text-muted-foreground'
+                              }`}
+                            >
+                              1 set
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateCategoryMatchSetting(cat.id, setting.stage_type, 3)}
+                              className={`rounded-lg border px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] transition-smooth ${
+                                setting.max_sets === 3
+                                  ? 'border-primary/40 bg-primary/10 text-foreground'
+                                  : 'border-border bg-background/50 text-muted-foreground'
+                              }`}
+                            >
+                              3 sets
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                       </>

@@ -552,7 +552,7 @@ const ProfileSettings = () => {
             <input ref={inputRef} type="file" accept="image/*" onChange={handleAvatarPick} className="hidden" />
             {currentUser.level && (
               <div className="mt-3 flex justify-center">
-                <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${levelColors[currentUser.level] ?? levelColors.beginner}`}>
+                <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${levelColors[currentUser.level] ?? levelColors.beginner}`}>
                   <Trophy className="h-2.5 w-2.5" />
                   {t(currentUser.level)}
                 </span>

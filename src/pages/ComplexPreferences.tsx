@@ -12,10 +12,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { createHolidaySchedule, getComplexPreference, paymentMethodOptions, saveComplexPreference, weekDayOrder } from '@/lib/complex-preferences-store';
-import { complexPreferencesApi, sportComplexApi } from '@/lib/api';
+import { createHolidaySchedule, getComplexPreference, saveComplexPreference, weekDayOrder } from '@/lib/complex-preferences-store';
+import { complexPreferencesApi, paymentMethodsApi, sportComplexApi, type PaymentMethodOptionData } from '@/lib/api';
 
-import type { DaySchedule, HolidaySchedule, PaymentMethod, PricingRule } from '@/types';
+import type { DaySchedule, HolidaySchedule, PricingRule } from '@/types';
 import { getAllCourts } from '@/lib/courts-store';
 
 const formatDateValue = (dateValue: string) => {
@@ -51,7 +51,7 @@ const describePricingRuleCourts = (
 };
 
 const ComplexPreferences = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { complexId } = useParams<{ complexId: string }>();
   const { currentUser, isGestorMode, token } = useSession();
   const navigate = useNavigate();
@@ -72,25 +72,26 @@ const ComplexPreferences = () => {
   const basePreference = selectedComplexKey ? getComplexPreference(selectedComplexKey) : null;
   const [weekSchedule, setWeekSchedule] = useState<DaySchedule[]>(basePreference?.weekSchedule ?? []);
   const [holidays, setHolidays] = useState<HolidaySchedule[]>(basePreference?.holidays ?? []);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(basePreference?.paymentMethods ?? []);
-  const [classesPaymentMethods, setClassesPaymentMethods] = useState<PaymentMethod[]>(basePreference?.classesPaymentMethods ?? []);
-  const [rentalPaymentMethods, setRentalPaymentMethods] = useState<PaymentMethod[]>(basePreference?.rentalPaymentMethods ?? []);
-  const [championshipPaymentMethods, setChampionshipPaymentMethods] = useState<PaymentMethod[]>(basePreference?.championshipPaymentMethods ?? []);
+  const [paymentMethods, setPaymentMethods] = useState<string[]>(basePreference?.paymentMethods ?? []);
+  const [classesPaymentMethods, setClassesPaymentMethods] = useState<string[]>(basePreference?.classesPaymentMethods ?? []);
+  const [rentalPaymentMethods, setRentalPaymentMethods] = useState<string[]>(basePreference?.rentalPaymentMethods ?? []);
+  const [championshipPaymentMethods, setChampionshipPaymentMethods] = useState<string[]>(basePreference?.championshipPaymentMethods ?? []);
   const [pricingRules, setPricingRules] = useState<PricingRule[]>(basePreference?.pricingRules ?? []);
   const [dateSectionOpen, setDateSectionOpen] = useState(false);
   const [pricingSectionOpen, setPricingSectionOpen] = useState(false);
   const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
   const [integrationSectionOpen, setIntegrationSectionOpen] = useState(false);
   const [asaasWalletId, setAsaasWalletId] = useState('');
+  const { data: paymentMethodOptions = [] } = useQuery({
+    queryKey: ['payment-methods'],
+    queryFn: () => paymentMethodsApi.list(token!),
+    enabled: !!token && canManageComplexes,
+  });
 
   const complexIdNumber = selectedPlace ? selectedPlace.id : null;
-  useQuery({
+  const { data: remotePreference } = useQuery({
     queryKey: ['complex-preferences', complexIdNumber],
-    queryFn: async () => {
-      const data = await complexPreferencesApi.get(token!, complexIdNumber!);
-      setAsaasWalletId(data.asaas_wallet_id ?? '');
-      return data;
-    },
+    queryFn: () => complexPreferencesApi.get(token!, complexIdNumber!),
     enabled: !!token && complexIdNumber != null,
   });
   const ownedCourts = useMemo(
@@ -102,6 +103,18 @@ const ComplexPreferences = () => {
     if (!selectedComplexKey) return;
     syncPreference(selectedComplexKey);
   }, [selectedComplexKey]);
+
+  useEffect(() => {
+    if (!remotePreference) return;
+    setAsaasWalletId(remotePreference.asaas_wallet_id ?? '');
+    setWeekSchedule((remotePreference.week_schedule as DaySchedule[]) ?? []);
+    setHolidays((remotePreference.holidays as HolidaySchedule[]) ?? []);
+    setPaymentMethods(remotePreference.payment_methods ?? []);
+    setClassesPaymentMethods(remotePreference.classes_payment_methods ?? []);
+    setRentalPaymentMethods(remotePreference.rental_payment_methods ?? []);
+    setChampionshipPaymentMethods(remotePreference.championship_payment_methods ?? []);
+    setPricingRules((remotePreference.pricing_rules as PricingRule[]) ?? []);
+  }, [remotePreference]);
 
   const syncPreference = (complexId: string) => {
     const preference = getComplexPreference(complexId);
@@ -467,22 +480,28 @@ const ComplexPreferences = () => {
             <PreferencePanel title={t('paymentMethods')} isOpen={paymentSectionOpen} onToggle={() => setPaymentSectionOpen((current) => !current)}>
               <div className="space-y-5">
                 <PaymentMethodSubSection
+                  title={language === 'pt-BR' ? 'Geral' : 'General'}
+                  options={paymentMethodOptions}
+                  selected={paymentMethods}
+                  onChange={setPaymentMethods}
+                />
+                <PaymentMethodSubSection
                   title={t('classesPaymentMethods')}
+                  options={paymentMethodOptions}
                   selected={classesPaymentMethods}
                   onChange={setClassesPaymentMethods}
-                  t={t}
                 />
                 <PaymentMethodSubSection
                   title={t('rentalPaymentMethods')}
+                  options={paymentMethodOptions}
                   selected={rentalPaymentMethods}
                   onChange={setRentalPaymentMethods}
-                  t={t}
                 />
                 <PaymentMethodSubSection
                   title={t('championshipPaymentMethods')}
+                  options={paymentMethodOptions}
                   selected={championshipPaymentMethods}
                   onChange={setChampionshipPaymentMethods}
-                  t={t}
                 />
               </div>
             </PreferencePanel>
@@ -572,42 +591,36 @@ const PreferencePanel = ({
   </div>
 );
 
-const paymentMethodLabel = (t: (key: string) => string, method: PaymentMethod) => ({
-  pix: t('pix'),
-  'credit-card': t('creditCard'),
-  'debit-card': t('debitCard'),
-  'pay-on-site': t('payOnSite'),
-}[method]);
-
 const PaymentMethodSubSection = ({
   title,
+  options,
   selected,
   onChange,
-  t,
 }: {
   title: string;
-  selected: PaymentMethod[];
-  onChange: (next: PaymentMethod[]) => void;
-  t: (key: string) => string;
+  options: PaymentMethodOptionData[];
+  selected: string[];
+  onChange: (next: string[]) => void;
 }) => (
   <div>
     <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{title}</div>
     <div className="grid gap-2 sm:grid-cols-2">
-      {paymentMethodOptions.map((method) => {
-        const isSelected = selected.includes(method);
+      {options.map((method) => {
+        const code = method.code;
+        const isSelected = selected.includes(code);
         return (
-          <label key={method} className="flex items-center gap-3 rounded-xl border border-border bg-background/30 px-4 py-3 text-sm">
+          <label key={method.id} className="flex items-center gap-3 rounded-xl border border-border bg-background/30 px-4 py-3 text-sm">
             <Checkbox
               checked={isSelected}
               onCheckedChange={(checked) => {
                 onChange(
                   checked
-                    ? Array.from(new Set([...selected, method]))
-                    : selected.filter((item) => item !== method),
+                    ? Array.from(new Set([...selected, code]))
+                    : selected.filter((item) => item !== code),
                 );
               }}
             />
-            <span className="font-medium">{paymentMethodLabel(t, method)}</span>
+            <span className="font-medium">{method.name}</span>
           </label>
         );
       })}

@@ -30,6 +30,7 @@ import { useSession } from '@/session';
 import type { Match, SportId } from '@/types';
 
 type BracketRounds = Array<{ name: string; matches: Match[] }>;
+const API_BASE = import.meta.env.API_URL ?? '/api/v1';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -206,6 +207,29 @@ const ChampionshipDetail = () => {
     queryFn: () => championshipApi.getMatches(token ?? '', id!, selectedCategoryId!),
     enabled: !!id && selectedCategoryId !== null,
   });
+
+  useEffect(() => {
+    if (!id || !championship?.is_public) return;
+    const eventSource = new EventSource(`${API_BASE}/championships/${id}/matches/stream`);
+    const handleRefresh = (event: MessageEvent<string>) => {
+      try {
+        const payload = JSON.parse(event.data) as { category_id?: number };
+        if (selectedCategoryId != null && payload.category_id != null && payload.category_id !== selectedCategoryId) {
+          return;
+        }
+      } catch {
+        // Ignore malformed payloads and still refresh.
+      }
+      queryClient.invalidateQueries({
+        queryKey: ['championship-matches', id, selectedCategoryId],
+      });
+    };
+    eventSource.addEventListener('matches-updated', handleRefresh);
+    return () => {
+      eventSource.removeEventListener('matches-updated', handleRefresh);
+      eventSource.close();
+    };
+  }, [championship?.is_public, id, queryClient, selectedCategoryId]);
 
   const handleScoreUpdate = useCallback(
     async (matchId: string, scores1: Array<number | null>, scores2: Array<number | null>) => {
@@ -416,6 +440,8 @@ const UnifiedMatchesView = ({
   const settingsByStage = new Map<string, number>(
     (data.match_settings ?? []).map((s: CategoryMatchSettingsOut) => [s.stage_type, s.max_sets]),
   );
+  const getMaxSetsForStage = (stageType: string | null | undefined) =>
+    settingsByStage.get(stageType ?? '') ?? settingsByStage.get('default') ?? undefined;
 
   const isEmpty = data.tables.length === 0 && data.brackets.length === 0;
   const rawFirstStageName = getStageConfigName(data.format_config, 'first_stage');
@@ -484,7 +510,7 @@ const UnifiedMatchesView = ({
                 name,
                 timezone,
                 data.format_config,
-                settingsByStage.get(m.stage_type ?? '') ?? undefined,
+                getMaxSetsForStage(m.stage_type),
               ),
             ),
           };
@@ -504,7 +530,7 @@ const UnifiedMatchesView = ({
                     thirdPlaceRound.name,
                     timezone,
                     data.format_config,
-                    settingsByStage.get('third_place') ?? undefined,
+                    getMaxSetsForStage('third_place'),
                   ),
                 ),
               },
@@ -526,7 +552,7 @@ const UnifiedMatchesView = ({
                 name,
                 timezone,
                 data.format_config,
-                settingsByStage.get(m.stage_type ?? '') ?? undefined,
+                getMaxSetsForStage(m.stage_type),
               ),
             ),
           };
@@ -542,7 +568,7 @@ const UnifiedMatchesView = ({
               'Grande Final',
               timezone,
               data.format_config,
-              settingsByStage.get('final') ?? undefined,
+              getMaxSetsForStage('final'),
             )
           : null;
 
@@ -557,7 +583,7 @@ const UnifiedMatchesView = ({
                 r.name,
                 timezone,
                 data.format_config,
-                settingsByStage.get(m.stage_type ?? '') ?? undefined,
+                getMaxSetsForStage(m.stage_type),
               ),
             ),
           }));
@@ -571,7 +597,7 @@ const UnifiedMatchesView = ({
                   finaisThirdRound.name,
                   timezone,
                   data.format_config,
-                  settingsByStage.get('third_place') ?? undefined,
+                  getMaxSetsForStage('third_place'),
                 ),
               ),
             }]
@@ -701,7 +727,7 @@ const GroupStandingsCard = ({
   onTeamUpdate: TeamUpdateFn;
 }) => {
   const { t } = useLanguage();
-  const groupMaxSets = settingsByStage.get('group') ?? 1;
+  const groupMaxSets = settingsByStage.get('group') ?? settingsByStage.get('default') ?? 1;
   const hasGoldQualified = table.player_standings.some(
     (player) => player.qualification_status === 'gold',
   );

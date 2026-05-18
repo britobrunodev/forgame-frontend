@@ -33,6 +33,7 @@ import ManagementUsers from "./pages/ManagementUsers.tsx";
 import ManagementAdminAccess from "./pages/ManagementAdminAccess.tsx";
 import AdminApprovals from "./pages/AdminApprovals.tsx";
 import AdminComplexes from "./pages/AdminComplexes.tsx";
+import AdminSettings from "./pages/AdminSettings.tsx";
 import ManagementHub from "./pages/ManagementHub.tsx";
 import AdminHub from "./pages/AdminHub.tsx";
 import TournamentSettings from "./pages/TournamentSettings.tsx";
@@ -103,6 +104,7 @@ const App = () => (
                 <Route path="/admin/access" element={<ManagementAdminAccess />} />
                 <Route path="/admin" element={<AdminHub />} />
                 <Route path="/admin/approvals" element={<AdminApprovals />} />
+                <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="/admin/complexes" element={<AdminComplexes />} />
                 <Route path="/management/payments" element={<ManagementPayments />} />
                 <Route path="/management/complexes" element={<SportComplexesManagement />} />

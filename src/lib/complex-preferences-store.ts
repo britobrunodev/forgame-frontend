@@ -1,9 +1,8 @@
-import type { ComplexPreference, DaySchedule, HolidaySchedule, PaymentMethod, PricingRule } from '@/types';
+import type { ComplexPreference, DaySchedule, HolidaySchedule, PricingRule } from '@/types';
 
 const storageKey = 'joga-junto-complex-preferences';
 
 export const weekDayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
-export const paymentMethodOptions: PaymentMethod[] = ['pix', 'credit-card', 'debit-card', 'pay-on-site'];
 
 const defaultDaySchedule = (day: string): DaySchedule => ({
   day,
@@ -37,8 +36,8 @@ const isHolidaySchedule = (value: unknown): value is HolidaySchedule => {
     && typeof holiday.closeTime === 'string';
 };
 
-const isPaymentMethod = (value: unknown): value is PaymentMethod =>
-  value === 'pix' || value === 'credit-card' || value === 'debit-card' || value === 'pay-on-site';
+const isPaymentMethodCode = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim().length > 0;
 
 const isPricingRule = (value: unknown): value is PricingRule => {
   if (!value || typeof value !== 'object') return false;
@@ -81,17 +80,15 @@ const normalizeHolidays = (value: unknown): HolidaySchedule[] => {
   return [];
 };
 
-const normalizePaymentMethods = (value: unknown, fallback: PaymentMethod[]): PaymentMethod[] => {
-  if (Array.isArray(value) && value.every(isPaymentMethod)) return value;
-  return fallback;
+const normalizePaymentMethodCodes = (value: unknown): string[] => {
+  if (Array.isArray(value) && value.every(isPaymentMethodCode)) return value;
+  return [];
 };
 
 const normalizePreference = (value: unknown): ComplexPreference | null => {
   if (!value || typeof value !== 'object') return null;
   const preference = value as Record<string, unknown>;
   if (typeof preference.complexId !== 'string') return null;
-
-  const legacyMethods = normalizePaymentMethods(preference.paymentMethods, ['pix', 'credit-card', 'debit-card']);
 
   return {
     complexId: preference.complexId,
@@ -101,10 +98,10 @@ const normalizePreference = (value: unknown): ComplexPreference | null => {
       openDays: Array.isArray(preference.openDays) ? preference.openDays.filter((day): day is string => typeof day === 'string') : undefined,
     }),
     holidays: normalizeHolidays(preference.holidays),
-    paymentMethods: legacyMethods,
-    classesPaymentMethods: normalizePaymentMethods(preference.classesPaymentMethods, legacyMethods),
-    rentalPaymentMethods: normalizePaymentMethods(preference.rentalPaymentMethods, legacyMethods),
-    championshipPaymentMethods: normalizePaymentMethods(preference.championshipPaymentMethods, legacyMethods),
+    paymentMethods: normalizePaymentMethodCodes(preference.paymentMethods),
+    classesPaymentMethods: normalizePaymentMethodCodes(preference.classesPaymentMethods),
+    rentalPaymentMethods: normalizePaymentMethodCodes(preference.rentalPaymentMethods),
+    championshipPaymentMethods: normalizePaymentMethodCodes(preference.championshipPaymentMethods),
     pricingRules: normalizePricingRules(preference.pricingRules),
   };
 };
@@ -113,10 +110,10 @@ const defaultPreference = (complexId: string): ComplexPreference => ({
   complexId,
   weekSchedule: weekDayOrder.map((day) => defaultDaySchedule(day)),
   holidays: [],
-  paymentMethods: ['pix', 'credit-card', 'debit-card'],
-  classesPaymentMethods: ['pix', 'credit-card', 'debit-card'],
-  rentalPaymentMethods: ['pix', 'credit-card', 'debit-card'],
-  championshipPaymentMethods: ['pix', 'credit-card', 'debit-card'],
+  paymentMethods: [],
+  classesPaymentMethods: [],
+  rentalPaymentMethods: [],
+  championshipPaymentMethods: [],
   pricingRules: [],
 });
 

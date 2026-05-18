@@ -15,46 +15,29 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: 'bg-muted/60 text-muted-foreground',
-  open: 'bg-primary/10 text-primary-glow',
-  subscription_ended: 'bg-neon-pink/10 text-neon-pink',
-  live: 'bg-live/10 text-live',
-  ended: 'bg-muted/40 text-muted-foreground',
+  draft: 'border-border bg-muted/60 text-muted-foreground',
+  open: 'border-primary/30 bg-primary/10 text-primary-glow',
+  subscription_ended: 'border-neon-pink/65 bg-neon-pink/22 text-white shadow-[0_0_14px_hsl(var(--neon-pink)/0.14)]',
+  live: 'border-live/30 bg-live/10 text-live',
+  ended: 'border-border bg-muted/40 text-muted-foreground',
 };
 
 const ManagementChampionships = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { currentUser, isGestorMode, token } = useSession();
+  const { token } = useSession();
   const [page, setPage] = useState(1);
   const perPage = 12;
-  const canManage = currentUser.isAdmin || isGestorMode;
 
   const { data, isLoading } = useQuery({
     queryKey: ['championships', page],
     queryFn: () => championshipApi.listMine(token!, page, perPage),
-    enabled: !!token && canManage,
+    enabled: !!token,
   });
 
   const championships = data?.items ?? [];
   const totalPages = data?.total_pages ?? 1;
   const totalItems = data?.total ?? 0;
-
-  if (!canManage) {
-    return (
-      <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))]">
-        <div className="rounded-2xl border border-border bg-gradient-card p-8 shadow-card">
-          <div className="inline-flex items-center gap-2 rounded-full border border-live/30 bg-live/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-live">
-            {t('ownerOnlyTitle')}
-          </div>
-          <h1 className="mt-5 font-display text-4xl font-black">
-            <span className="neon-text">{t('championships')}</span>
-          </h1>
-          <p className="mt-3 max-w-xl text-sm text-muted-foreground">{t('ownerOnlyDescription')}</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto w-full max-w-[min(72rem,calc(100vw-2rem))] space-y-8">
@@ -103,7 +86,7 @@ const ManagementChampionships = () => {
               <article key={c.id} className="rounded-2xl border border-border bg-background/40 p-4">
                 <div className="font-display text-sm font-bold uppercase tracking-[0.12em] text-foreground">{c.name}</div>
                 <div className="mt-2">
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] ${STATUS_COLORS[c.status] ?? STATUS_COLORS.draft}`}>
+                  <span className={`inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.15em] ${STATUS_COLORS[c.status] ?? STATUS_COLORS.draft}`}>
                     {STATUS_LABELS[c.status] ?? c.status}
                   </span>
                 </div>
@@ -165,7 +148,7 @@ const ManagementChampionships = () => {
                       <div className="truncate font-display text-xs font-bold uppercase tracking-[0.14em] text-foreground">{c.name}</div>
                     </div>
                     <div className="self-center">
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] ${STATUS_COLORS[c.status] ?? STATUS_COLORS.draft}`}>
+                      <span className={`inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.15em] ${STATUS_COLORS[c.status] ?? STATUS_COLORS.draft}`}>
                         {STATUS_LABELS[c.status] ?? c.status}
                       </span>
                     </div>
